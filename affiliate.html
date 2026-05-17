@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlterCast — Live Affiliate (TikTok Substitute)</title>
+  <link rel="stylesheet" href="assets/styles/tokens.css">
+  <link rel="stylesheet" href="assets/styles/affiliate.css">
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div class="aff-topbar">
+    <span class="brand">Alter<b>Cast</b></span>
+    <span style="opacity:.4">·</span>
+    <span style="font-size:11px;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase;font-family:var(--font-mono);">Live Affiliate Mode</span>
+    <div class="spacer"></div>
+    <a href="index.html">Beranda</a>
+    <a href="studio.html">Studio</a>
+    <a href="live.html">Hologram</a>
+    <a href="demo.html">Demo</a>
+  </div>
+
+  <!-- Main 3-column shell -->
+  <div class="aff-shell">
+
+    <!-- LEFT: Product editor + session controls -->
+    <aside class="aff-products">
+      <div class="aff-products-header">
+        <h3>Produk Live</h3>
+        <button class="add-product-btn" id="add-product">+ Tambah</button>
+      </div>
+      <div id="product-list"></div>
+
+      <div class="session-panel" id="session-controls"></div>
+
+      <div style="margin-top:14px;padding:12px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--r-md);">
+        <h4 style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Statistik Sesi</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-family:var(--font-mono);font-size:11px;">
+          <div>Durasi<br><b style="color:var(--accent-primary);font-size:14px;" id="stat-duration">0:00</b></div>
+          <div>Pitch<br><b style="color:var(--accent-primary);font-size:14px;" id="stat-pitches">0</b></div>
+          <div>Gift<br><b style="color:var(--status-warning);font-size:14px;" id="stat-gifts">0</b></div>
+          <div>Follower<br><b style="color:var(--status-online);font-size:14px;" id="stat-followers">0</b></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER: TikTok-style portrait stage -->
+    <main class="aff-stage">
+      <div class="aff-portrait">
+        <canvas id="aff-bg"></canvas>
+        <canvas id="aff-canvas"></canvas>
+        <canvas id="aff-particles"></canvas>
+
+        <!-- Pinned product card -->
+        <div class="pinned-product" id="pinned-product"></div>
+
+        <!-- Live badge -->
+        <div class="aff-live-badge" id="aff-live-badge">LIVE</div>
+
+        <!-- Stats top-right -->
+        <div class="aff-stats">
+          <div class="aff-stat"><span class="icon">👀</span><span class="v" id="viewer-count">0</span></div>
+          <div class="aff-stat"><span class="icon">⚡</span><span class="v" id="stat-fps">—</span> fps</div>
+        </div>
+
+        <!-- Speech bubble -->
+        <div class="aff-bubble" id="aff-bubble">
+          <div class="aff-bubble-text" id="aff-bubble-text">Halo guys!</div>
+        </div>
+
+        <!-- Floating alert -->
+        <div class="aff-alert" id="aff-alert"></div>
+
+        <!-- Product strip -->
+        <div class="product-strip" id="product-strip"></div>
+      </div>
+    </main>
+
+    <!-- RIGHT: Chat + simulation -->
+    <aside class="aff-chat">
+      <div class="aff-chat-header">
+        <h3><span class="dot"></span>Chat Live</h3>
+        <div class="aff-chat-counter"><b id="chat-counter">0</b> pesan</div>
+      </div>
+      <div class="aff-chat-list" id="aff-chat-list"></div>
+
+      <div class="aff-sim">
+        <button class="sim-btn" id="sim-follow">💚 Follow</button>
+        <button class="sim-btn" id="sim-gift">🎁 Gift</button>
+        <button class="sim-btn" id="sim-question">❓ Tanya</button>
+        <button class="sim-btn" id="sim-share">🔄 Share</button>
+      </div>
+
+      <div class="aff-input-wrap">
+        <input type="text" class="aff-input" id="aff-input" placeholder="Tanya/ngobrol sebagai viewer...">
+        <button class="aff-send" id="aff-send">SEND</button>
+      </div>
+    </aside>
+
+  </div>
+
+  <script type="module" src="app/affiliate-page.js"></script>
+</body>
+</html>

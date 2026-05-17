@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlterCast — Tetap Siaran. Walau Kamu Tidak Ada.</title>
+  <meta name="description" content="AlterCast — AI streaming avatar 3D real-time. Tetap siaran walau sakit, AFK, atau burnout. Bahasa Indonesia native.">
+  <link rel="stylesheet" href="assets/styles/tokens.css">
+  <link rel="stylesheet" href="assets/styles/landing.css">
+</head>
+<body>
+
+  <div class="landing">
+
+    <nav class="landing-nav">
+      <div class="brand">
+        <div class="brand-mark">A</div>
+        <span>Alter<b>Cast</b></span>
+      </div>
+      <div class="landing-nav-links">
+        <a class="landing-nav-link" href="#features">Fitur</a>
+        <a class="landing-nav-link" href="live.html">Hologram</a>
+        <a class="landing-nav-link affiliate-nav" href="affiliate.html">🛒 Affiliate</a>
+        <a class="landing-nav-link" href="overlay.html">Overlay</a>
+        <a class="landing-nav-link primary" href="studio.html">Masuk Studio →</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="hero-left">
+        <h1>Tetap <span class="gradient">Siaran.</span><br>Walau Kamu Tidak Ada.</h1>
+        <p class="hero-tagline">
+          AI streaming avatar 3D real-time. Karaktermu hidup di browser, baca chat,
+          ngobrol dengan penonton dalam Bahasa Indonesia — bahkan saat kamu sakit,
+          AFK, atau burnout.
+        </p>
+        <div class="hero-cta">
+          <a class="cta affiliate" href="affiliate.html">
+            <span>🛒</span> Live Affiliate (Bedrest Mode)
+          </a>
+          <a class="cta primary" href="studio.html">
+            <span>▶</span> Masuk Studio
+          </a>
+          <a class="cta secondary" href="live.html">
+            <span>✦</span> Mode Hologram
+          </a>
+        </div>
+        <div class="hero-meta">
+          <span>WebGL · <b>60 fps</b></span>
+          <span>TTS · <b>Bahasa Indonesia</b></span>
+          <span>Latency · <b>~320ms</b></span>
+          <span>No install</span>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <canvas id="hero-canvas"></canvas>
+        <div class="hero-capsule-glow"></div>
+        <div class="hero-corner tl"></div>
+        <div class="hero-corner tr"></div>
+        <div class="hero-corner bl"></div>
+        <div class="hero-corner br"></div>
+      </div>
+    </section>
+
+    <section class="features-section" id="features">
+      <h2 class="features-title">Fitur Utama</h2>
+      <p class="features-sub">Semuanya jalan di browser. Tidak perlu install. Tidak perlu Unreal Engine.</p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🎭</div>
+          <h3>Avatar 3D Real-time</h3>
+          <p>Karakter prosedural WebGL — sphere + curved patches + hair strands. Smooth 60 fps di desktop, 30 fps di mobile.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">👁</div>
+          <h3>Face Tracking</h3>
+          <p>Webcam-mu menggerakkan avatar — kepala, mata, mulut, ekspresi. MediaPipe FaceLandmarker, browser native.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🗣</div>
+          <h3>TTS Bahasa Indonesia</h3>
+          <p>Avatar bicara natural dengan suara Indonesia (Web Speech API). Lip-sync otomatis. Voice clone via ElevenLabs opsional.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📡</div>
+          <h3>OBS Integration</h3>
+          <p>Browser source overlay transparan untuk OBS / Streamlabs / TikTok Live Studio. WebSocket v5 support.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🧠</div>
+          <h3>AI Brain</h3>
+          <p>Avatar baca chat sendiri, jawab pertanyaan, react donasi. AFK pun tetap live. Local LLM (Ollama) atau Cloud (OpenAI).</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎨</div>
+          <h3>Multi-Avatar</h3>
+          <p>Yuna, Aetheria, atau upload foto sendiri. Procedural rig otomatis dari sample warna kulit/rambut/baju.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Mode Hologram</h3>
+          <p>Tampilan fullscreen ala kapsul Gatebox — avatar tunggal, floating UI, capsule frame. Untuk display tablet/monitor.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎚</div>
+          <h3>Parameter Lengkap</h3>
+          <p>Semua tombol, slider, toggle terhubung langsung ke engine state. Tidak ada UI dummy. Tweak rim glow, depth, light angle real-time.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🇮🇩</div>
+          <h3>Bahasa Indonesia Native</h3>
+          <p>UI default Bahasa Indonesia. Toggle EN tersedia. Frasa greeting, react, dan random line semuanya natural Indonesia.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="landing-footer">
+      ALTERCAST v1.0 · Powered by WebGL · Built in Indonesia · MIT License
+    </footer>
+
+  </div>
+
+  <script type="module">
+    import { EngineBridge } from "./app/engine-bridge.js";
+    import { store } from "./app/store.js";
+
+    /* Mini hero avatar preview */
+    const canvas = document.getElementById("hero-canvas");
+    if (canvas) {
+      try {
+        const bridge = new EngineBridge(canvas);
+        await bridge.boot();
+        store.set("lightingPreset", "hologram");
+        let t0 = performance.now();
+        function loop(ts) {
+          requestAnimationFrame(loop);
+          const t = (ts - t0) / 1000;
+          /* gentle orbit */
+          bridge.engine.setRotation(0, Math.sin(t * 0.4) * 0.5);
+          bridge.render(ts / 1000);
+        }
+        requestAnimationFrame(loop);
+      } catch (err) {
+        console.error("Hero preview failed:", err);
+      }
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlterCast — Demo Auto-Start</title>
+  <link rel="stylesheet" href="assets/styles/tokens.css">
+  <link rel="stylesheet" href="assets/styles/live.css">
+</head>
+<body>
+
+  <div id="live-stage"></div>
+  <canvas id="bg-canvas"></canvas>
+  <canvas id="webgl-canvas"></canvas>
+  <canvas id="particles-canvas"></canvas>
+
+  <div id="vignette"></div>
+  <div id="floor-glow"></div>
+
+  <!-- Hologram capsule frame -->
+  <div class="capsule"></div>
+  <div class="capsule-edge left"></div>
+  <div class="capsule-edge right"></div>
+  <div class="scanline"></div>
+
+  <a id="studio-link" href="studio.html">
+    <span class="logo-mini">Alter<b>Cast</b></span>
+    <span style="opacity:.4">·</span>
+    <span>Studio</span>
+  </a>
+
+  <div id="fps">— fps</div>
+
+  <div id="name-tag">
+    <div class="name-dot"></div>
+    <div>
+      <div class="name-text" id="name-text">Yuna</div>
+      <div class="name-meta">DEMO MODE · AUTO-LIVE</div>
+    </div>
+  </div>
+
+  <!-- Diagnostic panel -->
+  <div id="diag" style="position:fixed;top:80px;left:18px;background:var(--panel);backdrop-filter:blur(20px);border:1px solid var(--border-subtle);border-radius:var(--r-md);padding:12px 14px;font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);z-index:60;min-width:220px;line-height:1.6;">
+    <div style="color:var(--accent-primary);font-weight:bold;margin-bottom:6px;letter-spacing:.1em;">SYSTEM STATUS</div>
+    <div>WebGL: <span id="d-webgl">…</span></div>
+    <div>Engine: <span id="d-engine">…</span></div>
+    <div>Avatars: <span id="d-avatars">…</span></div>
+    <div>TTS: <span id="d-tts">…</span></div>
+    <div>Atmosphere: <span id="d-atmos">…</span></div>
+    <div>Auto-orbit: <span id="d-orbit" style="color:var(--status-online)">ON</span></div>
+    <div>Auto-speak: <span id="d-speak" style="color:var(--status-online)">EVERY 8s</span></div>
+    <div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border-subtle);">
+      <a href="live.html" style="color:var(--accent-primary);text-decoration:none;">→ live.html</a><br>
+      <a href="studio.html" style="color:var(--accent-primary);text-decoration:none;">→ studio.html</a><br>
+      <a href="index.html" style="color:var(--accent-primary);text-decoration:none;">→ landing</a>
+    </div>
+  </div>
+
+  <!-- Bubble -->
+  <div id="bubble">
+    <div class="bubble-text">
+      <div class="bubble-tag" id="bubble-tag">YUNA</div>
+      <div id="bubble-text">Halo!</div>
+    </div>
+  </div>
+
+  <div id="bottom-hint">
+    <span class="hint-kbd"><kbd>L</kbd> ganti cahaya</span>
+    <span class="hint-kbd"><kbd>1</kbd>/<kbd>2</kbd> swap avatar</span>
+    <span class="hint-kbd"><kbd>F</kbd> fullscreen</span>
+    <span class="hint-kbd"><kbd>klik</kbd> avatar untuk reaksi</span>
+  </div>
+
+  <div id="stats-overlay">
+    <div class="row"><span class="k">FPS</span><span class="v" id="stat-fps">—</span></div>
+    <div class="row"><span class="k">Avatar</span><span class="v" id="stat-av">yuna</span></div>
+    <div class="row"><span class="k">Emosi</span><span class="v" id="stat-emo">idle</span></div>
+    <div class="row"><span class="k">Cahaya</span><span class="v" id="stat-light">hologram</span></div>
+  </div>
+
+  <script type="module">
+    import { EngineBridge } from "./app/engine-bridge.js";
+    import { Atmosphere } from "./app/atmosphere.js";
+    import { initTTS, speak } from "./app/tts.js";
+    import { store, AVATARS, EMOTIONS, LIGHTING_PRESETS } from "./app/store.js";
+    import { pickRandom, STRINGS } from "./app/i18n.js";
+
+    const $ = id => document.getElementById(id);
+    const setDiag = (id, txt, color) => {
+      const el = $(id);
+      el.textContent = txt;
+      if (color) el.style.color = color;
+    };
+
+    /* 1. WebGL check */
+    const testGL = document.createElement("canvas").getContext("webgl");
+    setDiag("d-webgl", testGL ? "✓ ready" : "✗ unavailable", testGL ? "var(--status-online)" : "var(--status-live)");
+    if (!testGL) {
+      alert("WebGL tidak tersedia di browser ini.");
+      throw new Error("no WebGL");
+    }
+
+    /* 2. Engine boot */
+    let bridge, atmosphere;
+    try {
+      bridge = new EngineBridge($("webgl-canvas"));
+      await bridge.boot();
+      setDiag("d-engine", "✓ booted", "var(--status-online)");
+    } catch (e) {
+      setDiag("d-engine", "✗ " + e.message, "var(--status-live)");
+      throw e;
+    }
+
+    /* 3. Avatars */
+    setDiag("d-avatars", "✓ " + Object.keys(AVATARS).length + " loaded", "var(--status-online)");
+
+    /* 4. TTS */
+    const ttsOK = await initTTS();
+    const voice = store.get("ttsVoice");
+    setDiag("d-tts", ttsOK ? `✓ ${voice?.lang || "default"}` : "✗ unavailable",
+      ttsOK ? "var(--status-online)" : "var(--status-warning)");
+
+    /* 5. Atmosphere */
+    atmosphere = new Atmosphere($("bg-canvas"), $("particles-canvas"));
+    setDiag("d-atmos", "✓ rendering", "var(--status-online)");
+
+    /* 6. Apply hologram preset for that capsule look */
+    store.set("lightingPreset", "hologram");
+    store.set("orbit", true);
+
+    /* 7. Greet immediately */
+    function showBubble(text) {
+      $("bubble-tag").textContent = AVATARS[store.get("currentAvatar")].name.toUpperCase();
+      $("bubble-text").textContent = text;
+      $("bubble").classList.add("show");
+    }
+    function hideBubble() { $("bubble").classList.remove("show"); }
+
+    async function autoSpeak() {
+      if (store.get("speaking")) return;
+      const id = store.get("currentAvatar");
+      const lang = store.get("lang");
+      const lines = STRINGS[lang]?.random_lines || [];
+      if (!lines.length) return;
+      const text = pickRandom(lines);
+      showBubble(text);
+      await speak(text);
+      hideBubble();
+    }
+
+    setTimeout(async () => {
+      const lang = store.get("lang");
+      const id = store.get("currentAvatar");
+      const greet = STRINGS[lang]?.[`greeting_${id}`];
+      if (greet?.length) {
+        const text = pickRandom(greet);
+        showBubble(text);
+        await speak(text);
+        hideBubble();
+      }
+    }, 500);
+
+    /* Auto-speak every 8s (demo "live" feel) */
+    setInterval(autoSpeak, 8000);
+
+    /* Auto-cycle emotion every 5s */
+    const emoKeys = Object.keys(EMOTIONS).filter(e => e !== "sad");
+    setInterval(() => {
+      const next = pickRandom(emoKeys);
+      store.set("emotion", next);
+    }, 5000);
+
+    /* Cycle lighting every 12s */
+    const lightKeys = Object.keys(LIGHTING_PRESETS);
+    let lightIdx = lightKeys.indexOf("hologram");
+    setInterval(() => {
+      lightIdx = (lightIdx + 1) % lightKeys.length;
+      store.set("lightingPreset", lightKeys[lightIdx]);
+    }, 12000);
+
+    /* Click reaction */
+    $("webgl-canvas").addEventListener("click", (e) => {
+      const r = document.createElement("div");
+      r.className = "ripple";
+      r.style.left = e.clientX + "px";
+      r.style.top = e.clientY + "px";
+      document.body.appendChild(r);
+      setTimeout(() => r.remove(), 800);
+
+      const kinds = ["wave", "excited", "surprised", "happy"];
+      const k = pickRandom(kinds);
+      store.set("emotion", k);
+      const lines = STRINGS[store.get("lang")]?.[`reactions_${k}`] || [];
+      if (lines.length && !store.get("speaking")) {
+        const text = pickRandom(lines);
+        showBubble(text);
+        speak(text).then(hideBubble);
+      }
+    });
+
+    /* Mouse follow */
+    const M = { tx: 0, ty: 0 };
+    window.addEventListener("mousemove", e => { M.tx = e.clientX; M.ty = e.clientY; });
+
+    /* Keyboard */
+    document.addEventListener("keydown", e => {
+      switch (e.key) {
+        case "l": case "L":
+          lightIdx = (lightIdx + 1) % lightKeys.length;
+          store.set("lightingPreset", lightKeys[lightIdx]);
+          break;
+        case "1":
+          store.set("currentAvatar", "yuna");
+          $("name-text").textContent = "Yuna";
+          break;
+        case "2":
+          store.set("currentAvatar", "aetheria");
+          $("name-text").textContent = "Aetheria";
+          break;
+        case "f": case "F":
+          if (document.fullscreenElement) document.exitFullscreen();
+          else document.documentElement.requestFullscreen();
+          break;
+      }
+    });
+
+    /* Render loop */
+    function loop(ts) {
+      requestAnimationFrame(loop);
+      const t = ts / 1000;
+      /* Subtle mouse parallax even with orbit on */
+      const nx = (M.tx / window.innerWidth - 0.5) * 2;
+      const ny = (M.ty / window.innerHeight - 0.5) * 2;
+      bridge.engine.setHeadLook(ny * 0.15, nx * 0.25);
+      bridge.engine.setEyeLook(nx * 0.7, ny * 0.5);
+
+      atmosphere.render(t);
+      bridge.render(t);
+
+      $("fps").textContent = store.get("fps") + " fps";
+      $("stat-fps").textContent = store.get("fps");
+      $("stat-av").textContent = store.get("currentAvatar");
+      $("stat-emo").textContent = store.get("emotion");
+      $("stat-light").textContent = store.get("lightingPreset");
+    }
+    requestAnimationFrame(loop);
+  </script>
+
+</body>
+</html>

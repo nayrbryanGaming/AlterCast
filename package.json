@@ -1,0 +1,27 @@
+{
+  "name": "altercast",
+  "version": "1.0.0",
+  "description": "AlterCast — AI streaming avatar 3D real-time, Bahasa Indonesia native, browser native.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.cjs",
+    "dev": "node server.cjs 3000",
+    "serve:8080": "node server.cjs 8080"
+  },
+  "keywords": [
+    "altercast",
+    "avatar",
+    "vtuber",
+    "streaming",
+    "ai",
+    "webgl",
+    "tts",
+    "indonesia",
+    "hologram"
+  ],
+  "author": "nayrbryanGaming",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
