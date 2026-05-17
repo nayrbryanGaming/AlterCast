@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "framework": null,
+  "buildCommand": null,
+  "outputDirectory": ".",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/engine/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/studio", "destination": "/studio.html" },
+    { "source": "/live", "destination": "/live.html" },
+    { "source": "/affiliate", "destination": "/affiliate.html" },
+    { "source": "/demo", "destination": "/demo.html" },
+    { "source": "/avatar", "destination": "/avatar.html" },
+    { "source": "/overlay", "destination": "/overlay.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" }
+  ],
+  "cleanUrls": true
+}
