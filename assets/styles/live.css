@@ -21,18 +21,16 @@ body {
     #05070C;
 }
 
-#bg-canvas, #keqing-canvas, #webgl-canvas, #particles-canvas {
+#bg-canvas, #webgl-canvas, #particles-canvas {
   position: fixed; inset: 0;
   width: 100%; height: 100%;
   display: block;
 }
-#bg-canvas { z-index: 0; pointer-events: none; }
-/* Keqing GLB (Three.js) — body/karakter di belakang face overlay */
-#keqing-canvas { z-index: 1; pointer-events: none; }
-/* Face3D overlay (wajah asli) — di atas Keqing body */
-#webgl-canvas { z-index: 2; cursor: grab; }
+#bg-canvas       { z-index: 0; pointer-events: none; }
+/* Keqing Three.js — full 3D avatar dari semua sisi */
+#webgl-canvas    { z-index: 1; cursor: grab; }
 #webgl-canvas:active { cursor: grabbing; }
-#particles-canvas { z-index: 3; pointer-events: none; }
+#particles-canvas { z-index: 2; pointer-events: none; }
 
 /* ── Hologram capsule frame ── */
 .capsule {
@@ -99,6 +97,7 @@ body {
 #studio-link {
   position: fixed; left: 18px; top: 18px;
   background: var(--panel);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
@@ -127,6 +126,7 @@ body {
   letter-spacing: var(--ls-wider);
   z-index: 50;
   background: var(--panel);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   padding: 5px 10px;
@@ -215,6 +215,7 @@ body {
 .dock-btn {
   width: 46px; height: 46px;
   background: var(--panel);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--r-md);
@@ -243,6 +244,7 @@ body {
   font-size: 11px; font-weight: var(--fw-medium);
   color: var(--text-primary);
   background: var(--panel);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   padding: 5px 12px;
@@ -323,6 +325,7 @@ body {
   font-size: 10px;
   color: var(--text-muted);
   background: var(--panel);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   padding: 8px 12px;
@@ -337,6 +340,7 @@ body {
 #start {
   position: fixed; inset: 0;
   background: rgba(5,7,12,.96);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;

@@ -1,87 +1,86 @@
 /* ═══════════════════════════════════════════════════════════
    AlterCast — Engine Bridge
-   Pakai Face3DEngine: render wajah asli dari foto dalam 3D.
-   Gantikan VTuber3D (robot procedural) sepenuhnya.
+   Pakai KeqingGLBRenderer: full 3D dari semua sisi.
+   Model Keqing + foto wajah asli user sebagai face texture.
 ═══════════════════════════════════════════════════════════ */
 
-import { Face3DEngine } from "../engine/face3d-engine.js";
+import { KeqingGLBRenderer } from "../engine/keqing-glb.js";
 import { store, AVATARS, EMOTIONS, ANGLES, LIGHTING_PRESETS } from "./store.js";
+
+const GLB_SRC = "assets/models/keqing.glb";
 
 export class EngineBridge {
   constructor(canvas) {
-    this.engine = new Face3DEngine(canvas);
-    this.canvas = canvas;
-    this.loaded = false;
+    this.engine  = new KeqingGLBRenderer(canvas);
+    this.canvas  = canvas;
+    this.loaded  = false;
     this._unsubs = [];
-    this._frame = 0;
-    this._lastFpsTime = 0;
-    this._frameCount = 0;
-    this._shaking = false;
-    this._shakeMag = 0;
-    this._emoTimeout = null;
+    this._lastFpsTime  = 0;
+    this._frameCount   = 0;
+    this._shaking      = false;
+    this._shakeMag     = 0;
+    this._emoTimeout   = null;
+    this._glbReady     = false;
   }
 
   async boot() {
-    /* Load avatars — Face3DEngine: addAvatar(id, src, onProgress) */
-    for (const [id, av] of Object.entries(AVATARS)) {
-      await this.engine.addAvatar(id, av.src, (msg) => {
-        console.log(`[Avatar:${id}] ${msg}`);
-      });
+    /* Init Three.js */
+    const ok = await this.engine.init();
+    if (!ok) {
+      console.error("[EngineBridge] Three.js init gagal — Keqing tidak bisa dimuat");
+      return;
     }
+
+    /* Load GLB model satu kali */
+    const glbOk = await this.engine.loadModel(GLB_SRC);
+    if (!glbOk) console.warn("[EngineBridge] Keqing GLB gagal dimuat");
+    this._glbReady = glbOk;
+
+    /* Load semua face textures per avatar */
+    for (const [id, av] of Object.entries(AVATARS)) {
+      await this.engine.addAvatar(id, av.src, (msg) =>
+        console.log(`[Avatar:${id}] ${msg}`)
+      );
+    }
+
     this.engine.selectAvatar(store.get("currentAvatar"));
     this.loaded = true;
     this._wireStore();
-    this._applyLighting(store.get("lightingPreset"));
     this._applyEmotion(store.get("emotion"));
     this._applyAngle(store.get("angle"));
+
+    /* Resize */
+    window.addEventListener("resize", () => this.engine.resize());
+    this.engine.resize();
   }
 
   _wireStore() {
-    /* Every relevant store key drives engine behavior */
     this._unsubs.push(store.subscribe("currentAvatar", id => {
       this.engine.selectAvatar(id);
       this._applyEmotion(store.get("emotion"));
     }));
-    this._unsubs.push(store.subscribe("emotion", e => this._applyEmotion(e)));
-    this._unsubs.push(store.subscribe("angle", a => this._applyAngle(a)));
-    this._unsubs.push(store.subscribe("orbit", on => this.engine.setOrbit(on)));
-    this._unsubs.push(store.subscribe("mouthOpen", v => this.engine.setMouthOpen(v)));
-    this._unsubs.push(store.subscribe("lightingPreset", p => this._applyLighting(p)));
-    this._unsubs.push(store.subscribe("rim", () => this._applyEmotion(store.get("emotion"))));
+    this._unsubs.push(store.subscribe("emotion",       e  => this._applyEmotion(e)));
+    this._unsubs.push(store.subscribe("angle",         a  => this._applyAngle(a)));
+    this._unsubs.push(store.subscribe("orbit",         on => this.engine.setOrbit(on)));
+    this._unsubs.push(store.subscribe("mouthOpen",     v  => this.engine.setMouthOpen(v)));
+    this._unsubs.push(store.subscribe("rim",           () => this._applyEmotion(store.get("emotion"))));
   }
 
   _applyEmotion(emo) {
     const cfg = EMOTIONS[emo] || EMOTIONS.idle;
-    const rimUserScale = store.get("rim") / 0.55;
-    this.engine.setEmotion({
-      rimA: cfg.rimA * rimUserScale,
-      rimRGB: cfg.rimRGB,
-    });
+    const scale = store.get("rim") / 0.55;
+    this.engine.setEmotion({ rimA: cfg.rimA * scale, rimRGB: cfg.rimRGB });
     if (cfg.shake && !this._shaking) {
-      this._shaking = true;
+      this._shaking  = true;
       this._shakeMag = 0.012;
     }
   }
 
   _applyAngle(name) {
     const a = ANGLES[name];
-    if (!a) return;
-    this.engine.setRotation(a.rx, a.ry);
+    if (a) this.engine.setRotation(a.rx, a.ry);
   }
 
-  _applyLighting(name) {
-    const p = LIGHTING_PRESETS[name];
-    if (!p) return;
-    const s = this.engine.state;
-    /* Face3DEngine: pakai lightDir (key light), rimColor, keyLight */
-    if (p.key)  s.lightDir  = p.key;
-    if (p.keyC) s.lightDir  = p.key;
-    if (p.keyA) s.keyLight  = p.keyA;
-    if (p.rimC) s.rimColor  = p.rimC;
-    if (p.rimA) s.rimStrength = p.rimA * (store.get("rim") / 0.55);
-  }
-
-  /** Set engine rotation directly (used for drag, mouse-track) */
   setRotation(rx, ry) {
     this.engine.setRotation(rx, ry);
     store.set("rotation", { x: rx, y: ry });
@@ -99,31 +98,24 @@ export class EngineBridge {
     const prev = store.get("emotion");
     store.set("emotion", emo);
     if (this._emoTimeout) clearTimeout(this._emoTimeout);
-    this._emoTimeout = setTimeout(() => store.set("emotion", "idle"), durMs);
+    this._emoTimeout = setTimeout(() => store.set("emotion", prev), durMs);
   }
 
   resize() { this.engine.resize(); }
 
-  /** Frame render — called from main RAF loop */
   render(t) {
-    /* FPS counter */
     this._frameCount++;
     if (t - this._lastFpsTime >= 1) {
       store.set("fps", this._frameCount);
-      this._frameCount = 0;
+      this._frameCount  = 0;
       this._lastFpsTime = t;
     }
-
-    /* Shake on excited emotion */
     let sx = 0, sy = 0;
     if (this._shaking) {
       this._shakeMag *= 0.88;
       sx = (Math.random() - 0.5) * this._shakeMag;
       sy = (Math.random() - 0.5) * this._shakeMag * 0.5;
-      if (this._shakeMag < 0.001) {
-        this._shaking = false;
-        this._shakeMag = 0;
-      }
+      if (this._shakeMag < 0.001) { this._shaking = false; this._shakeMag = 0; }
     }
     this.engine.render(sx, sy);
   }

@@ -9,13 +9,11 @@ import { EngineBridge } from "./engine-bridge.js";
 import { Atmosphere } from "./atmosphere.js";
 import { initTTS, speak, cancel as cancelTTS } from "./tts.js";
 import { t, pickRandom, STRINGS } from "./i18n.js";
-import { KeqingGLBRenderer } from "../engine/keqing-glb.js";
 
 const $ = (id) => document.getElementById(id);
 
 let bridge = null;
 let atmosphere = null;
-let keqing = null;
 const drag = { active: false, sx: 0, sy: 0, rx: 0, ry: 0 };
 const M = { tx: 0, ty: 0, x: 0, y: 0 };
 let idleTimer = null;
@@ -47,7 +45,6 @@ async function boot() {
   $("btn-orbit").addEventListener("click", () => {
     store.set("orbit", !store.get("orbit"));
     $("btn-orbit").classList.toggle("active", store.get("orbit"));
-    if (keqing?.loaded) keqing.setOrbit(store.get("orbit"));
   });
   $("btn-speak").addEventListener("click", () => {
     if (store.get("speaking")) cancelTTS();
@@ -105,20 +102,7 @@ async function start() {
   bridge = new EngineBridge($("webgl-canvas"));
   atmosphere = new Atmosphere($("bg-canvas"), $("particles-canvas"));
 
-  /* Inisialisasi Keqing GLB renderer */
-  setLoad("memuat avatar Keqing 3D…");
-  keqing = new KeqingGLBRenderer($("keqing-canvas"));
-  const keqingOk = await keqing.init();
-  if (keqingOk) {
-    keqing.load(
-      "assets/models/keqing.glb",
-      "assets/avatars/host-real.png"
-    ).then(() => {
-      window.addEventListener("resize", () => keqing.resize());
-    }).catch(e => console.warn("[Live] Keqing load error:", e));
-  }
-
-  setLoad("memuat avatar 3D wajah asli…");
+  setLoad("memuat avatar Keqing 3D + wajah asli…");
   await bridge.boot();
 
   setLoad("memulai TTS Bahasa Indonesia…");
