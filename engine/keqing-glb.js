@@ -98,6 +98,7 @@ export class KeqingGLBRenderer {
 
           model.traverse(c => {
             if (c.isMesh) {
+              console.log("[KeqingGLB] mesh:", c.name, "| mats:", (Array.isArray(c.material) ? c.material : [c.material]).map(m => m?.name));
               const mats = Array.isArray(c.material) ? c.material : [c.material];
               mats.forEach(m => { if (m) m.side = THREE.FrontSide; });
             }
@@ -153,6 +154,7 @@ export class KeqingGLBRenderer {
     const { faceTex } = this._avatars[id];
     if (!faceTex) return true;
 
+    let anyMatched = false;
     this._model.traverse(child => {
       if (!child.isMesh) return;
       const name = (child.name || "").toLowerCase();
@@ -161,11 +163,23 @@ export class KeqingGLBRenderer {
                          name.includes("chr")  || name.includes("mesh") ||
                          name.includes("mat");
       if (!isFaceMesh) return;
+      anyMatched = true;
       const mats = Array.isArray(child.material) ? child.material : [child.material];
       mats.forEach(m => {
         if (m && m.map) { m.map = faceTex; m.needsUpdate = true; }
       });
     });
+
+    /* Fallback: no name match → apply to every mesh that has a diffuse map */
+    if (!anyMatched) {
+      this._model.traverse(child => {
+        if (!child.isMesh) return;
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach(m => {
+          if (m && m.map) { m.map = faceTex; m.needsUpdate = true; }
+        });
+      });
+    }
     return true;
   }
 
