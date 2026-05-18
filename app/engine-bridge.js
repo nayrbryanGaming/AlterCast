@@ -1,15 +1,15 @@
 /* ═══════════════════════════════════════════════════════════
    AlterCast — Engine Bridge
-   Connects the central store to the VTuber3D WebGL engine.
-   ALL store mutations propagate to the engine via subscriptions.
+   Pakai Face3DEngine: render wajah asli dari foto dalam 3D.
+   Gantikan VTuber3D (robot procedural) sepenuhnya.
 ═══════════════════════════════════════════════════════════ */
 
-import { VTuber3D } from "../engine/vtuber3d.js";
+import { Face3DEngine } from "../engine/face3d-engine.js";
 import { store, AVATARS, EMOTIONS, ANGLES, LIGHTING_PRESETS } from "./store.js";
 
 export class EngineBridge {
   constructor(canvas) {
-    this.engine = new VTuber3D(canvas);
+    this.engine = new Face3DEngine(canvas);
     this.canvas = canvas;
     this.loaded = false;
     this._unsubs = [];
@@ -22,9 +22,11 @@ export class EngineBridge {
   }
 
   async boot() {
-    /* Load avatars */
+    /* Load avatars — Face3DEngine: addAvatar(id, src, onProgress) */
     for (const [id, av] of Object.entries(AVATARS)) {
-      await this.engine.addAvatar(id, av.src, av.config);
+      await this.engine.addAvatar(id, av.src, (msg) => {
+        console.log(`[Avatar:${id}] ${msg}`);
+      });
     }
     this.engine.selectAvatar(store.get("currentAvatar"));
     this.loaded = true;
@@ -71,11 +73,12 @@ export class EngineBridge {
     const p = LIGHTING_PRESETS[name];
     if (!p) return;
     const s = this.engine.state;
-    s.keyDir   = p.key;   s.keyColor  = p.keyC;  s.keyAmt  = p.keyA;
-    s.fillDir  = p.fill;  s.fillColor = p.fillC; s.fillAmt = p.fillA;
-    s.rimDir   = p.rim;   s.rimColor  = p.rimC;  s.rimAmt  = p.rimA * (store.get("rim") / 0.55);
-    s.hairDirN = p.hair;  s.hairColor = p.hairC; s.hairAmt = p.hairA;
-    s.ambient  = p.amb;
+    /* Face3DEngine: pakai lightDir (key light), rimColor, keyLight */
+    if (p.key)  s.lightDir  = p.key;
+    if (p.keyC) s.lightDir  = p.key;
+    if (p.keyA) s.keyLight  = p.keyA;
+    if (p.rimC) s.rimColor  = p.rimC;
+    if (p.rimA) s.rimStrength = p.rimA * (store.get("rim") / 0.55);
   }
 
   /** Set engine rotation directly (used for drag, mouse-track) */

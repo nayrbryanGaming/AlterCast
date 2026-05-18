@@ -21,15 +21,18 @@ body {
     #05070C;
 }
 
-#bg-canvas, #webgl-canvas, #particles-canvas {
+#bg-canvas, #keqing-canvas, #webgl-canvas, #particles-canvas {
   position: fixed; inset: 0;
   width: 100%; height: 100%;
   display: block;
 }
 #bg-canvas { z-index: 0; pointer-events: none; }
-#webgl-canvas { z-index: 1; cursor: grab; }
+/* Keqing GLB (Three.js) — body/karakter di belakang face overlay */
+#keqing-canvas { z-index: 1; pointer-events: none; }
+/* Face3D overlay (wajah asli) — di atas Keqing body */
+#webgl-canvas { z-index: 2; cursor: grab; }
 #webgl-canvas:active { cursor: grabbing; }
-#particles-canvas { z-index: 2; pointer-events: none; }
+#particles-canvas { z-index: 3; pointer-events: none; }
 
 /* ── Hologram capsule frame ── */
 .capsule {

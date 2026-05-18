@@ -8,41 +8,39 @@
 export const AVATARS = {
   user: {
     id: "user",
-    src: "assets/avatars/user.png",
+    src: "assets/avatars/host-real.png",
     name: "Host Live",
-    tag: "muka asli · cosplay biru",
+    tag: "muka asli · wajah nyata",
     statusKey: "HOST UTAMA · LIVE READY",
     irisColor: [0.22, 0.58, 0.80],
     config: {
-      bgThreshold: 0.985,
+      bgThreshold: 0.10,   /* transparan PNG — alpha channel dipakai shader */
+      useAlpha: true,
       faceScaleY: 1.0,
       irisColor: [0.22, 0.58, 0.80],
-      /* Zoom ke area wajah (foto cosplay full-body, wajah di top 20%) */
-      faceCrop: { x: 0.30, y: 0.04, w: 0.40, h: 0.22 },
       samples: {
-        skin: [[.50,.12],[.46,.14],[.54,.14]],
-        hair: [[.50,.04],[.30,.05],[.70,.05]],
-        body: [[.50,.42],[.40,.45],[.60,.45]],
+        skin: [[.50,.35],[.46,.38],[.54,.38]],
+        hair: [[.50,.08],[.30,.12],[.70,.12]],
+        body: [[.50,.70],[.40,.75],[.60,.75]],
       },
     },
   },
   user2: {
     id: "user2",
-    src: "assets/avatars/user2.png",
+    src: "assets/avatars/host-real2.png",
     name: "Host Premium",
-    tag: "muka asli · cosplay elegan",
+    tag: "muka asli · foto real 2",
     statusKey: "HOST PREMIUM · LIVE READY",
     irisColor: [0.55, 0.50, 0.65],
     config: {
-      bgThreshold: 0.985,
-      faceScaleY: 1.05,
+      bgThreshold: 0.10,   /* transparan PNG — alpha channel dipakai shader */
+      useAlpha: true,
+      faceScaleY: 1.0,
       irisColor: [0.55, 0.50, 0.65],
-      /* Foto wajah tertutup HP → crop area kepala + mahkota (lebih dekat ke wajah avatar) */
-      faceCrop: { x: 0.32, y: 0.02, w: 0.36, h: 0.22 },
       samples: {
-        skin: [[.50,.20],[.46,.24],[.42,.30]],
-        hair: [[.50,.05],[.30,.10],[.70,.10]],
-        body: [[.50,.45],[.40,.55],[.60,.50]],
+        skin: [[.50,.35],[.46,.38],[.54,.38]],
+        hair: [[.50,.08],[.30,.12],[.70,.12]],
+        body: [[.50,.70],[.40,.75],[.60,.75]],
       },
     },
   },

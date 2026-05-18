@@ -55,6 +55,7 @@ uniform float u_glow;
 uniform vec3  u_lightDir;
 uniform float u_keyLight;
 uniform float u_bgThreshold;
+uniform float u_useAlpha;  /* 1.0 = pakai alpha channel (transparent PNG), 0.0 = luminance removal */
 
 void main() {
   vec4 col = texture2D(u_tex, v_uv);
@@ -63,11 +64,14 @@ void main() {
   float maxC = max(col.r, max(col.g, col.b));
   float sat = maxC - minC;
 
-  /* Remove leftover near-white BG */
+  /* Transparent PNG: pakai alpha channel langsung */
+  /* Opaque PNG: hapus background putih via luminance */
   float bgPure = smoothstep(0.975, 0.998, lum) * (1.0 - smoothstep(0.0, 0.04, sat));
   float bgSoft = smoothstep(0.910, u_bgThreshold, lum) * (1.0 - smoothstep(0.0, 0.10, sat));
   float bg = max(bgPure, bgSoft * 0.75);
-  float alpha = clamp(1.0 - bg, 0.0, 1.0);
+  float alphaLum = clamp(1.0 - bg, 0.0, 1.0);
+  float alpha = mix(alphaLum, col.a, u_useAlpha);
+  alpha = clamp(alpha, 0.0, 1.0);
   if (alpha < 0.04) discard;
 
   /* Surface normal from depth gradient */
@@ -322,7 +326,7 @@ export class Face3DEngine {
     this.attr = { uv: gl.getAttribLocation(this.prog, "a_uv") };
     this.uni = {};
     ["mvp","tex","depth","depthStrength","aspect","time","floatAmp","breathe",
-     "rimColor","rimStrength","glow","lightDir","keyLight","bgThreshold"].forEach(k => {
+     "rimColor","rimStrength","glow","lightDir","keyLight","bgThreshold","useAlpha"].forEach(k => {
       this.uni[k] = gl.getUniformLocation(this.prog, "u_" + k);
     });
 
@@ -346,6 +350,7 @@ export class Face3DEngine {
       lightDir: [0.4, 0.7, 0.7],
       keyLight: 0.55,
       bgThreshold: 0.985,
+      useAlpha: 0.0,
       rotX: 0, rotY: 0, rotXTarget: 0, rotYTarget: 0,
       orbit: false, orbitT: 0,
     };
@@ -404,8 +409,17 @@ export class Face3DEngine {
     onProgress("uploading textures…");
     const tex = makeTexture(this.gl, croppedCanvas);
     const depthTex = makeTexture(this.gl, depthCanvas);
-    this.avatars[id] = { tex, depthTex, aspect, method };
-    onProgress(`done (${method})`);
+    /* Detect if image has real transparency (background-removed PNG) */
+    const testCtx = document.createElement("canvas");
+    testCtx.width = 8; testCtx.height = 8;
+    const tCtx = testCtx.getContext("2d");
+    tCtx.drawImage(img, 0, 0, 8, 8);
+    const pix = tCtx.getImageData(0, 0, 8, 8).data;
+    let hasTransparency = false;
+    for (let i = 3; i < pix.length; i += 4) if (pix[i] < 200) { hasTransparency = true; break; }
+
+    this.avatars[id] = { tex, depthTex, aspect, method, useAlpha: hasTransparency };
+    onProgress(`done (${method}${hasTransparency ? " · transparent" : ""})`);
     return this.avatars[id];
   }
 
@@ -413,13 +427,22 @@ export class Face3DEngine {
     if (!this.avatars[id]) return false;
     this.currentId = id;
     this.state.texAspect = this.avatars[id].aspect;
+    this.state.useAlpha = this.avatars[id].useAlpha ? 1.0 : 0.0;
     return true;
   }
 
   setRotation(rx, ry) { this.state.rotXTarget = rx; this.state.rotYTarget = ry; }
+  setHeadLook(rx, ry) { this.state.rotXTarget += rx * 0.3; this.state.rotYTarget += ry * 0.3; }
+  setEyeLook() {}     /* stub — depth-displaced face tidak punya eye mesh terpisah */
+  setMouthOpen() {}   /* stub — ekspresi dikontrol via rimColor saja */
   setOrbit(on) { this.state.orbit = on; }
   setDepthStrength(v) { this.state.depthStrength = v; }
   setLightDir(x, y, z) { this.state.lightDir = [x, y, z]; }
+  /* Emotion: update rim glow color + intensity */
+  setEmotion(cfg) {
+    if (cfg.rimRGB) this.state.rimColor = cfg.rimRGB;
+    if (cfg.rimA !== undefined) this.state.rimStrength = cfg.rimA * 0.85;
+  }
   getRotation() { return { x: this.state.rotX, y: this.state.rotY }; }
   getMethod(id) { return this.avatars[id]?.method; }
 
@@ -472,6 +495,7 @@ export class Face3DEngine {
     gl.uniform3fv(this.uni.lightDir, s.lightDir);
     gl.uniform1f(this.uni.keyLight, s.keyLight);
     gl.uniform1f(this.uni.bgThreshold, s.bgThreshold);
+    gl.uniform1f(this.uni.useAlpha, s.useAlpha);
 
     gl.drawElements(gl.TRIANGLES, this.idxCount, gl.UNSIGNED_SHORT, 0);
   }

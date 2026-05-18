@@ -49,7 +49,8 @@ export async function startCamera() {
     return false;
   }
   videoEl = document.createElement("video");
-  videoEl.style.cssText = "position:fixed;bottom:80px;left:20px;width:160px;height:120px;border-radius:8px;border:1px solid rgba(0,212,255,.4);object-fit:cover;z-index:50;background:#000;opacity:.85;transform:scaleX(-1);";
+  /* Kamera tetap jalan untuk face tracking, tapi tidak ditampilkan di layar */
+  videoEl.style.cssText = "position:fixed;width:1px;height:1px;bottom:0;left:0;opacity:0;pointer-events:none;z-index:-1;";
   videoEl.autoplay = true;
   videoEl.playsInline = true;
   videoEl.muted = true;
