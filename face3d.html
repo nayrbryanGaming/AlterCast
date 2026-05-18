@@ -95,8 +95,8 @@
       position: fixed; left: 80px; top: 18px;
       z-index: 10;
       background: rgba(8,10,15,.7);
-      backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
       border: 1px solid var(--border-subtle);
       padding: 6px 14px;
       border-radius: 999px;
@@ -112,8 +112,8 @@
     .stats {
       position: fixed; right: 18px; top: 18px;
       background: rgba(8,10,15,.7);
-      backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
       border: 1px solid var(--border-subtle);
       padding: 5px 11px;
       border-radius: 999px;
@@ -205,7 +205,7 @@
 
   <!-- Minimal UI (auto-hides) -->
   <a class="top-link" href="studio.html">Alter<b>Cast</b> · Studio</a>
-  <div class="stats">FPS <b id="fps">—</b></div>
+  <div class="stats">FPS <b id="fps">—</b> · <b id="engine-method">—</b></div>
 
   <div class="rail" id="rail">
     <div class="rail-av active" data-avatar="user" title="Cosplay biru (foto asli)">
@@ -231,20 +231,25 @@
   </div>
 
   <script type="module">
-    import { AvatarEngine } from "./engine/avatar-engine.js";
+    import { Face3DEngine } from "./engine/face3d-engine.js";
 
     const $ = id => document.getElementById(id);
     const setStep = s => $("loader-step").textContent = s;
 
-    const engine = new AvatarEngine($("avatar-canvas"));
+    const engine = new Face3DEngine($("avatar-canvas"));
 
-    setStep("memuat foto asli + depth map…");
-    await engine.addAvatar("user",  "assets/avatars/user.png",  "userBlue",  0.985);
-    await engine.addAvatar("user2", "assets/avatars/user2.png", "userWhite", 0.985);
+    setStep("memuat MediaPipe FaceLandmarker (~5MB CDN, sekali doang)…");
+    await engine.addAvatar("user",  "assets/avatars/user.png",  s => setStep("user.png: " + s));
+    await engine.addAvatar("user2", "assets/avatars/user2.png", s => setStep("user2.png: " + s));
     engine.selectAvatar("user");
     engine.setOrbit(true);
-    setStep("priming render…");
-    await new Promise(r => setTimeout(r, 300));
+
+    /* Expose method info for stats */
+    const method1 = engine.getMethod("user");
+    const method2 = engine.getMethod("user2");
+    setStep(`done · user=${method1} · user2=${method2}`);
+
+    await new Promise(r => setTimeout(r, 350));
     $("loader").classList.add("gone");
 
     /* Particles layer */
@@ -304,11 +309,17 @@
     });
 
     /* Avatar swap */
+    function refreshMethodLabel() {
+      const id = engine.currentId;
+      $("engine-method").textContent = (engine.getMethod(id) || "?").toUpperCase();
+    }
+    refreshMethodLabel();
     document.querySelectorAll("[data-avatar]").forEach(el => {
       el.addEventListener("click", () => {
         const id = el.dataset.avatar;
         engine.selectAvatar(id);
         document.querySelectorAll("[data-avatar]").forEach(c => c.classList.toggle("active", c === el));
+        refreshMethodLabel();
       });
     });
 
