@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlterCast — Avatar 3D Muka Asli</title>
+  <link rel="stylesheet" href="assets/styles/tokens.css">
+  <style>
+    html, body { height: 100vh; overflow: hidden; background: #000; }
+
+    /* Real photographic-style background: deep gradient + bokeh */
+    #scene {
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 35%, rgba(20,40,80,.55) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 80% at 50% 100%, rgba(124,58,255,.18) 0%, transparent 70%),
+        radial-gradient(ellipse 100% 60% at 50% 50%, rgba(0,30,60,.30) 0%, #050810 80%);
+    }
+
+    /* Subtle moving bokeh dots */
+    #scene::before, #scene::after {
+      content: ""; position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,212,255,.18) 0%, transparent 70%);
+      filter: blur(40px);
+      animation: drift 16s ease-in-out infinite;
+      pointer-events: none;
+    }
+    #scene::before { width: 360px; height: 360px; top: 15%; left: 12%; }
+    #scene::after  { width: 420px; height: 420px; bottom: 10%; right: 14%; animation-delay: -8s; background: radial-gradient(circle, rgba(124,58,255,.20) 0%, transparent 70%); }
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0); }
+      50%      { transform: translate(40px, -30px); }
+    }
+
+    /* Floor reflection puddle */
+    .floor {
+      position: fixed;
+      bottom: 0; left: 50%;
+      width: 70%; height: 220px;
+      transform: translateX(-50%);
+      background: radial-gradient(ellipse at center top, rgba(0,212,255,.18), transparent 70%);
+      filter: blur(60px);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Vignette */
+    .vignette {
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse 100% 100% at 50% 50%, transparent 50%, rgba(0,0,0,.65) 100%);
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    #avatar-canvas {
+      position: fixed; inset: 0;
+      width: 100vw; height: 100vh;
+      z-index: 2;
+      cursor: grab;
+    }
+    #avatar-canvas:active { cursor: grabbing; }
+
+    /* Floating particle layer (small specks) */
+    #particles {
+      position: fixed; inset: 0; pointer-events: none; z-index: 3;
+    }
+
+    /* Avatar swap rail — minimal */
+    .rail {
+      position: fixed; left: 18px; top: 50%;
+      transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: 10px;
+      z-index: 10;
+      transition: opacity .4s ease;
+    }
+    .rail-av {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 1.5px solid rgba(255,255,255,.10);
+      background: #0A0F18;
+      transition: all var(--t-fast);
+    }
+    .rail-av:hover { transform: scale(1.05); border-color: rgba(0,212,255,.4); }
+    .rail-av.active {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 18px rgba(0,212,255,.45);
+    }
+    .rail-av img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+
+    /* Studio link top-left */
+    .top-link {
+      position: fixed; left: 80px; top: 18px;
+      z-index: 10;
+      background: rgba(8,10,15,.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--text-primary);
+      text-decoration: none;
+      letter-spacing: .04em;
+    }
+    .top-link:hover { background: var(--accent-primary-glow); color: var(--accent-primary); border-color: var(--border-accent); }
+    .top-link b { color: var(--accent-primary); font-weight: 800; }
+
+    /* Stats */
+    .stats {
+      position: fixed; right: 18px; top: 18px;
+      background: rgba(8,10,15,.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-secondary);
+      letter-spacing: .08em;
+      z-index: 10;
+    }
+    .stats b { color: var(--accent-primary); }
+
+    /* Hint */
+    .hint {
+      position: fixed; bottom: 22px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex; gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: rgba(255,255,255,.45);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .hint span {
+      background: rgba(8,10,15,.6);
+      border: 1px solid var(--border-subtle);
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+    .hint kbd {
+      background: rgba(255,255,255,.08);
+      padding: 1px 6px;
+      border-radius: 3px;
+      border: 1px solid rgba(255,255,255,.1);
+      font-size: 9.5px;
+    }
+
+    /* Loading screen */
+    #loader {
+      position: fixed; inset: 0;
+      background: #050810;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 14px;
+      z-index: 1000;
+      transition: opacity .6s ease;
+    }
+    #loader.gone { opacity: 0; pointer-events: none; }
+    #loader .logo {
+      font-size: 28px; font-weight: 800; letter-spacing: -.03em;
+    }
+    #loader .logo b { color: var(--accent-primary); }
+    #loader .sub {
+      font-size: 12px; color: var(--text-secondary);
+      font-family: var(--font-mono); letter-spacing: .08em;
+    }
+    #loader .spin {
+      width: 24px; height: 24px;
+      border: 2px solid rgba(0,212,255,.2);
+      border-top-color: var(--accent-primary);
+      border-radius: 50%;
+      animation: spin .9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Auto-hide UI on idle */
+    body.idle .rail, body.idle .top-link, body.idle .stats, body.idle .hint {
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    @media (max-width: 640px) {
+      .rail { left: 8px; }
+      .rail-av { width: 44px; height: 44px; }
+      .top-link { left: 64px; font-size: 11px; padding: 5px 12px; }
+      .hint span { font-size: 9px; padding: 3px 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="scene"></div>
+  <div class="floor"></div>
+
+  <canvas id="avatar-canvas"></canvas>
+  <canvas id="particles"></canvas>
+
+  <div class="vignette"></div>
+
+  <!-- Minimal UI (auto-hides) -->
+  <a class="top-link" href="studio.html">Alter<b>Cast</b> · Studio</a>
+  <div class="stats">FPS <b id="fps">—</b></div>
+
+  <div class="rail" id="rail">
+    <div class="rail-av active" data-avatar="user" title="Cosplay biru (foto asli)">
+      <img src="assets/avatars/user.png" alt="">
+    </div>
+    <div class="rail-av" data-avatar="user2" title="Cosplay putih (foto asli)">
+      <img src="assets/avatars/user2.png" alt="">
+    </div>
+  </div>
+
+  <div class="hint">
+    <span><kbd>drag</kbd> putar 3D</span>
+    <span><kbd>1</kbd>/<kbd>2</kbd> swap avatar</span>
+    <span><kbd>o</kbd> auto-orbit</span>
+    <span><kbd>f</kbd> fullscreen</span>
+  </div>
+
+  <!-- Loader -->
+  <div id="loader">
+    <div class="logo">Alter<b>Cast</b></div>
+    <div class="sub" id="loader-step">memuat depth engine…</div>
+    <div class="spin"></div>
+  </div>
+
+  <script type="module">
+    import { AvatarEngine } from "./engine/avatar-engine.js";
+
+    const $ = id => document.getElementById(id);
+    const setStep = s => $("loader-step").textContent = s;
+
+    const engine = new AvatarEngine($("avatar-canvas"));
+
+    setStep("memuat foto asli + depth map…");
+    await engine.addAvatar("user",  "assets/avatars/user.png",  "userBlue",  0.985);
+    await engine.addAvatar("user2", "assets/avatars/user2.png", "userWhite", 0.985);
+    engine.selectAvatar("user");
+    engine.setOrbit(true);
+    setStep("priming render…");
+    await new Promise(r => setTimeout(r, 300));
+    $("loader").classList.add("gone");
+
+    /* Particles layer */
+    const pc = $("particles");
+    const pctx = pc.getContext("2d");
+    const PARTS = [];
+    function sizeP() { pc.width = innerWidth; pc.height = innerHeight; }
+    sizeP();
+    addEventListener("resize", sizeP);
+    for (let i = 0; i < 80; i++) PARTS.push({
+      x: Math.random() * innerWidth,
+      y: Math.random() * innerHeight,
+      vx: (Math.random() - .5) * .2,
+      vy: -Math.random() * .35 - .05,
+      r: Math.random() * 1.8 + .3,
+      op: Math.random() * .5 + .2,
+      life: Math.random() * 200,
+    });
+    function drawParts() {
+      pctx.clearRect(0, 0, pc.width, pc.height);
+      for (const p of PARTS) {
+        p.x += p.vx; p.y += p.vy; p.life++;
+        if (p.y < -8 || p.life > 320) {
+          p.x = Math.random() * pc.width; p.y = pc.height + 8; p.life = 0;
+        }
+        const a = Math.sin(p.life / 320 * Math.PI) * p.op;
+        pctx.beginPath();
+        pctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        pctx.fillStyle = `rgba(0,212,255,${a})`;
+        pctx.fill();
+      }
+    }
+
+    /* Mouse follow */
+    const M = { tx: 0, ty: 0, x: 0, y: 0 };
+    addEventListener("mousemove", e => { M.tx = e.clientX; M.ty = e.clientY; });
+
+    /* Drag rotate */
+    const drag = { active: false, sx: 0, sy: 0, rx: 0, ry: 0 };
+    const canvas = $("avatar-canvas");
+    canvas.addEventListener("mousedown", e => {
+      drag.active = true;
+      drag.sx = e.clientX; drag.sy = e.clientY;
+      drag.rx = engine.state.rotXTarget;
+      drag.ry = engine.state.rotYTarget;
+      engine.setOrbit(false);
+    });
+    addEventListener("mouseup", () => drag.active = false);
+    addEventListener("mousemove", e => {
+      if (!drag.active) return;
+      const dx = e.clientX - drag.sx;
+      const dy = e.clientY - drag.sy;
+      engine.setRotation(
+        Math.max(-.5, Math.min(.5, drag.rx + dy * .005)),
+        Math.max(-.9, Math.min(.9, drag.ry + dx * .006))
+      );
+    });
+
+    /* Avatar swap */
+    document.querySelectorAll("[data-avatar]").forEach(el => {
+      el.addEventListener("click", () => {
+        const id = el.dataset.avatar;
+        engine.selectAvatar(id);
+        document.querySelectorAll("[data-avatar]").forEach(c => c.classList.toggle("active", c === el));
+      });
+    });
+
+    /* Keyboard */
+    addEventListener("keydown", e => {
+      switch (e.key) {
+        case "1": document.querySelector('[data-avatar="user"]').click(); break;
+        case "2": document.querySelector('[data-avatar="user2"]').click(); break;
+        case "o": case "O": engine.setOrbit(!engine.state.orbit); break;
+        case "f": case "F":
+          if (document.fullscreenElement) document.exitFullscreen();
+          else document.documentElement.requestFullscreen();
+          break;
+      }
+    });
+
+    /* Auto-hide UI on idle */
+    let idleT = null;
+    function ping() {
+      document.body.classList.remove("idle");
+      clearTimeout(idleT);
+      idleT = setTimeout(() => document.body.classList.add("idle"), 5000);
+    }
+    ["mousemove","keydown","touchstart","click"].forEach(ev => addEventListener(ev, ping, { passive: true }));
+    ping();
+
+    /* Render loop */
+    let frames = 0, lastFpsT = 0;
+    function loop(ts) {
+      requestAnimationFrame(loop);
+      const t = ts / 1000;
+
+      M.x += (M.tx - M.x) * .06;
+      M.y += (M.ty - M.y) * .06;
+
+      if (!drag.active && !engine.state.orbit) {
+        const nx = (M.tx / innerWidth - .5) * 2;
+        const ny = (M.ty / innerHeight - .5) * 2;
+        engine.setRotation(ny * .15, nx * .35);
+      }
+
+      engine.render();
+      drawParts();
+
+      frames++;
+      if (t - lastFpsT >= 1) {
+        $("fps").textContent = frames;
+        frames = 0; lastFpsT = t;
+      }
+    }
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
