@@ -1,55 +1,47 @@
 /* ═══════════════════════════════════════════════════════════
    AlterCast — Keqing GLB Engine (Main Avatar Renderer)
-   THREE.js + GLTFLoader. Full 3D dari semua sisi.
-   Foto wajah asli user diterapkan sebagai face texture.
-   API kompatibel dengan engine-bridge (render dipanggil per-frame).
+   Static import Three.js via importmap di live.html.
+   Full 3D dari semua sisi — model Keqing + wajah asli user.
 ═══════════════════════════════════════════════════════════ */
 
-const THREE_CDN = "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js";
-const GLTF_CDN  = "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/loaders/GLTFLoader.js";
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export class KeqingGLBRenderer {
   constructor(canvas) {
     this.canvas = canvas;
 
-    /* State yang dibaca engine-bridge dan live.js */
+    /* State dibaca engine-bridge dan live.js */
     this.state = {
       rotX: 0, rotY: 0,
       rotXTarget: 0, rotYTarget: 0,
       orbit: false, orbitT: 0,
     };
 
-    this._THREE    = null;
-    this._loader   = null;
     this.renderer  = null;
     this.scene     = null;
     this.camera    = null;
     this._model    = null;
     this._mixer    = null;
-    this._clock    = null;
+    this._clock    = new THREE.Clock();
+    this._loader   = new GLTFLoader();
     this._loaded   = false;
-    this._avatars  = {};   /* { id: { faceTex } } */
+    this._avatars  = {};
     this._currentId = null;
   }
 
-  /* ── Init Three.js dari CDN ─────────────────────────── */
+  /* ── Init renderer (synchronous) ────────────────────── */
   async init() {
     try {
-      const THREE = await import(THREE_CDN);
-      const { GLTFLoader } = await import(GLTF_CDN);
-      this._THREE  = THREE;
-      this._loader = new GLTFLoader();
       this._setupRenderer();
       return true;
     } catch (e) {
-      console.warn("[KeqingGLB] Three.js CDN gagal:", e.message);
+      console.error("[KeqingGLB] init error:", e.message);
       return false;
     }
   }
 
   _setupRenderer() {
-    const THREE = this._THREE;
-
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
       alpha: true,
@@ -57,44 +49,38 @@ export class KeqingGLBRenderer {
       premultipliedAlpha: false,
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.renderer.setSize(this.canvas.clientWidth || 800, this.canvas.clientHeight || 600, false);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.2;
-    this.renderer.setClearColor(0x000000, 0); /* transparan */
+    this.renderer.setClearColor(0x000000, 0);
 
     this.scene  = new THREE.Scene();
-    this._clock = new THREE.Clock();
 
-    /* Camera — portrait framing, full body */
-    const aspect = (this.canvas.clientWidth || 800) / (this.canvas.clientHeight || 600);
-    this.camera  = new THREE.PerspectiveCamera(38, aspect, 0.01, 100);
-    this.camera.position.set(0, 1.35, 2.8);
-    this.camera.lookAt(0, 1.1, 0);
+    /* Camera — portrait, tampil full body */
+    this.camera = new THREE.PerspectiveCamera(38, 1, 0.01, 100);
+    this.camera.position.set(0, 1.2, 3.0);
+    this.camera.lookAt(0, 1.0, 0);
 
-    /* Lighting cinematic 3-point */
-    const key  = new THREE.DirectionalLight(0xfff8f0, 2.2);
+    /* 3-point cinematic lighting */
+    const key  = new THREE.DirectionalLight(0xfff8f0, 2.5);
     key.position.set(2, 4, 3);
-    key.castShadow = false;
     this.scene.add(key);
 
-    const fill = new THREE.DirectionalLight(0xb0c8ff, 0.8);
+    const fill = new THREE.DirectionalLight(0xb0c8ff, 1.0);
     fill.position.set(-2, 2, 1);
     this.scene.add(fill);
 
-    const rim  = new THREE.DirectionalLight(0x00d4ff, 1.1);
+    const rim  = new THREE.DirectionalLight(0x00d4ff, 1.2);
     rim.position.set(-0.5, 3, -2.5);
     this.scene.add(rim);
 
-    const amb = new THREE.AmbientLight(0x1a2038, 1.2);
-    this.scene.add(amb);
+    this.scene.add(new THREE.AmbientLight(0x1a2038, 1.5));
+
+    this.resize();
   }
 
-  /* ── Load GLB model sekali ──────────────────────────── */
+  /* ── Load GLB ───────────────────────────────────────── */
   async loadModel(glbSrc) {
-    if (!this._loader) return false;
-    const THREE = this._THREE;
-
     return new Promise((resolve) => {
       this._loader.load(
         glbSrc,
@@ -105,39 +91,37 @@ export class KeqingGLBRenderer {
           const box    = new THREE.Box3().setFromObject(model);
           const size   = box.getSize(new THREE.Vector3());
           const center = box.getCenter(new THREE.Vector3());
-          const scale  = 2.2 / Math.max(size.x, size.y, size.z);
-          model.scale.setScalar(scale);
-          model.position.sub(center.multiplyScalar(scale));
+          const s      = 2.2 / Math.max(size.x, size.y, size.z);
+          model.scale.setScalar(s);
+          model.position.sub(center.multiplyScalar(s));
           model.position.y += 0.05;
 
           model.traverse(c => {
             if (c.isMesh) {
-              c.castShadow    = false;
-              c.receiveShadow = false;
-              /* Pastikan material support alpha */
               const mats = Array.isArray(c.material) ? c.material : [c.material];
-              mats.forEach(m => {
-                if (m) { m.side = THREE.FrontSide; }
-              });
+              mats.forEach(m => { if (m) m.side = THREE.FrontSide; });
             }
           });
 
           this.scene.add(model);
           this._model = model;
 
-          /* Animasi idle */
+          /* Idle animation */
           if (gltf.animations?.length) {
             this._mixer = new THREE.AnimationMixer(model);
-            const idle = gltf.animations.find(a =>
-              a.name.toLowerCase().includes("idle")
+            const idle = gltf.animations.find(
+              a => a.name.toLowerCase().includes("idle")
             ) || gltf.animations[0];
             this._mixer.clipAction(idle).play();
           }
 
           this._loaded = true;
+          console.log("[KeqingGLB] model loaded ✓");
           resolve(true);
         },
-        undefined,
+        (xhr) => {
+          if (xhr.total) console.log(`[KeqingGLB] ${Math.round(xhr.loaded/xhr.total*100)}%`);
+        },
         (err) => {
           console.warn("[KeqingGLB] GLB load error:", err.message ?? err);
           resolve(false);
@@ -146,11 +130,8 @@ export class KeqingGLBRenderer {
     });
   }
 
-  /* ── Tambah avatar: load face texture ──────────────── */
+  /* ── Load face texture per avatar ───────────────────── */
   async addAvatar(id, imgSrc, onProgress = () => {}) {
-    if (!this._THREE) return null;
-    const THREE = this._THREE;
-
     onProgress("loading face texture…");
     let faceTex = null;
     try {
@@ -158,69 +139,54 @@ export class KeqingGLBRenderer {
       faceTex = await loader.loadAsync(imgSrc);
       faceTex.colorSpace = THREE.SRGBColorSpace;
     } catch (e) {
-      console.warn("[KeqingGLB] face texture load failed:", e.message);
+      console.warn(`[KeqingGLB] face texture ${id} failed:`, e.message);
     }
     this._avatars[id] = { faceTex };
     onProgress("done");
     return this._avatars[id];
   }
 
-  /* ── Pilih avatar: ganti face texture di model ──────── */
+  /* ── Pilih avatar → terapkan face texture ───────────── */
   selectAvatar(id) {
     if (!this._avatars[id] || !this._model) return false;
     this._currentId = id;
-    const faceTex = this._avatars[id]?.faceTex;
-    if (!faceTex || !this._THREE) return true;
+    const { faceTex } = this._avatars[id];
+    if (!faceTex) return true;
 
-    const THREE = this._THREE;
     this._model.traverse(child => {
       if (!child.isMesh) return;
       const name = (child.name || "").toLowerCase();
-      /* Cari mesh wajah/kepala berdasarkan nama */
-      const isFace = name.includes("face") || name.includes("head") ||
-                     name.includes("skin") || name.includes("body") ||
-                     name.includes("chr")  || name.includes("mesh");
-      if (!isFace) return;
+      const isFaceMesh = name.includes("face") || name.includes("head") ||
+                         name.includes("skin") || name.includes("body") ||
+                         name.includes("chr")  || name.includes("mesh") ||
+                         name.includes("mat");
+      if (!isFaceMesh) return;
       const mats = Array.isArray(child.material) ? child.material : [child.material];
-      mats.forEach(mat => {
-        if (mat && mat.map) {
-          mat.map = faceTex;
-          mat.needsUpdate = true;
-        }
+      mats.forEach(m => {
+        if (m && m.map) { m.map = faceTex; m.needsUpdate = true; }
       });
     });
     return true;
   }
 
-  /* ── Engine API (engine-bridge.js) ─────────────────── */
-  setRotation(rx, ry) {
-    this.state.rotXTarget = rx;
-    this.state.rotYTarget = ry;
-  }
-  setHeadLook(rx, ry) {
-    /* Sedikit pengaruh ke rotasi keseluruhan */
-    this.state.rotXTarget += rx * 0.15;
-    this.state.rotYTarget += ry * 0.15;
-  }
-  setEyeLook()    {}    /* stub */
-  setMouthOpen()  {}    /* stub */
-  setOrbit(on)    { this.state.orbit = on; if (!on) this.state.orbitT = 0; }
+  /* ── Engine API (dipanggil engine-bridge) ───────────── */
+  setRotation(rx, ry)   { this.state.rotXTarget = rx; this.state.rotYTarget = ry; }
+  setHeadLook(rx, ry)   { this.state.rotXTarget += rx * 0.12; this.state.rotYTarget += ry * 0.12; }
+  setEyeLook()          {}
+  setMouthOpen()        {}
+  setOrbit(on)          { this.state.orbit = on; if (!on) this.state.orbitT = 0; }
+
   setEmotion(cfg) {
-    /* Sesuaikan rim light warna berdasarkan emosi */
-    if (!this.scene || !this._THREE) return;
-    const THREE = this._THREE;
+    if (!this.scene) return;
     this.scene.children.forEach(c => {
       if (c.isDirectionalLight && c.position.x < 0 && c.position.z < 0) {
-        /* Rim light */
-        if (cfg.rimRGB) {
-          c.color.setRGB(cfg.rimRGB[0], cfg.rimRGB[1], cfg.rimRGB[2]);
-        }
-        if (cfg.rimA !== undefined) c.intensity = 0.6 + cfg.rimA * 0.8;
+        if (cfg.rimRGB) c.color.setRGB(cfg.rimRGB[0], cfg.rimRGB[1], cfg.rimRGB[2]);
+        if (cfg.rimA  !== undefined) c.intensity = 0.5 + cfg.rimA * 0.9;
       }
     });
   }
 
-  /** Dipanggil per-frame dari loop utama live.js */
+  /* ── Render (dipanggil per-frame dari live.js) ───────── */
   render(extraX = 0, extraY = 0) {
     if (!this.renderer || !this.scene || !this.camera) return;
 
@@ -229,7 +195,7 @@ export class KeqingGLBRenderer {
 
     const s = this.state;
     if (s.orbit) {
-      s.orbitT += dt * 0.45;
+      s.orbitT    += dt * 0.45;
       s.rotYTarget = Math.sin(s.orbitT) * 0.55;
       s.rotXTarget = Math.sin(s.orbitT * 0.35) * 0.08;
     }
@@ -237,8 +203,8 @@ export class KeqingGLBRenderer {
     s.rotY += (s.rotYTarget - s.rotY) * 0.07;
 
     if (this._model) {
-      this._model.rotation.x = s.rotX + extraY * 0.5;
-      this._model.rotation.y = s.rotY + extraX * 0.5;
+      this._model.rotation.x = s.rotX  + extraY * 0.3;
+      this._model.rotation.y = s.rotY  + extraX * 0.3;
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -246,8 +212,8 @@ export class KeqingGLBRenderer {
 
   resize() {
     if (!this.renderer || !this.camera) return;
-    const w = this.canvas.clientWidth  || 800;
-    const h = this.canvas.clientHeight || 600;
+    const w = this.canvas.clientWidth  || window.innerWidth;
+    const h = this.canvas.clientHeight || window.innerHeight;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h, false);
@@ -255,7 +221,5 @@ export class KeqingGLBRenderer {
 
   get loaded() { return this._loaded; }
 
-  destroy() {
-    if (this.renderer) this.renderer.dispose();
-  }
+  destroy() { if (this.renderer) this.renderer.dispose(); }
 }
