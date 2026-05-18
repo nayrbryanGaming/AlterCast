@@ -17,6 +17,8 @@ export const AVATARS = {
       bgThreshold: 0.985,
       faceScaleY: 1.0,
       irisColor: [0.22, 0.58, 0.80],
+      /* Zoom ke area wajah (foto cosplay full-body, wajah di top 20%) */
+      faceCrop: { x: 0.30, y: 0.04, w: 0.40, h: 0.22 },
       samples: {
         skin: [[.50,.12],[.46,.14],[.54,.14]],
         hair: [[.50,.04],[.30,.05],[.70,.05]],
@@ -35,6 +37,8 @@ export const AVATARS = {
       bgThreshold: 0.985,
       faceScaleY: 1.05,
       irisColor: [0.55, 0.50, 0.65],
+      /* Foto wajah tertutup HP → crop area kepala + mahkota (lebih dekat ke wajah avatar) */
+      faceCrop: { x: 0.32, y: 0.02, w: 0.36, h: 0.22 },
       samples: {
         skin: [[.50,.20],[.46,.24],[.42,.30]],
         hair: [[.50,.05],[.30,.10],[.70,.10]],

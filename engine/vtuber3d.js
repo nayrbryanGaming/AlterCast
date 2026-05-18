@@ -399,6 +399,26 @@ export class VTuber3D {
     return t;
   }
 
+  // Create a cropped texture for face area only.
+  // crop = { x, y, w, h } as fractions 0..1 of original image
+  makeCroppedTexture(img, crop) {
+    const c = document.createElement('canvas');
+    const srcW = img.naturalWidth, srcH = img.naturalHeight;
+    const cx = Math.max(0, Math.min(srcW, crop.x * srcW));
+    const cy = Math.max(0, Math.min(srcH, crop.y * srcH));
+    const cw = Math.max(1, Math.min(srcW - cx, crop.w * srcW));
+    const ch = Math.max(1, Math.min(srcH - cy, crop.h * srcH));
+    // Square aspect for face — pad on shorter side
+    const size = Math.max(cw, ch);
+    c.width = c.height = Math.round(size);
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+    const offsetX = (size - cw) / 2;
+    const offsetY = (size - ch) / 2;
+    ctx.drawImage(img, cx, cy, cw, ch, offsetX, offsetY, cw, ch);
+    return this.makeTexture(c);
+  }
+
   samplePalette(img, samples) {
     const c = document.createElement('canvas');
     const W = 120;
@@ -425,10 +445,15 @@ export class VTuber3D {
     const img = await this.loadImage(src);
     const palette = this.samplePalette(img, config.samples || {});
     const tex = this.makeTexture(img);
+    // If faceCrop provided (fractions of image), build a dedicated face texture
+    // focused on the face region. Otherwise face uses the full image (legacy).
+    const faceTex = config.faceCrop
+      ? this.makeCroppedTexture(img, config.faceCrop)
+      : tex;
     // Darken iris color from sampled eye (sampled point likely hits skin around eye)
     const iris = config.irisColor || [0.20, 0.13, 0.10];
     this.avatars[id] = {
-      img, tex,
+      img, tex, faceTex,
       aspect: img.naturalWidth / img.naturalHeight,
       bgThreshold: config.bgThreshold ?? 0.978,
       faceScaleY: config.faceScaleY ?? 1.0,
@@ -625,12 +650,14 @@ export class VTuber3D {
     });
 
     /* ── Face (curved patch with photo, wraps around head front) ── */
+    /* Use cropped face texture when available — full-body cosplay photos
+       would otherwise show body/clothing on the face area. */
     this._draw(this.geo.face, mat4.multiply(ROOT, mat4.chain([
       headXform,
       mat4.translate(0, 0.02, 0.10),
       mat4.scale(0.90, 1.04 * av.faceScaleY, 1),
     ])), {
-      useTex: 1, tex: av.tex, alphaCut: 0.06,
+      useTex: 1, tex: av.faceTex || av.tex, alphaCut: 0.06,
       bgThreshold: av.bgThreshold,
       gloss: 0.10, sss: 0.05,
     });
