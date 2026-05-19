@@ -27,9 +27,10 @@ export class KeqingGLBRenderer {
     this._loaded     = false;
     this._avatars    = {};
     this._currentId  = null;
-    this._faceOverlay = null;   /* Real-face 3D billboard */
-    this._headAnchor  = null;   /* Bone or group used as head parent */
-    this._modelHeadY  = 0.85;   /* estimated head Y in model-local space */
+    this._faceOverlay = null;
+    this._headAnchor  = null;
+    this._modelHeadY  = 0.85;
+    this._lights      = { key: null, fill: null, rim: null, amb: null };
   }
 
   /* ── Init renderer ──────────────────────────────────── */
@@ -55,20 +56,25 @@ export class KeqingGLBRenderer {
     this.camera.position.set(0, 0.55, 3.8);
     this.camera.lookAt(0, 0.45, 0);
 
-    /* 3-point cinematic lighting */
-    const key  = new THREE.DirectionalLight(0xfffaf0, 3.0);
+    /* 3-point cinematic lighting — refs stored for per-avatar override */
+    const key  = new THREE.DirectionalLight(0xfff4e0, 3.0);
     key.position.set(2, 5, 3);
     this.scene.add(key);
+    this._lights.key = key;
 
-    const fill = new THREE.DirectionalLight(0xb0c8ff, 1.2);
+    const fill = new THREE.DirectionalLight(0xb0c8ff, 1.1);
     fill.position.set(-2, 2, 1);
     this.scene.add(fill);
+    this._lights.fill = fill;
 
-    const rim  = new THREE.DirectionalLight(0x00d4ff, 1.4);
+    const rim  = new THREE.DirectionalLight(0x00d4ff, 1.6);
     rim.position.set(-0.5, 3, -2.5);
     this.scene.add(rim);
+    this._lights.rim = rim;
 
-    this.scene.add(new THREE.AmbientLight(0x202840, 2.0));
+    const amb  = new THREE.AmbientLight(0x18202e, 2.0);
+    this.scene.add(amb);
+    this._lights.amb = amb;
     this.resize();
   }
 
@@ -247,14 +253,22 @@ export class KeqingGLBRenderer {
   setMouthOpen()        {}
   setOrbit(on)          { this.state.orbit = on; if (!on) this.state.orbitT = 0; }
 
+  /* Apply per-avatar 3-point lighting from store.AVATARS[id].glb */
+  setAvatarLighting(glbCfg) {
+    if (!glbCfg) return;
+    const L = this._lights;
+    if (L.key)  { L.key.color.set(glbCfg.keyColor);   L.key.intensity  = glbCfg.keyIntensity; }
+    if (L.fill) { L.fill.color.set(glbCfg.fillColor);  L.fill.intensity = glbCfg.fillIntensity; }
+    if (L.rim)  { L.rim.color.set(glbCfg.rimColor);    L.rim.intensity  = glbCfg.rimIntensity; }
+    if (L.amb)  { L.amb.color.set(glbCfg.ambColor);    L.amb.intensity  = glbCfg.ambIntensity; }
+    if (this.renderer && glbCfg.exposure)
+      this.renderer.toneMappingExposure = glbCfg.exposure;
+  }
+
   setEmotion(cfg) {
-    if (!this.scene) return;
-    this.scene.children.forEach(c => {
-      if (c.isDirectionalLight && c.position.x < 0 && c.position.z < 0) {
-        if (cfg.rimRGB) c.color.setRGB(cfg.rimRGB[0], cfg.rimRGB[1], cfg.rimRGB[2]);
-        if (cfg.rimA  !== undefined) c.intensity = 0.5 + cfg.rimA * 0.9;
-      }
-    });
+    if (!this.scene || !this._lights.rim) return;
+    if (cfg.rimRGB) this._lights.rim.color.setRGB(cfg.rimRGB[0], cfg.rimRGB[1], cfg.rimRGB[2]);
+    if (cfg.rimA !== undefined) this._lights.rim.intensity = 0.5 + cfg.rimA * 0.9;
   }
 
   /* ── Render (per-frame) ─────────────────────────────── */

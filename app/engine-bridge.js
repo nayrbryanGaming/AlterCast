@@ -45,7 +45,9 @@ export class EngineBridge {
       );
     }
 
-    this.engine.selectAvatar(store.get("currentAvatar"));
+    const initId = store.get("currentAvatar");
+    this.engine.selectAvatar(initId);
+    this.engine.setAvatarLighting(AVATARS[initId]?.glb);
     this.loaded = true;
     this._wireStore();
     this._applyEmotion(store.get("emotion"));
@@ -59,6 +61,7 @@ export class EngineBridge {
   _wireStore() {
     this._unsubs.push(store.subscribe("currentAvatar", id => {
       this.engine.selectAvatar(id);
+      this.engine.setAvatarLighting(AVATARS[id]?.glb);
       this._applyEmotion(store.get("emotion"));
     }));
     this._unsubs.push(store.subscribe("emotion",       e  => this._applyEmotion(e)));

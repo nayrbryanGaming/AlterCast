@@ -6,6 +6,7 @@
 
 /* ── Avatar configs (extend by adding to AVATARS) ── */
 export const AVATARS = {
+  /* ── HOST LIVE: wajah asli, studio look natural ── */
   user: {
     id: "user",
     src: "assets/avatars/host-real.png",
@@ -13,18 +14,20 @@ export const AVATARS = {
     tag: "muka asli · wajah nyata",
     statusKey: "HOST UTAMA · LIVE READY",
     irisColor: [0.22, 0.58, 0.80],
+    glb: {
+      keyColor: 0xfff4e0, keyIntensity: 3.2,
+      fillColor: 0xc8dcff, fillIntensity: 1.1,
+      rimColor:  0x00d4ff, rimIntensity:  1.6,
+      ambColor:  0x18202e, ambIntensity:  2.0,
+      exposure: 1.35,
+    },
     config: {
-      bgThreshold: 0.10,   /* transparan PNG — alpha channel dipakai shader */
-      useAlpha: true,
-      faceScaleY: 1.0,
+      bgThreshold: 0.10, useAlpha: true, faceScaleY: 1.0,
       irisColor: [0.22, 0.58, 0.80],
-      samples: {
-        skin: [[.50,.35],[.46,.38],[.54,.38]],
-        hair: [[.50,.08],[.30,.12],[.70,.12]],
-        body: [[.50,.70],[.40,.75],[.60,.75]],
-      },
+      samples: { skin:[[.50,.35],[.46,.38],[.54,.38]], hair:[[.50,.08],[.30,.12],[.70,.12]], body:[[.50,.70],[.40,.75],[.60,.75]] },
     },
   },
+  /* ── HOST PREMIUM: wajah asli 2, golden-hour premium ── */
   user2: {
     id: "user2",
     src: "assets/avatars/host-real2.png",
@@ -32,52 +35,59 @@ export const AVATARS = {
     tag: "muka asli · foto real 2",
     statusKey: "HOST PREMIUM · LIVE READY",
     irisColor: [0.55, 0.50, 0.65],
+    glb: {
+      keyColor: 0xffcc80, keyIntensity: 2.8,
+      fillColor: 0xd0a0ff, fillIntensity: 0.9,
+      rimColor:  0xffaa00, rimIntensity:  1.8,
+      ambColor:  0x1e1428, ambIntensity:  1.8,
+      exposure: 1.45,
+    },
     config: {
-      bgThreshold: 0.10,   /* transparan PNG — alpha channel dipakai shader */
-      useAlpha: true,
-      faceScaleY: 1.0,
+      bgThreshold: 0.10, useAlpha: true, faceScaleY: 1.0,
       irisColor: [0.55, 0.50, 0.65],
-      samples: {
-        skin: [[.50,.35],[.46,.38],[.54,.38]],
-        hair: [[.50,.08],[.30,.12],[.70,.12]],
-        body: [[.50,.70],[.40,.75],[.60,.75]],
-      },
+      samples: { skin:[[.50,.35],[.46,.38],[.54,.38]], hair:[[.50,.08],[.30,.12],[.70,.12]], body:[[.50,.70],[.40,.75],[.60,.75]] },
     },
   },
+  /* ── YUNA: karakter anime, soft sakura look ── */
   yuna: {
     id: "yuna",
     src: "assets/avatars/yuna.png",
     name: "Yuna",
-    tag: "portrait · realistic",
+    tag: "karakter anime · sakura",
     statusKey: "ACTIVE · CASUAL",
     irisColor: [0.18, 0.12, 0.09],
+    glb: {
+      keyColor: 0xffe8f0, keyIntensity: 2.6,
+      fillColor: 0xffc0d8, fillIntensity: 0.8,
+      rimColor:  0x80ffc0, rimIntensity:  1.4,
+      ambColor:  0x1a1020, ambIntensity:  1.6,
+      exposure: 1.20,
+    },
     config: {
-      bgThreshold: 0.978,
-      faceScaleY: 1.0,
+      bgThreshold: 0.978, faceScaleY: 1.0,
       irisColor: [0.18, 0.12, 0.09],
-      samples: {
-        skin: [[.52,.43],[.58,.46],[.54,.50]],
-        hair: [[.55,.22],[.65,.30],[.45,.28]],
-        body: [[.45,.80],[.55,.85],[.65,.78]],
-      },
+      samples: { skin:[[.52,.43],[.58,.46],[.54,.50]], hair:[[.55,.22],[.65,.30],[.45,.28]], body:[[.45,.80],[.55,.85],[.65,.78]] },
     },
   },
+  /* ── AETHERIA: karakter cyberpunk, hologram electric ── */
   aetheria: {
     id: "aetheria",
     src: "assets/avatars/aetheria.png",
     name: "Aetheria",
-    tag: "full body · character",
+    tag: "cyberpunk · hologram electric",
     statusKey: "ACTIVE · CHARACTER",
     irisColor: [0.55, 0.25, 0.15],
+    glb: {
+      keyColor: 0xf0f8ff, keyIntensity: 2.5,
+      fillColor: 0x6080ff, fillIntensity: 1.2,
+      rimColor:  0x00ffee, rimIntensity:  2.2,
+      ambColor:  0x0a1428, ambIntensity:  2.4,
+      exposure: 1.25,
+    },
     config: {
-      bgThreshold: 0.976,
-      faceScaleY: 1.1,
+      bgThreshold: 0.976, faceScaleY: 1.1,
       irisColor: [0.55, 0.25, 0.15],
-      samples: {
-        skin: [[.50,.20],[.52,.25],[.48,.22]],
-        hair: [[.50,.08],[.42,.15],[.58,.15]],
-        body: [[.50,.45],[.45,.50],[.55,.48]],
-      },
+      samples: { skin:[[.50,.20],[.52,.25],[.48,.22]], hair:[[.50,.08],[.42,.15],[.58,.15]], body:[[.50,.45],[.45,.50],[.55,.48]] },
     },
   },
 };
