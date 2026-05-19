@@ -38,8 +38,10 @@ export class EngineBridge {
 
     /* Load semua face textures per avatar */
     for (const [id, av] of Object.entries(AVATARS)) {
-      await this.engine.addAvatar(id, av.src, (msg) =>
-        console.log(`[Avatar:${id}] ${msg}`)
+      await this.engine.addAvatar(
+        id, av.src,
+        (msg) => console.log(`[Avatar:${id}] ${msg}`),
+        !!av.config?.useAlpha   /* isRealFace — only removix PNGs use face overlay */
       );
     }
 

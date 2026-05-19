@@ -11,75 +11,68 @@ export class KeqingGLBRenderer {
   constructor(canvas) {
     this.canvas = canvas;
 
-    /* State dibaca engine-bridge dan live.js */
     this.state = {
       rotX: 0, rotY: 0,
       rotXTarget: 0, rotYTarget: 0,
       orbit: false, orbitT: 0,
     };
 
-    this.renderer  = null;
-    this.scene     = null;
-    this.camera    = null;
-    this._model    = null;
-    this._mixer    = null;
-    this._clock    = new THREE.Clock();
-    this._loader   = new GLTFLoader();
-    this._loaded   = false;
-    this._avatars  = {};
-    this._currentId = null;
+    this.renderer    = null;
+    this.scene       = null;
+    this.camera      = null;
+    this._model      = null;
+    this._mixer      = null;
+    this._clock      = new THREE.Clock();
+    this._loader     = new GLTFLoader();
+    this._loaded     = false;
+    this._avatars    = {};
+    this._currentId  = null;
+    this._faceOverlay = null;   /* Real-face 3D billboard */
+    this._headAnchor  = null;   /* Bone or group used as head parent */
+    this._modelHeadY  = 0.85;   /* estimated head Y in model-local space */
   }
 
-  /* ── Init renderer (synchronous) ────────────────────── */
+  /* ── Init renderer ──────────────────────────────────── */
   async init() {
-    try {
-      this._setupRenderer();
-      return true;
-    } catch (e) {
-      console.error("[KeqingGLB] init error:", e.message);
-      return false;
-    }
+    try { this._setupRenderer(); return true; }
+    catch (e) { console.error("[KeqingGLB] init error:", e.message); return false; }
   }
 
   _setupRenderer() {
     this.renderer = new THREE.WebGLRenderer({
-      canvas: this.canvas,
-      alpha: true,
-      antialias: true,
-      premultipliedAlpha: false,
+      canvas: this.canvas, alpha: true, antialias: true, premultipliedAlpha: false,
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.2;
+    this.renderer.outputColorSpace  = THREE.SRGBColorSpace;
+    this.renderer.toneMapping       = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.25;
     this.renderer.setClearColor(0x000000, 0);
 
-    this.scene  = new THREE.Scene();
+    this.scene = new THREE.Scene();
 
-    /* Camera — 3/4 full-body portrait, slight low angle */
-    this.camera = new THREE.PerspectiveCamera(32, 1, 0.01, 100);
-    this.camera.position.set(0, 0.6, 3.6);
-    this.camera.lookAt(0, 0.5, 0);
+    /* Camera — full-body portrait, slight low angle */
+    this.camera = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
+    this.camera.position.set(0, 0.55, 3.8);
+    this.camera.lookAt(0, 0.45, 0);
 
     /* 3-point cinematic lighting */
-    const key  = new THREE.DirectionalLight(0xfff8f0, 2.5);
-    key.position.set(2, 4, 3);
+    const key  = new THREE.DirectionalLight(0xfffaf0, 3.0);
+    key.position.set(2, 5, 3);
     this.scene.add(key);
 
-    const fill = new THREE.DirectionalLight(0xb0c8ff, 1.0);
+    const fill = new THREE.DirectionalLight(0xb0c8ff, 1.2);
     fill.position.set(-2, 2, 1);
     this.scene.add(fill);
 
-    const rim  = new THREE.DirectionalLight(0x00d4ff, 1.2);
+    const rim  = new THREE.DirectionalLight(0x00d4ff, 1.4);
     rim.position.set(-0.5, 3, -2.5);
     this.scene.add(rim);
 
-    this.scene.add(new THREE.AmbientLight(0x1a2038, 1.5));
-
+    this.scene.add(new THREE.AmbientLight(0x202840, 2.0));
     this.resize();
   }
 
-  /* ── Load GLB ───────────────────────────────────────── */
+  /* ── Load GLB ──────────────────────────────────────── */
   async loadModel(glbSrc) {
     return new Promise((resolve) => {
       this._loader.load(
@@ -91,24 +84,26 @@ export class KeqingGLBRenderer {
           const box    = new THREE.Box3().setFromObject(model);
           const size   = box.getSize(new THREE.Vector3());
           const center = box.getCenter(new THREE.Vector3());
-          const maxDim = Math.max(size.x, size.y, size.z);
-          const s      = 2.0 / maxDim;
+          const s      = 2.0 / Math.max(size.x, size.y, size.z);
           model.scale.setScalar(s);
           model.position.sub(center.multiplyScalar(s));
-          /* Lift slightly so feet are at y=0 */
-          const boxAfter = new THREE.Box3().setFromObject(model);
-          model.position.y -= boxAfter.min.y;
-          model.position.y -= size.y * s * 0.5; /* drop to waist center */
+
+          /* Feet at y=0, then drop so waist is near origin */
+          const b2 = new THREE.Box3().setFromObject(model);
+          model.position.y -= b2.min.y;
+          model.position.y -= size.y * s * 0.52;
+
+          /* ── Estimate head Y in model-local space ── */
+          this._modelHeadY = size.y * s * 0.36; /* ~top 28% of scaled height */
 
           model.traverse(c => {
             if (!c.isMesh) return;
+            const matArr = Array.isArray(c.material) ? c.material : [c.material];
             console.log("[KeqingGLB] mesh:", c.name,
-              "| mat:", (Array.isArray(c.material) ? c.material : [c.material]).map(m => m?.name));
-            const mats = Array.isArray(c.material) ? c.material : [c.material];
-            mats.forEach(m => {
+              "| mat:", matArr.map(m => m?.name));
+            matArr.forEach(m => {
               if (!m) return;
               m.side = THREE.FrontSide;
-              /* Keep original Keqing textures sharp */
               if (m.map) { m.map.anisotropy = 8; m.map.needsUpdate = true; }
             });
           });
@@ -116,51 +111,61 @@ export class KeqingGLBRenderer {
           this.scene.add(model);
           this._model = model;
 
-          /* Animation — try idle first, fallback to any */
+          /* ── Find head bone for face anchor ── */
+          this._headAnchor = null;
+          model.traverse(b => {
+            if (this._headAnchor) return;
+            const n = (b.name || "").toLowerCase();
+            if ((b.isBone || b.type === "Bone") &&
+                (n.includes("head") || n === "j_hed" || n === "bone_head")) {
+              this._headAnchor = b;
+            }
+          });
+          if (!this._headAnchor) {
+            /* Fallback: create a virtual group at estimated head position */
+            const g = new THREE.Group();
+            g.position.set(0, this._modelHeadY, 0);
+            model.add(g);
+            this._headAnchor = g;
+          }
+          console.log("[KeqingGLB] head anchor:", this._headAnchor.name || "virtual-group");
+
+          /* ── Animation ── */
           if (gltf.animations?.length) {
             this._mixer = new THREE.AnimationMixer(model);
             const idle = gltf.animations.find(a =>
               /idle|stand|rest|wait|loop/i.test(a.name)
             ) || gltf.animations[0];
-            const action = this._mixer.clipAction(idle);
-            action.play();
+            this._mixer.clipAction(idle).play();
             console.log("[KeqingGLB] animation:", idle.name);
           } else {
-            console.log("[KeqingGLB] no animations — using bind pose");
             this._relaxArmBones(model);
           }
 
           this._loaded = true;
-          console.log("[KeqingGLB] model loaded ✓", gltf.animations?.length, "anim(s)");
+          console.log("[KeqingGLB] loaded ✓", gltf.animations?.length, "anim(s)");
           resolve(true);
         },
-        (xhr) => {
-          if (xhr.total) console.log(`[KeqingGLB] ${Math.round(xhr.loaded/xhr.total*100)}%`);
-        },
-        (err) => {
-          console.warn("[KeqingGLB] GLB load error:", err.message ?? err);
-          resolve(false);
-        }
+        (xhr) => { if (xhr.total) console.log(`[KeqingGLB] ${Math.round(xhr.loaded/xhr.total*100)}%`); },
+        (err)  => { console.warn("[KeqingGLB] load error:", err.message ?? err); resolve(false); }
       );
     });
   }
 
-  /* Manually fold arms to sides when no animation present */
   _relaxArmBones(model) {
     model.traverse(b => {
-      if (b.isBone || b.type === "Bone") {
-        const n = b.name.toLowerCase();
-        if (n.includes("upperarm") || n.includes("arm_l") || n.includes("arm_r") ||
-            n.includes("shoulder") || n.includes("clavicle")) {
-          if (n.includes("_l") || n.includes("left"))  b.rotation.z =  0.6;
-          if (n.includes("_r") || n.includes("right")) b.rotation.z = -0.6;
-        }
+      if (!(b.isBone || b.type === "Bone")) return;
+      const n = b.name.toLowerCase();
+      if (n.includes("upperarm") || n.includes("arm_l") || n.includes("arm_r") ||
+          n.includes("shoulder") || n.includes("clavicle")) {
+        if (n.includes("_l") || n.includes("left"))  b.rotation.z =  0.55;
+        if (n.includes("_r") || n.includes("right")) b.rotation.z = -0.55;
       }
     });
   }
 
-  /* ── Load face texture per avatar ───────────────────── */
-  async addAvatar(id, imgSrc, onProgress = () => {}) {
+  /* ── Load face texture per avatar ──────────────────── */
+  async addAvatar(id, imgSrc, onProgress = () => {}, isRealFace = false) {
     onProgress("loading face texture…");
     let faceTex = null;
     try {
@@ -170,48 +175,72 @@ export class KeqingGLBRenderer {
     } catch (e) {
       console.warn(`[KeqingGLB] face texture ${id} failed:`, e.message);
     }
-    this._avatars[id] = { faceTex };
+    this._avatars[id] = { faceTex, isRealFace };
     onProgress("done");
     return this._avatars[id];
   }
 
-  /* ── Pilih avatar → terapkan face texture ───────────── */
+  /* ── Select avatar → face overlay 3D ───────────────── */
   selectAvatar(id) {
     if (!this._avatars[id] || !this._model) return false;
     this._currentId = id;
-    /*
-     * Face texture is only applied when we can positively identify the face
-     * mesh by name. If no match, preserve original Keqing model textures.
-     */
-    const { faceTex } = this._avatars[id];
-    if (!faceTex) return true;
+    const { faceTex, isRealFace } = this._avatars[id];
 
-    const FACE_KEYWORDS = ["face", "head", "skin", "hair01", "fac"];
-    const EXCLUDE_KEYWORDS = ["cloth", "dress", "outfit", "skirt", "coat",
-                               "hair", "weapon", "wing", "eye", "brow",
-                               "lash", "lip", "tooth", "tongue"];
-
-    this._model.traverse(child => {
-      if (!child.isMesh) return;
-      const name = (child.name || "").toLowerCase();
-      const matName = (() => {
-        const m = Array.isArray(child.material) ? child.material[0] : child.material;
-        return (m?.name || "").toLowerCase();
-      })();
-      const combined = name + " " + matName;
-      const isExcluded = EXCLUDE_KEYWORDS.some(k => combined.includes(k));
-      const isFace = FACE_KEYWORDS.some(k => combined.includes(k));
-      if (!isFace || isExcluded) return;
-      const mats = Array.isArray(child.material) ? child.material : [child.material];
-      mats.forEach(m => {
-        if (m && m.map) { m.map = faceTex; m.needsUpdate = true; }
+    /* Replace face mesh texture only if name clearly matches */
+    if (faceTex) {
+      const FACE_KW    = ["face", "fac", "head", "skin"];
+      const EXCLUDE_KW = ["cloth", "dress", "skirt", "coat", "hair",
+                          "weapon", "wing", "eye", "brow", "lash", "lip", "tooth"];
+      this._model.traverse(child => {
+        if (!child.isMesh) return;
+        const n = (child.name + " " +
+          (Array.isArray(child.material) ? child.material[0]?.name : child.material?.name) + "")
+          .toLowerCase();
+        if (EXCLUDE_KW.some(k => n.includes(k))) return;
+        if (!FACE_KW.some(k => n.includes(k))) return;
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach(m => { if (m?.map) { m.map = faceTex; m.needsUpdate = true; } });
+        console.log("[KeqingGLB] face-mesh texture applied:", child.name);
       });
-      console.log("[KeqingGLB] applied face texture to:", child.name);
-    });
+    }
+
+    /* ── Face Overlay 3D: only for real-face transparent PNGs ── */
+    this._setFaceOverlay(isRealFace ? faceTex : null);
     return true;
   }
 
-  /* ── Engine API (dipanggil engine-bridge) ───────────── */
+  _setFaceOverlay(faceTex) {
+    /* Remove previous overlay */
+    if (this._faceOverlay) {
+      if (this._faceOverlay.parent) this._faceOverlay.parent.remove(this._faceOverlay);
+      this._faceOverlay.geometry.dispose();
+      this._faceOverlay.material.dispose();
+      this._faceOverlay = null;
+    }
+    if (!faceTex || !this._headAnchor) return;
+
+    /*
+     * Face plane: transparent PNG parented to head bone/anchor.
+     * Positioned slightly in front of the model's face.
+     * Size roughly 0.55w × 0.65h (head-sized proportion).
+     */
+    const geo = new THREE.PlaneGeometry(0.55, 0.65);
+    const mat = new THREE.MeshBasicMaterial({
+      map: faceTex,
+      transparent: true,
+      alphaTest: 0.04,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    /* Offset forward (positive Z = toward viewer in local model space) */
+    mesh.position.set(0, 0.05, 0.16);
+    this._headAnchor.add(mesh);
+    this._faceOverlay = mesh;
+    console.log("[KeqingGLB] face overlay created on head anchor");
+  }
+
+  /* ── Engine API ─────────────────────────────────────── */
   setRotation(rx, ry)   { this.state.rotXTarget = rx; this.state.rotYTarget = ry; }
   setHeadLook(rx, ry)   { this.state.rotXTarget += rx * 0.12; this.state.rotYTarget += ry * 0.12; }
   setEyeLook()          {}
@@ -228,7 +257,7 @@ export class KeqingGLBRenderer {
     });
   }
 
-  /* ── Render (dipanggil per-frame dari live.js) ───────── */
+  /* ── Render (per-frame) ─────────────────────────────── */
   render(extraX = 0, extraY = 0) {
     if (!this.renderer || !this.scene || !this.camera) return;
 
@@ -245,8 +274,19 @@ export class KeqingGLBRenderer {
     s.rotY += (s.rotYTarget - s.rotY) * 0.07;
 
     if (this._model) {
-      this._model.rotation.x = s.rotX  + extraY * 0.3;
-      this._model.rotation.y = s.rotY  + extraX * 0.3;
+      this._model.rotation.x = s.rotX + extraY * 0.3;
+      this._model.rotation.y = s.rotY + extraX * 0.3;
+    }
+
+    /*
+     * Face overlay billboard — always face camera.
+     * Since it's parented to the head anchor which rotates with model,
+     * we counter-rotate in world space so the face is always front-facing.
+     */
+    if (this._faceOverlay && this._model) {
+      const worldQuat = new THREE.Quaternion();
+      this._headAnchor.getWorldQuaternion(worldQuat);
+      this._faceOverlay.quaternion.copy(worldQuat).invert();
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -262,6 +302,5 @@ export class KeqingGLBRenderer {
   }
 
   get loaded() { return this._loaded; }
-
   destroy() { if (this.renderer) this.renderer.dispose(); }
 }
