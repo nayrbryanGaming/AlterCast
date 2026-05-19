@@ -56,10 +56,10 @@ export class KeqingGLBRenderer {
 
     this.scene  = new THREE.Scene();
 
-    /* Camera — portrait, tampil full body */
-    this.camera = new THREE.PerspectiveCamera(38, 1, 0.01, 100);
-    this.camera.position.set(0, 1.2, 3.0);
-    this.camera.lookAt(0, 1.0, 0);
+    /* Camera — 3/4 full-body portrait, slight low angle */
+    this.camera = new THREE.PerspectiveCamera(32, 1, 0.01, 100);
+    this.camera.position.set(0, 0.6, 3.6);
+    this.camera.lookAt(0, 0.5, 0);
 
     /* 3-point cinematic lighting */
     const key  = new THREE.DirectionalLight(0xfff8f0, 2.5);
@@ -91,33 +91,47 @@ export class KeqingGLBRenderer {
           const box    = new THREE.Box3().setFromObject(model);
           const size   = box.getSize(new THREE.Vector3());
           const center = box.getCenter(new THREE.Vector3());
-          const s      = 2.2 / Math.max(size.x, size.y, size.z);
+          const maxDim = Math.max(size.x, size.y, size.z);
+          const s      = 2.0 / maxDim;
           model.scale.setScalar(s);
           model.position.sub(center.multiplyScalar(s));
-          model.position.y += 0.05;
+          /* Lift slightly so feet are at y=0 */
+          const boxAfter = new THREE.Box3().setFromObject(model);
+          model.position.y -= boxAfter.min.y;
+          model.position.y -= size.y * s * 0.5; /* drop to waist center */
 
           model.traverse(c => {
-            if (c.isMesh) {
-              console.log("[KeqingGLB] mesh:", c.name, "| mats:", (Array.isArray(c.material) ? c.material : [c.material]).map(m => m?.name));
-              const mats = Array.isArray(c.material) ? c.material : [c.material];
-              mats.forEach(m => { if (m) m.side = THREE.FrontSide; });
-            }
+            if (!c.isMesh) return;
+            console.log("[KeqingGLB] mesh:", c.name,
+              "| mat:", (Array.isArray(c.material) ? c.material : [c.material]).map(m => m?.name));
+            const mats = Array.isArray(c.material) ? c.material : [c.material];
+            mats.forEach(m => {
+              if (!m) return;
+              m.side = THREE.FrontSide;
+              /* Keep original Keqing textures sharp */
+              if (m.map) { m.map.anisotropy = 8; m.map.needsUpdate = true; }
+            });
           });
 
           this.scene.add(model);
           this._model = model;
 
-          /* Idle animation */
+          /* Animation — try idle first, fallback to any */
           if (gltf.animations?.length) {
             this._mixer = new THREE.AnimationMixer(model);
-            const idle = gltf.animations.find(
-              a => a.name.toLowerCase().includes("idle")
+            const idle = gltf.animations.find(a =>
+              /idle|stand|rest|wait|loop/i.test(a.name)
             ) || gltf.animations[0];
-            this._mixer.clipAction(idle).play();
+            const action = this._mixer.clipAction(idle);
+            action.play();
+            console.log("[KeqingGLB] animation:", idle.name);
+          } else {
+            console.log("[KeqingGLB] no animations — using bind pose");
+            this._relaxArmBones(model);
           }
 
           this._loaded = true;
-          console.log("[KeqingGLB] model loaded ✓");
+          console.log("[KeqingGLB] model loaded ✓", gltf.animations?.length, "anim(s)");
           resolve(true);
         },
         (xhr) => {
@@ -128,6 +142,20 @@ export class KeqingGLBRenderer {
           resolve(false);
         }
       );
+    });
+  }
+
+  /* Manually fold arms to sides when no animation present */
+  _relaxArmBones(model) {
+    model.traverse(b => {
+      if (b.isBone || b.type === "Bone") {
+        const n = b.name.toLowerCase();
+        if (n.includes("upperarm") || n.includes("arm_l") || n.includes("arm_r") ||
+            n.includes("shoulder") || n.includes("clavicle")) {
+          if (n.includes("_l") || n.includes("left"))  b.rotation.z =  0.6;
+          if (n.includes("_r") || n.includes("right")) b.rotation.z = -0.6;
+        }
+      }
     });
   }
 
@@ -151,35 +179,35 @@ export class KeqingGLBRenderer {
   selectAvatar(id) {
     if (!this._avatars[id] || !this._model) return false;
     this._currentId = id;
+    /*
+     * Face texture is only applied when we can positively identify the face
+     * mesh by name. If no match, preserve original Keqing model textures.
+     */
     const { faceTex } = this._avatars[id];
     if (!faceTex) return true;
 
-    let anyMatched = false;
+    const FACE_KEYWORDS = ["face", "head", "skin", "hair01", "fac"];
+    const EXCLUDE_KEYWORDS = ["cloth", "dress", "outfit", "skirt", "coat",
+                               "hair", "weapon", "wing", "eye", "brow",
+                               "lash", "lip", "tooth", "tongue"];
+
     this._model.traverse(child => {
       if (!child.isMesh) return;
       const name = (child.name || "").toLowerCase();
-      const isFaceMesh = name.includes("face") || name.includes("head") ||
-                         name.includes("skin") || name.includes("body") ||
-                         name.includes("chr")  || name.includes("mesh") ||
-                         name.includes("mat");
-      if (!isFaceMesh) return;
-      anyMatched = true;
+      const matName = (() => {
+        const m = Array.isArray(child.material) ? child.material[0] : child.material;
+        return (m?.name || "").toLowerCase();
+      })();
+      const combined = name + " " + matName;
+      const isExcluded = EXCLUDE_KEYWORDS.some(k => combined.includes(k));
+      const isFace = FACE_KEYWORDS.some(k => combined.includes(k));
+      if (!isFace || isExcluded) return;
       const mats = Array.isArray(child.material) ? child.material : [child.material];
       mats.forEach(m => {
         if (m && m.map) { m.map = faceTex; m.needsUpdate = true; }
       });
+      console.log("[KeqingGLB] applied face texture to:", child.name);
     });
-
-    /* Fallback: no name match → apply to every mesh that has a diffuse map */
-    if (!anyMatched) {
-      this._model.traverse(child => {
-        if (!child.isMesh) return;
-        const mats = Array.isArray(child.material) ? child.material : [child.material];
-        mats.forEach(m => {
-          if (m && m.map) { m.map = faceTex; m.needsUpdate = true; }
-        });
-      });
-    }
     return true;
   }
 

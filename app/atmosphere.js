@@ -63,31 +63,46 @@ export class Atmosphere {
     const c = this.bgCanvas, x = this.bgCtx;
     const w = c.width, h = c.height;
 
-    /* ── Dinding studio belakang — gradient hangat ── */
-    const wall = x.createLinearGradient(0, 0, 0, h * 0.75);
-    wall.addColorStop(0, "#0e1520");
-    wall.addColorStop(0.5, "#111a2a");
-    wall.addColorStop(1, "#0a1018");
-    x.fillStyle = wall;
+    /* ── Base fill — deep studio navy ── */
+    x.fillStyle = "#07080E";
     x.fillRect(0, 0, w, h);
 
-    /* ── Spotlight dari atas tengah (broadcast key light) ── */
-    const spot = x.createRadialGradient(w * 0.5, 0, 0, w * 0.5, h * 0.3, w * 0.55);
-    spot.addColorStop(0, "rgba(60,100,160,.22)");
-    spot.addColorStop(0.5, "rgba(30,60,110,.10)");
-    spot.addColorStop(1, "rgba(0,0,0,0)");
+    /* ── Back wall — warm cream/beige centre panel (like real affiliate studios) ── */
+    const wallPanel = x.createLinearGradient(w * 0.18, 0, w * 0.82, 0);
+    wallPanel.addColorStop(0,   "rgba(0,0,0,0)");
+    wallPanel.addColorStop(0.1, "rgba(32,28,24,.92)");
+    wallPanel.addColorStop(0.5, "rgba(40,34,28,.97)");
+    wallPanel.addColorStop(0.9, "rgba(32,28,24,.92)");
+    wallPanel.addColorStop(1,   "rgba(0,0,0,0)");
+    x.fillStyle = wallPanel;
+    x.fillRect(0, 0, w, h * 0.74);
+
+    /* ── Broadcast key spotlight from top-centre ── */
+    const spot = x.createRadialGradient(w * 0.5, -h * 0.1, 0, w * 0.5, h * 0.25, w * 0.52);
+    spot.addColorStop(0,   "rgba(255,220,160,.28)");
+    spot.addColorStop(0.4, "rgba(200,160,80,.12)");
+    spot.addColorStop(1,   "rgba(0,0,0,0)");
     x.fillStyle = spot;
-    x.fillRect(0, 0, w, h);
+    x.fillRect(0, 0, w, h * 0.74);
 
-    /* ── Rak produk kiri & kanan (silhouette studio shelf) ── */
-    this._drawShelf(x, w * 0.04, h * 0.18, w * 0.14, h, t, "left");
-    this._drawShelf(x, w * 0.82, h * 0.18, w * 0.14, h, t, "right");
+    /* ── LED accent bar top-centre ── */
+    const ledBar = x.createLinearGradient(w * 0.2, 0, w * 0.8, 0);
+    ledBar.addColorStop(0,   "rgba(0,200,255,0)");
+    ledBar.addColorStop(0.3, "rgba(0,200,255,.55)");
+    ledBar.addColorStop(0.7, "rgba(0,200,255,.55)");
+    ledBar.addColorStop(1,   "rgba(0,200,255,0)");
+    x.fillStyle = ledBar;
+    x.fillRect(w * 0.2, 0, w * 0.6, 3);
 
-    /* ── Lantai studio — perspektif reflection ── */
+    /* ── Rak produk kiri & kanan ── */
+    this._drawShelf(x, w * 0.02, h * 0.08, w * 0.16, h, t, "left");
+    this._drawShelf(x, w * 0.82, h * 0.08, w * 0.16, h, t, "right");
+
+    /* ── Lantai studio ── */
     const floor = x.createLinearGradient(0, h * 0.72, 0, h);
-    floor.addColorStop(0, "#0a0e18");
-    floor.addColorStop(0.4, "#0d1422");
-    floor.addColorStop(1, "#06090f");
+    floor.addColorStop(0,   "#0b0c12");
+    floor.addColorStop(0.5, "#0e1018");
+    floor.addColorStop(1,   "#060608");
     x.fillStyle = floor;
     x.fillRect(0, h * 0.72, w, h * 0.28);
 
@@ -149,68 +164,83 @@ export class Atmosphere {
   }
 
   _drawShelf(x, sx, sy, sw, h, t, side) {
-    const shelfH = h * 0.55;
-    /* Rak panel */
-    const shelfGrad = x.createLinearGradient(sx, 0, sx + sw, 0);
+    const shelfH = h * 0.62;
+    const shelves = 5;
+    const rowH = shelfH / shelves;
+
+    /* ── Back panel ── */
+    const panelGrad = x.createLinearGradient(sx, 0, sx + sw, 0);
     if (side === "left") {
-      shelfGrad.addColorStop(0, "rgba(20,35,60,.9)");
-      shelfGrad.addColorStop(1, "rgba(12,22,40,.4)");
+      panelGrad.addColorStop(0, "rgba(18,24,38,.98)");
+      panelGrad.addColorStop(1, "rgba(14,18,30,.60)");
     } else {
-      shelfGrad.addColorStop(0, "rgba(12,22,40,.4)");
-      shelfGrad.addColorStop(1, "rgba(20,35,60,.9)");
+      panelGrad.addColorStop(0, "rgba(14,18,30,.60)");
+      panelGrad.addColorStop(1, "rgba(18,24,38,.98)");
     }
-    x.fillStyle = shelfGrad;
+    x.fillStyle = panelGrad;
     x.fillRect(sx, sy, sw, shelfH);
 
-    /* Shelf lines */
-    const shelves = 4;
+    /* ── Shelf boards ── */
     for (let i = 1; i <= shelves; i++) {
-      const ly = sy + (shelfH / shelves) * i;
-      x.strokeStyle = "rgba(0,180,255,.18)";
-      x.lineWidth = 1;
-      x.beginPath();
-      x.moveTo(sx, ly);
-      x.lineTo(sx + sw, ly);
-      x.stroke();
+      const ly = sy + rowH * i;
+      /* Board thickness */
+      x.fillStyle = "rgba(30,40,60,.95)";
+      x.fillRect(sx, ly - 5, sw, 6);
+      /* LED under-shelf strip */
+      const led = x.createLinearGradient(sx, 0, sx + sw, 0);
+      led.addColorStop(0, side === "left" ? "rgba(0,200,255,.55)" : "rgba(0,200,255,.0)");
+      led.addColorStop(1, side === "left" ? "rgba(0,200,255,.0)" : "rgba(0,200,255,.55)");
+      x.fillStyle = led;
+      x.fillRect(sx, ly + 1, sw, 2);
     }
 
-    /* Product boxes on shelves */
-    const boxColors = [
-      "rgba(0,200,255,.4)", "rgba(120,60,255,.4)", "rgba(255,160,0,.35)",
-      "rgba(0,255,120,.3)", "rgba(255,80,80,.3)",
+    /* ── Products on each shelf ── */
+    const productPalette = [
+      ["#e83e8c","#c41a72"], ["#fd7e14","#d05e00"], ["#28a745","#1a7a2e"],
+      ["#007bff","#0056b3"], ["#6f42c1","#52309b"], ["#dc3545","#a71d2a"],
+      ["#17a2b8","#117a8b"], ["#ffc107","#d39e00"],
     ];
-    for (let i = 0; i < shelves; i++) {
-      const ly = sy + (shelfH / shelves) * i + 4;
-      const numBoxes = 1 + (i % 2);
+
+    for (let row = 0; row < shelves; row++) {
+      const top = sy + rowH * row + 6;
+      const bottom = sy + rowH * (row + 1) - 5;
+      const bh = bottom - top - 4;
+      const numBoxes = row % 2 === 0 ? 2 : 3;
+      const boxW = (sw - 8) / numBoxes - 3;
+
       for (let b = 0; b < numBoxes; b++) {
-        const bx = sx + (b * sw * 0.55) + sw * 0.05;
-        const bw = sw * 0.38;
-        const bh = (shelfH / shelves) - 10;
-        const col = boxColors[(i * 2 + b) % boxColors.length];
-        const pulse = 0.85 + Math.sin(t * 0.8 + i + b) * 0.12;
+        const bx = sx + 4 + b * (boxW + 3);
+        const [col1, col2] = productPalette[(row * 3 + b) % productPalette.length];
+        /* Product box body */
+        const boxGrad = x.createLinearGradient(bx, top, bx, top + bh);
+        boxGrad.addColorStop(0, col1 + "cc");
+        boxGrad.addColorStop(1, col2 + "99");
+        const pulse = 0.88 + Math.sin(t * 0.6 + row + b * 1.3) * 0.09;
         x.globalAlpha = pulse;
-        x.fillStyle = col;
-        x.fillRect(bx, ly, bw, bh);
-        /* Price tag glow */
-        x.fillStyle = "rgba(255,255,255,.65)";
-        x.fillRect(bx + 2, ly + bh - 10, bw - 4, 8);
+        x.fillStyle = boxGrad;
+        x.fillRect(bx, top, boxW, bh);
+        /* Highlight stripe */
+        x.fillStyle = "rgba(255,255,255,.18)";
+        x.fillRect(bx + 2, top + 2, boxW * 0.35, bh - 4);
+        /* Price label */
+        x.fillStyle = "rgba(255,255,255,.80)";
+        x.fillRect(bx + 2, top + bh - 9, boxW - 4, 7);
         x.globalAlpha = 1;
       }
     }
 
-    /* Shelf edge light */
-    x.strokeStyle = side === "left"
-      ? "rgba(0,200,255,.35)"
-      : "rgba(120,60,255,.35)";
+    /* ── Vertical edge accent ── */
+    const edgeX = side === "left" ? sx + sw : sx;
+    const edgeGrad = x.createLinearGradient(0, sy, 0, sy + shelfH);
+    edgeGrad.addColorStop(0, "rgba(0,200,255,.0)");
+    edgeGrad.addColorStop(0.3, "rgba(0,200,255,.5)");
+    edgeGrad.addColorStop(0.7, "rgba(0,200,255,.5)");
+    edgeGrad.addColorStop(1, "rgba(0,200,255,.0)");
+    x.strokeStyle = edgeGrad;
     x.lineWidth = 1.5;
     x.beginPath();
-    if (side === "left") {
-      x.moveTo(sx + sw, sy);
-      x.lineTo(sx + sw, sy + shelfH);
-    } else {
-      x.moveTo(sx, sy);
-      x.lineTo(sx, sy + shelfH);
-    }
+    x.moveTo(edgeX, sy);
+    x.lineTo(edgeX, sy + shelfH);
     x.stroke();
   }
 
