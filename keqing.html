@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlterCast — Keqing 3D Avatar (Real GLB)</title>
+  <link rel="stylesheet" href="assets/styles/tokens.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+    }
+  }
+  </script>
+  <style>
+    html, body { height: 100vh; overflow: hidden; background: #050810; }
+
+    /* Real photographic-style background: deep gradient + bokeh + floor */
+    #scene {
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 55% at 50% 38%, rgba(20,55,110,.62) 0%, transparent 60%),
+        radial-gradient(ellipse 70% 90% at 50% 100%, rgba(124,58,255,.18) 0%, transparent 70%),
+        radial-gradient(ellipse 100% 60% at 50% 50%, rgba(0,30,60,.30) 0%, #050810 80%);
+    }
+    #scene::before, #scene::after {
+      content: ""; position: absolute;
+      border-radius: 50%;
+      filter: blur(50px);
+      animation: drift 18s ease-in-out infinite;
+      pointer-events: none;
+    }
+    #scene::before {
+      width: 420px; height: 420px; top: 12%; left: 8%;
+      background: radial-gradient(circle, rgba(0,212,255,.20) 0%, transparent 70%);
+    }
+    #scene::after {
+      width: 480px; height: 480px; bottom: 8%; right: 12%;
+      animation-delay: -9s;
+      background: radial-gradient(circle, rgba(124,58,255,.22) 0%, transparent 70%);
+    }
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0); }
+      50%      { transform: translate(40px, -25px); }
+    }
+
+    /* Floor glow */
+    .floor {
+      position: fixed; bottom: 0; left: 50%;
+      width: 70%; height: 220px;
+      transform: translateX(-50%);
+      background: radial-gradient(ellipse at center top, rgba(0,212,255,.20), transparent 70%);
+      filter: blur(60px);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .vignette {
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse 100% 100% at 50% 50%, transparent 50%, rgba(0,0,0,.7) 100%);
+      pointer-events: none; z-index: 4;
+    }
+
+    #avatar-canvas {
+      position: fixed; inset: 0;
+      width: 100vw; height: 100vh;
+      z-index: 2;
+      cursor: grab;
+      display: block;
+    }
+    #avatar-canvas:active { cursor: grabbing; }
+
+    #particles { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
+
+    /* Capsule frame (Gatebox-style edges) */
+    .cap-edge {
+      position: fixed; pointer-events: none; z-index: 5;
+    }
+    .cap-edge.t, .cap-edge.b {
+      left: 14%; right: 14%; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(0,212,255,.5), transparent);
+      box-shadow: 0 0 12px rgba(0,212,255,.4);
+    }
+    .cap-edge.t { top: 5%; }
+    .cap-edge.b { bottom: 7%; }
+    .cap-edge.l, .cap-edge.r {
+      top: 5%; bottom: 7%; width: 1px;
+      background: linear-gradient(180deg, rgba(0,212,255,.45), rgba(0,212,255,.1), rgba(0,212,255,.45));
+    }
+    .cap-edge.l { left: 14%; }
+    .cap-edge.r { right: 14%; }
+
+    /* Scan line */
+    .scanline {
+      position: fixed; left: 14%; right: 14%; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(0,212,255,.18), transparent);
+      pointer-events: none; z-index: 5;
+      animation: scan 7s linear infinite;
+    }
+    @keyframes scan {
+      0%   { top: 5%; opacity: .6; }
+      100% { top: 93%; opacity: 0; }
+    }
+
+    /* Top-left brand chip */
+    .top-link {
+      position: fixed; left: 18px; top: 18px;
+      z-index: 10;
+      background: rgba(8,10,15,.7);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--text-primary);
+      text-decoration: none;
+      letter-spacing: .04em;
+    }
+    .top-link:hover { background: var(--accent-primary-glow); color: var(--accent-primary); border-color: var(--border-accent); }
+    .top-link b { color: var(--accent-primary); font-weight: 800; }
+
+    /* Top-center name tag */
+    .name-tag {
+      position: fixed; left: 50%; top: 18px;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex; align-items: center; gap: 10px;
+      pointer-events: none;
+    }
+    .name-tag .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #00FF88;
+      box-shadow: 0 0 10px rgba(0,255,136,.8);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+    .name-tag .name {
+      font-size: 16px; font-weight: 700; letter-spacing: -.02em;
+      text-shadow: 0 2px 8px rgba(0,0,0,.8);
+    }
+    .name-tag .meta {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-secondary);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    /* Top-right stats */
+    .stats {
+      position: fixed; right: 18px; top: 18px;
+      background: rgba(8,10,15,.7);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-secondary);
+      letter-spacing: .08em;
+      z-index: 10;
+    }
+    .stats b { color: var(--accent-primary); }
+
+    /* Right dock */
+    .dock {
+      position: fixed; right: 18px; top: 50%;
+      transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: 6px;
+      z-index: 10;
+      transition: opacity .4s ease;
+    }
+    .dock button {
+      width: 46px; height: 46px;
+      background: rgba(8,10,15,.7);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 17px;
+      transition: all var(--t-fast);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dock button:hover {
+      background: var(--accent-primary-glow);
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+      transform: scale(1.05);
+    }
+    .dock button.active {
+      background: var(--accent-primary-glow);
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+      box-shadow: 0 0 14px rgba(0,212,255,.3);
+    }
+
+    /* Bottom hint */
+    .hint {
+      position: fixed; bottom: 22px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex; gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: rgba(255,255,255,.45);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 92%;
+    }
+    .hint span {
+      background: rgba(8,10,15,.6);
+      border: 1px solid var(--border-subtle);
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+    .hint kbd {
+      background: rgba(255,255,255,.08);
+      padding: 1px 6px;
+      border-radius: 3px;
+      border: 1px solid rgba(255,255,255,.1);
+      font-size: 9.5px;
+    }
+
+    /* Loader */
+    #loader {
+      position: fixed; inset: 0;
+      background: #050810;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 14px;
+      z-index: 1000;
+      transition: opacity .6s ease;
+    }
+    #loader.gone { opacity: 0; pointer-events: none; }
+    #loader .logo {
+      font-size: 32px; font-weight: 800; letter-spacing: -.03em;
+    }
+    #loader .logo b { color: var(--accent-primary); }
+    #loader .sub {
+      font-size: 12px; color: var(--text-secondary);
+      font-family: var(--font-mono); letter-spacing: .08em;
+    }
+    #loader .progress {
+      width: 280px; height: 4px;
+      background: rgba(255,255,255,.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    #loader .progress > div {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+      width: 0%;
+      transition: width .15s ease;
+      box-shadow: 0 0 12px var(--accent-primary);
+    }
+
+    /* Auto-hide on idle */
+    body.idle .dock, body.idle .top-link, body.idle .stats, body.idle .hint, body.idle .name-tag {
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    @media (max-width: 640px) {
+      .dock button { width: 38px; height: 38px; font-size: 14px; }
+      .top-link { font-size: 11px; padding: 5px 11px; }
+      .hint span { font-size: 9px; padding: 3px 7px; }
+      .cap-edge.l { left: 6%; } .cap-edge.r { right: 6%; }
+      .cap-edge.t, .cap-edge.b { left: 6%; right: 6%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="scene"></div>
+  <div class="floor"></div>
+
+  <canvas id="avatar-canvas"></canvas>
+  <canvas id="particles"></canvas>
+
+  <div class="vignette"></div>
+  <div class="cap-edge t"></div>
+  <div class="cap-edge b"></div>
+  <div class="cap-edge l"></div>
+  <div class="cap-edge r"></div>
+  <div class="scanline"></div>
+
+  <a class="top-link" href="index.html">Alter<b>Cast</b> · Home</a>
+
+  <div class="name-tag">
+    <span class="dot"></span>
+    <div>
+      <div class="name">Keqing</div>
+      <div class="meta">GLB 3D · RIGGED</div>
+    </div>
+  </div>
+
+  <div class="stats">FPS <b id="fps">—</b> · <b id="model-stats">—</b></div>
+
+  <div class="dock">
+    <button id="btn-orbit" title="Auto orbit (O)">⟲</button>
+    <button id="btn-light" title="Lighting cycle (L)">✦</button>
+    <button id="btn-face"  title="Swap face dengan muka asli (M)">😊</button>
+    <button id="btn-anim"  title="Play next animation (A)">▶</button>
+    <button id="btn-fs"    title="Fullscreen (F)">⛶</button>
+  </div>
+
+  <div class="hint">
+    <span><kbd>drag</kbd> putar</span>
+    <span><kbd>scroll</kbd> zoom</span>
+    <span><kbd>O</kbd> orbit</span>
+    <span><kbd>L</kbd> cahaya</span>
+    <span><kbd>M</kbd> swap muka asli</span>
+    <span><kbd>F</kbd> fullscreen</span>
+  </div>
+
+  <div id="loader">
+    <div class="logo">Alter<b>Cast</b></div>
+    <div class="sub" id="loader-step">memuat Three.js…</div>
+    <div class="progress"><div id="loader-bar"></div></div>
+  </div>
+
+  <script type="module">
+    import { GLBEngine } from "./engine/glb-loader.js";
+
+    const $ = id => document.getElementById(id);
+    const setStep = (s) => $("loader-step").textContent = s;
+    const setBar  = (p) => $("loader-bar").style.width = (p * 100).toFixed(1) + "%";
+
+    setStep("inisialisasi engine 3D…");
+    const engine = new GLBEngine($("avatar-canvas"), { controls: true });
+    setBar(0.10);
+
+    setStep("loading model Keqing GLB (4.9 MB)…");
+    try {
+      await engine.load("assets/models/keqing.glb", {
+        onProgress: (frac, loaded, total) => {
+          setBar(0.10 + frac * 0.80);
+          setStep(`loading Keqing GLB · ${(loaded / 1024 / 1024).toFixed(1)} / ${(total / 1024 / 1024).toFixed(1)} MB`);
+        }
+      });
+    } catch (e) {
+      setStep("GAGAL load GLB: " + e.message);
+      throw e;
+    }
+
+    setBar(0.95);
+    engine.setLighting("hologram");
+    const anims = engine.listAnimations();
+    $("model-stats").textContent = anims.length ? `${anims.length} anim` : "static";
+
+    setStep("priming render…");
+    await new Promise(r => setTimeout(r, 250));
+    setBar(1.0);
+    $("loader").classList.add("gone");
+
+    /* Particles overlay */
+    const pc = $("particles"), pctx = pc.getContext("2d");
+    const PARTS = [];
+    function sizeP() { pc.width = innerWidth; pc.height = innerHeight; }
+    sizeP();
+    addEventListener("resize", sizeP);
+    for (let i = 0; i < 80; i++) PARTS.push({
+      x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+      vx: (Math.random() - .5) * .2, vy: -Math.random() * .35 - .05,
+      r: Math.random() * 1.8 + .3, op: Math.random() * .5 + .2,
+      life: Math.random() * 200,
+    });
+    function drawParts() {
+      pctx.clearRect(0, 0, pc.width, pc.height);
+      for (const p of PARTS) {
+        p.x += p.vx; p.y += p.vy; p.life++;
+        if (p.y < -8 || p.life > 320) {
+          p.x = Math.random() * pc.width; p.y = pc.height + 8; p.life = 0;
+        }
+        const a = Math.sin(p.life / 320 * Math.PI) * p.op;
+        pctx.beginPath();
+        pctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        pctx.fillStyle = `rgba(0,212,255,${a})`;
+        pctx.fill();
+      }
+    }
+
+    /* Dock buttons */
+    let orbitOn = false;
+    $("btn-orbit").addEventListener("click", () => {
+      orbitOn = !orbitOn;
+      engine.setAutoOrbit(orbitOn);
+      $("btn-orbit").classList.toggle("active", orbitOn);
+    });
+
+    const lightCycle = ["cinematic", "hologram", "sunset", "studio", "neon"];
+    let lightIdx = 1; // start with hologram
+    $("btn-light").addEventListener("click", () => {
+      lightIdx = (lightIdx + 1) % lightCycle.length;
+      engine.setLighting(lightCycle[lightIdx]);
+      $("btn-light").classList.add("active");
+      setTimeout(() => $("btn-light").classList.remove("active"), 400);
+    });
+
+    let faceOn = false;
+    $("btn-face").addEventListener("click", async () => {
+      faceOn = !faceOn;
+      if (faceOn) {
+        const ok = await engine.swapFaceTexture("assets/avatars/user.png", /face|head|skin|wajah/i);
+        $("btn-face").classList.toggle("active", ok);
+        if (!ok) {
+          $("btn-face").classList.remove("active");
+          faceOn = false;
+        }
+      } else {
+        // Just toggle indicator. We don't restore original since user didn't ask.
+        $("btn-face").classList.remove("active");
+      }
+    });
+
+    let animIdx = 0;
+    $("btn-anim").addEventListener("click", () => {
+      if (!anims.length) return;
+      animIdx = (animIdx + 1) % anims.length;
+      engine.playAnimation(anims[animIdx]);
+      $("btn-anim").classList.add("active");
+      setTimeout(() => $("btn-anim").classList.remove("active"), 400);
+    });
+
+    $("btn-fs").addEventListener("click", () => {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen();
+    });
+
+    /* Keyboard */
+    addEventListener("keydown", e => {
+      switch (e.key) {
+        case "o": case "O": $("btn-orbit").click(); break;
+        case "l": case "L": $("btn-light").click(); break;
+        case "m": case "M": $("btn-face").click(); break;
+        case "a": case "A": $("btn-anim").click(); break;
+        case "f": case "F": $("btn-fs").click(); break;
+      }
+    });
+
+    /* Auto-hide UI on idle */
+    let idleT = null;
+    function ping() {
+      document.body.classList.remove("idle");
+      clearTimeout(idleT);
+      idleT = setTimeout(() => document.body.classList.add("idle"), 5000);
+    }
+    ["mousemove","keydown","touchstart","click"].forEach(ev => addEventListener(ev, ping, { passive: true }));
+    ping();
+
+    /* Render loop */
+    let frames = 0, lastT = 0;
+    function loop(ts) {
+      requestAnimationFrame(loop);
+      const t = ts / 1000;
+      engine.render();
+      drawParts();
+      frames++;
+      if (t - lastT >= 1) {
+        $("fps").textContent = frames;
+        frames = 0; lastT = t;
+      }
+    }
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
