@@ -260,8 +260,30 @@
       box-shadow: 0 0 12px var(--accent-primary);
     }
 
+    /* Face-source badge (bottom-right) */
+    .face-badge {
+      position: fixed; right: 18px; bottom: 22px;
+      z-index: 10;
+      background: rgba(8,10,15,.78);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-subtle);
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .08em;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+    .face-badge.on {
+      color: #00FF88;
+      border-color: rgba(0,255,136,.5);
+      box-shadow: 0 0 14px rgba(0,255,136,.25);
+    }
+
     /* Auto-hide on idle */
-    body.idle .dock, body.idle .top-link, body.idle .stats, body.idle .hint, body.idle .name-tag {
+    body.idle .dock, body.idle .top-link, body.idle .stats, body.idle .hint, body.idle .name-tag, body.idle .face-badge {
       opacity: 0;
       transition: opacity 1s ease;
     }
@@ -301,6 +323,7 @@
   </div>
 
   <div class="stats">FPS <b id="fps">—</b> · <b id="model-stats">—</b></div>
+  <div id="face-badge" class="face-badge">FACE: loading…</div>
 
   <div class="dock">
     <button id="btn-orbit" title="Auto orbit (O)">⟲</button>
@@ -349,10 +372,27 @@
       throw e;
     }
 
-    setBar(0.95);
+    setBar(0.92);
     engine.setLighting("hologram");
     const anims = engine.listAnimations();
     $("model-stats").textContent = anims.length ? `${anims.length} anim` : "static";
+
+    /* AUTO-APPLY muka asli user.png ke head/face mesh Keqing */
+    setStep("apply muka asli user.png ke Keqing head…");
+    let faceOn = false;
+    try {
+      faceOn = await engine.swapFaceTexture("assets/avatars/user.png", /face|head|skin|wajah|hair|body/i);
+      if (faceOn) {
+        $("btn-face").classList.add("active");
+        $("face-badge").classList.add("on");
+        $("face-badge").textContent = "FACE: REAL · user.png";
+      } else {
+        $("face-badge").textContent = "FACE: KEQING (mesh tidak match)";
+      }
+    } catch (err) {
+      console.warn("auto face-swap fail:", err);
+      $("face-badge").textContent = "FACE: KEQING (fallback)";
+    }
 
     setStep("priming render…");
     await new Promise(r => setTimeout(r, 250));
@@ -403,19 +443,18 @@
       setTimeout(() => $("btn-light").classList.remove("active"), 400);
     });
 
-    let faceOn = false;
+    /* Toggle between user.png (cosplay biru) and user2.png (cosplay putih) */
+    const faceSources = ["assets/avatars/user.png", "assets/avatars/user2.png"];
+    let faceIdx = 0;
     $("btn-face").addEventListener("click", async () => {
-      faceOn = !faceOn;
-      if (faceOn) {
-        const ok = await engine.swapFaceTexture("assets/avatars/user.png", /face|head|skin|wajah/i);
-        $("btn-face").classList.toggle("active", ok);
-        if (!ok) {
-          $("btn-face").classList.remove("active");
-          faceOn = false;
-        }
-      } else {
-        // Just toggle indicator. We don't restore original since user didn't ask.
-        $("btn-face").classList.remove("active");
+      faceIdx = (faceIdx + 1) % faceSources.length;
+      const src = faceSources[faceIdx];
+      const ok = await engine.swapFaceTexture(src, /face|head|skin|wajah|hair|body/i);
+      if (ok) {
+        faceOn = true;
+        $("btn-face").classList.add("active");
+        $("face-badge").classList.add("on");
+        $("face-badge").textContent = `FACE: REAL · ${src.split("/").pop()}`;
       }
     });
 
