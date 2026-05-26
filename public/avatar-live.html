@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlterCast Live — Holographic</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Inter',-apple-system,system-ui,sans-serif}
+canvas{display:block;width:100%!important;height:100%!important}
+
+/* ── LOADING ── */
+#loading{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 70%,#0A1228 0%,#000 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#00D4FF;z-index:9999;transition:opacity .6s}
+#loading.hide{opacity:0;pointer-events:none}
+.spin{width:44px;height:44px;border:3px solid rgba(0,212,255,.12);border-top-color:#00D4FF;border-radius:50%;animation:sp .9s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+#load-title{font-size:22px;font-weight:700;letter-spacing:.18em}
+#load-bar{width:280px;height:2px;background:rgba(0,212,255,.15);overflow:hidden;border-radius:999px}
+#load-fill{height:100%;width:0;background:#00D4FF;box-shadow:0 0 12px #00D4FF;transition:width .25s}
+#load-txt{font:11px/1.5 monospace;opacity:.55;text-align:center}
+
+/* ── STATUS HUD ── */
+#status{position:fixed;top:14px;left:14px;font:10px/1 monospace;color:rgba(0,212,255,.45);letter-spacing:.18em;pointer-events:none;z-index:50;text-transform:uppercase}
+#wm{position:fixed;bottom:14px;left:14px;font:10px/1 monospace;color:rgba(0,212,255,.22);letter-spacing:.18em;pointer-events:none;z-index:5;transition:opacity .4s}
+#wm.hide{opacity:0}
+
+/* ── SPEECH BUBBLE ── */
+#bub{position:fixed;bottom:20%;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(0,8,18,.92);border:1px solid rgba(0,212,255,.4);backdrop-filter:blur(20px);border-radius:999px;padding:11px 26px;font-size:14px;color:#E8F4FF;max-width:60%;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:40;opacity:0;transition:all .3s;box-shadow:0 0 40px rgba(0,212,255,.25)}
+#bub.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#bub::before{content:'◉';color:#00D4FF;margin-right:10px;font-size:8px;vertical-align:middle}
+
+/* ── COMMENTS ── */
+#cmts{position:fixed;right:24px;bottom:120px;display:flex;flex-direction:column-reverse;gap:8px;max-width:280px;z-index:30;pointer-events:none}
+.cmt{background:rgba(0,8,18,.78);backdrop-filter:blur(10px);border-radius:14px;padding:9px 14px;display:flex;gap:10px;animation:cmt-in .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes cmt-in{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.cmt-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;color:#000;flex-shrink:0}
+.cmt-u{font-size:11px;font-weight:700;margin-bottom:2px;letter-spacing:.02em}
+.cmt-t{font-size:13px;color:#E8EEFF;line-height:1.4}
+
+/* ── CONTROLS PANEL ── */
+#ctrl{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:rgba(0,8,18,.85);backdrop-filter:blur(24px);border:1px solid rgba(0,212,255,.18);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;z-index:100;width:min(720px,calc(100vw - 48px));transition:transform .4s cubic-bezier(.4,0,.2,1),opacity .3s;opacity:0}
+#ctrl.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#sc{flex:1;min-width:0;background:rgba(255,255,255,.05);border:1px solid rgba(0,212,255,.2);border-radius:999px;padding:9px 16px;color:#E8F4FF;font-size:13px;font-family:inherit;outline:none;caret-color:#00D4FF}
+#sc::placeholder{color:rgba(255,255,255,.3)}
+#sc:focus{border-color:#00D4FF;background:rgba(0,212,255,.05)}
+
+.btn{padding:8px 14px;border-radius:999px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;border:1px solid rgba(0,212,255,.35);background:rgba(0,212,255,.1);color:#00D4FF;transition:all .15s;white-space:nowrap}
+.btn:hover{background:rgba(0,212,255,.2);transform:translateY(-1px)}
+.btn.stop{border-color:rgba(255,80,80,.5);background:rgba(255,80,80,.1);color:#FF5050}
+.btn.vio{border-color:rgba(124,58,255,.4);background:rgba(124,58,255,.1);color:#7C3AFF}
+.btn.sm{padding:5px 11px;font-size:11px}
+.btn.sm.on{border-color:#00D4FF;background:rgba(0,212,255,.18);color:#00D4FF;box-shadow:0 0 0 1px rgba(0,212,255,.3)}
+.btn.ghost{border-color:rgba(255,255,255,.12);background:transparent;color:rgba(255,255,255,.5)}
+.btn.ghost.sm.on{border-color:rgba(255,255,255,.4);color:#fff}
+
+.lbl{font-size:9px;color:rgba(255,255,255,.3);letter-spacing:.12em;text-transform:uppercase;margin-right:2px}
+.sep{width:1px;height:20px;background:rgba(255,255,255,.08)}
+.sp{flex:1}
+
+#info{font:9px/1.4 monospace;color:rgba(0,212,255,.3);letter-spacing:.08em;text-align:center}
+
+/* ── CHARACTER SWITCHER ── */
+#char-sw{position:fixed;top:14px;right:14px;display:flex;flex-direction:column;gap:6px;z-index:80;opacity:0;transform:translateX(20px);transition:all .4s cubic-bezier(.4,0,.2,1);max-height:calc(100vh - 28px);overflow-y:auto;padding-right:4px}
+#char-sw::-webkit-scrollbar{width:0}
+#char-sw.show{opacity:1;transform:translateX(0)}
+.ch{width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid rgba(0,212,255,.2);background:rgba(0,8,18,.7);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:all .2s;position:relative;flex-shrink:0}
+.ch:hover{border-color:#00D4FF;transform:scale(1.08)}
+.ch.on{border-color:#00D4FF;box-shadow:0 0 18px rgba(0,212,255,.5),inset 0 0 12px rgba(0,212,255,.2)}
+.ch .ch-label{position:absolute;right:52px;top:50%;transform:translateY(-50%);background:rgba(0,8,18,.92);backdrop-filter:blur(8px);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;color:#E8F4FF;border:1px solid rgba(0,212,255,.2);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s}
+.ch:hover .ch-label{opacity:1}
+
+/* ── ERROR / FALLBACK ── */
+#err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;color:#FF8C42;font-family:inherit;text-align:center;padding:24px;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(8px)}
+#err.show{display:flex}
+#err .icon{font-size:3rem}
+#err h3{font-size:18px;font-weight:700;color:#FFB800}
+#err p{font-size:13px;color:rgba(255,255,255,.6);max-width:480px;line-height:1.7}
+</style>
+</head>
+<body>
+
+<!-- Loading screen -->
+<div id="loading">
+  <div class="spin"></div>
+  <div id="load-title">ALTERCAST</div>
+  <div id="load-bar"><div id="load-fill"></div></div>
+  <div id="load-txt">Inisialisasi engine 3D...</div>
+</div>
+
+<!-- 3D Canvas -->
+<canvas id="c"></canvas>
+
+<!-- HUD -->
+<div id="status">◉ HOLOGRAM ACTIVE</div>
+<div id="wm">ALTERCAST · LIVE</div>
+
+<!-- Speech bubble -->
+<div id="bub"></div>
+
+<!-- Comments -->
+<div id="cmts"></div>
+
+<!-- Character switcher -->
+<div id="char-sw">
+  <div class="ch on" data-char="anime"><span>👧</span><div class="ch-label">Anime Girl</div></div>
+  <div class="ch" data-char="aerith"><span>💎</span><div class="ch-label">Aerith</div></div>
+  <div class="ch" data-char="yae"><span>🦊</span><div class="ch-label">Yae Miko</div></div>
+  <div class="ch" data-char="type0"><span>⚔️</span><div class="ch-label">Type-0</div></div>
+  <div class="ch" data-char="delke"><span>🌸</span><div class="ch-label">Delke</div></div>
+  <div class="ch" data-char="helen"><span>💪</span><div class="ch-label">Helen Parr</div></div>
+  <div class="ch" data-char="cyborg"><span>🤖</span><div class="ch-label">Cyborg</div></div>
+  <div class="ch" data-char="girl04"><span>💋</span><div class="ch-label">Sexy Girl</div></div>
+  <div class="ch" data-char="anime2"><span>🎀</span><div class="ch-label">Anime 2</div></div>
+  <div class="ch" data-char="valkyrie"><span>⚡</span><div class="ch-label">Valkyrie</div></div>
+  <div class="ch" data-char="delara"><span>👑</span><div class="ch-label">Delara</div></div>
+</div>
+
+<!-- Control panel -->
+<div id="ctrl">
+  <div class="row">
+    <input id="sc" type="text" placeholder="Tulis skrip yang akan dibacakan avatar…">
+    <button class="btn" id="rd">▶ Baca</button>
+    <button class="btn stop" id="st" style="display:none">⬛ Stop</button>
+    <button class="btn vio" id="ai">🤖 AI</button>
+  </div>
+  <div class="row">
+    <span class="lbl">BG</span>
+    <button class="btn sm on" data-bg="holo">Hologram</button>
+    <button class="btn sm" data-bg="dark">Dark</button>
+    <button class="btn sm" data-bg="clear">Clear</button>
+    <button class="btn sm" data-bg="chroma">Chroma</button>
+    <div class="sep"></div>
+    <span class="lbl">Cam</span>
+    <button class="btn ghost sm on" data-cam="bust">Bust</button>
+    <button class="btn ghost sm" data-cam="face">Wajah</button>
+    <button class="btn ghost sm" data-cam="full">Full</button>
+    <div class="sep"></div>
+    <span class="lbl">Spin</span>
+    <button class="btn ghost sm" data-spin="slow">Slow</button>
+    <button class="btn ghost sm on" data-spin="off">Off</button>
+    <button class="btn ghost sm" data-spin="fast">Fast</button>
+    <div class="sp"></div>
+    <button class="btn ghost sm" id="bk">← Kembali</button>
+  </div>
+  <div id="info">PURE HOLOGRAPHIC DISPLAY · ZERO UI CHROME · gerakkan mouse untuk kontrol · TikTok Live Studio Browser Source ready</div>
+</div>
+
+<!-- Error overlay -->
+<div id="err">
+  <div class="icon">⚠️</div>
+  <h3 id="err-title">Model gagal dimuat</h3>
+  <p id="err-msg"></p>
+  <p style="font-size:11px;opacity:.5">Tip: buka file ini langsung di Chrome (file:// atau localhost) untuk performa terbaik.</p>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.168.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.168.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = id => document.getElementById(id);
+const log = s => { $('load-txt').textContent = s; };
+const prog = p => { $('load-fill').style.width = p + '%'; };
+
+const CHARS = {
+  keqing:   { url: 'keqing.glb',         label: 'Keqing (REAL FACE)' },
+  anime:    { url: 'char-anime.glb',     label: 'Anime Girl' },
+  aerith:   { url: 'char-aerith.glb',    label: 'Aerith' },
+  yae:      { url: 'yae-miko.glb',       label: 'Yae Miko' },
+  type0:    { url: 'char-type0.glb',     label: 'Type-0' },
+  delke:    { url: 'char-delke.glb',     label: 'Delke' },
+  helen:    { url: 'char-helen.glb',     label: 'Helen Parr' },
+  cyborg:   { url: 'char-cyborg.glb',    label: 'Cyborg Girl' },
+  girl04:   { url: 'char-girl04.glb',    label: 'Sexy Girl' },
+  anime2:   { url: 'char-anime2.glb',    label: 'Anime Girl 2' },
+  valkyrie: { url: 'char-valkyrie.glb',  label: 'Valkyrie' },
+  delara:   { url: 'char-delara.glb',    label: 'Delara' },
+};
+
+/* ── Renderer ── */
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.setClearColor(0x0A1633, 1);
+
+/* ── Scene ── */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#0A1633');
+
+const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.05, 100);
+camera.position.set(0, 1.0, 3.5);
+camera.lookAt(0, 0.9, 0);
+
+/* ── OrbitControls (mouse drag to inspect) ── */
+const ctl = new OrbitControls(camera, renderer.domElement);
+ctl.enableDamping = true; ctl.dampingFactor = 0.08;
+ctl.minDistance = 0.5; ctl.maxDistance = 8;
+ctl.target.set(0, 0.9, 0);
+ctl.enablePan = false;
+ctl.autoRotate = false;
+ctl.autoRotateSpeed = 0;
+
+/* ── Holographic Background Stage ── */
+// Simple gradient via scene.background already set
+
+/* ── Holographic Floor Disc ── */
+const floorGeo = new THREE.CircleGeometry(1.4, 64);
+const floorMat = new THREE.MeshBasicMaterial({
+  color: 0x00DDFF,
+  transparent: true,
+  opacity: 0.18,
+  side: THREE.DoubleSide,
+});
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = 0;
+scene.add(floor);
+
+// Inner brighter disc
+const innerDisc = new THREE.Mesh(
+  new THREE.CircleGeometry(0.5, 48),
+  new THREE.MeshBasicMaterial({ color: 0x00DDFF, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
+);
+innerDisc.rotation.x = -Math.PI / 2;
+innerDisc.position.y = 0.01;
+scene.add(innerDisc);
+
+/* ── Holographic Light Rings (3 stacked) ── */
+const ringGroup = new THREE.Group();
+[1.0, 1.4, 1.8].forEach((r, i) => {
+  const g = new THREE.TorusGeometry(r, 0.005, 4, 80);
+  const m = new THREE.MeshBasicMaterial({
+    color: i === 1 ? 0x00DDFF : 0x0088FF,
+    transparent: true,
+    opacity: 0.5 - i * 0.08,
+  });
+  const t = new THREE.Mesh(g, m);
+  t.rotation.x = Math.PI / 2;
+  t.position.y = 0.02 + i * 0.01;
+  t.userData.spinSpeed = (i % 2 === 0 ? 1 : -1) * (0.2 + i * 0.1);
+  t.userData.baseRadius = r;
+  ringGroup.add(t);
+});
+scene.add(ringGroup);
+
+/* ── Vertical light pillar ── */
+const pillar = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.6, 0.6, 4, 32, 1, true),
+  new THREE.MeshBasicMaterial({ color: 0x0099CC, transparent: true, opacity: 0.06, side: THREE.DoubleSide, depthWrite: false })
+);
+pillar.position.y = 1.0;
+scene.add(pillar);
+
+/* ── Particles (simple PointsMaterial) ── */
+const N = 200;
+const partGeo = new THREE.BufferGeometry();
+const partPos = new Float32Array(N*3);
+for(let i=0;i<N;i++){
+  partPos[i*3]   = (Math.random()-.5) * 4;
+  partPos[i*3+1] = Math.random() * 3;
+  partPos[i*3+2] = (Math.random()-.5) * 4;
+}
+partGeo.setAttribute('position', new THREE.BufferAttribute(partPos, 3));
+const particles = new THREE.Points(partGeo, new THREE.PointsMaterial({
+  color: 0x00DDFF,
+  size: 0.025,
+  transparent: true,
+  opacity: 0.6,
+  sizeAttenuation: true,
+}));
+scene.add(particles);
+
+/* ── LIGHTS ── */
+// Strong ambient — holographic models look ethereal
+scene.add(new THREE.AmbientLight(0x4477AA, 1.8));
+
+// Key — soft front-top
+const key = new THREE.DirectionalLight(0xFFEEDD, 2.0);
+key.position.set(2, 4, 3);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+scene.add(key);
+
+// Fill — left cyan
+const fill = new THREE.DirectionalLight(0x00CCFF, 1.2);
+fill.position.set(-3, 2, 2);
+scene.add(fill);
+
+// Rim — strong back cyan (holographic look)
+const rim = new THREE.DirectionalLight(0x00DDFF, 2.8);
+rim.position.set(0, 2.5, -4);
+scene.add(rim);
+
+// Up — from floor, signature Gatebox glow
+const upLight = new THREE.PointLight(0x00CCFF, 8, 4, 1.5);
+upLight.position.set(0, 0.05, 0);
+scene.add(upLight);
+
+// Top — hair light
+const top = new THREE.DirectionalLight(0xFFEEAA, 1.5);
+top.position.set(0, 5, 1);
+scene.add(top);
+
+/* ── Helpers ── */
+function fitCamera(obj){
+  const box = new THREE.Box3().setFromObject(obj);
+  const cen = box.getCenter(new THREE.Vector3());
+  const sz  = box.getSize(new THREE.Vector3());
+  const h   = sz.y;
+  // Position camera based on size
+  const target = new THREE.Vector3(cen.x, cen.y + h*0.15, cen.z);
+  ctl.target.copy(target);
+  const dist = Math.max(h * 1.2, 1.5);
+  camera.position.set(0, cen.y + h*0.2, dist);
+  camera.lookAt(target);
+  ctl.update();
+  return { center: cen, size: sz };
+}
+
+/* ── Material upgrade for clean cel-shaded look ── */
+function upgradeMat(mat, meshName=''){
+  if(!mat) return mat;
+  // DON'T REPLACE — just tune properties on existing material
+  // This preserves all textures (map, normalMap, alphaMap, etc.)
+  const n = ((mat.name||'') + ' ' + meshName).toLowerCase();
+
+  // Ensure material has reasonable color if missing
+  if(mat.color && mat.color.getHex() === 0xffffff && !mat.map){
+    // Pure white with no texture — give a default skin tone if face-like
+    if(['skin','face','body','head','neck','hand','arm','leg'].some(k=>n.includes(k))){
+      mat.color.setHex(0xF5C5A3);
+    }
+  }
+
+  // Boost env response for nicer lighting
+  if(mat.envMapIntensity !== undefined) mat.envMapIntensity = 0.5;
+
+  // Eyes — glossy
+  if(['eye','iris','cornea','pupil'].some(k=>n.includes(k))){
+    if(mat.roughness !== undefined) mat.roughness = 0.1;
+    if(mat.metalness !== undefined) mat.metalness = 0.15;
+  }
+
+  // Hair — double-sided
+  if(['hair','eyebrow','eyelash'].some(k=>n.includes(k))){
+    mat.side = THREE.DoubleSide;
+    if(mat.roughness !== undefined) mat.roughness = 0.55;
+  }
+
+  // Convert pure-basic/lambert to standard so it responds to lighting
+  if(mat.isMeshBasicMaterial && !mat.transparent){
+    const newMat = new THREE.MeshStandardMaterial({
+      map: mat.map,
+      color: mat.color,
+      alphaMap: mat.alphaMap,
+      transparent: mat.transparent,
+      side: mat.side || THREE.FrontSide,
+      roughness: 0.7, metalness: 0,
+    });
+    return newMat;
+  }
+
+  mat.needsUpdate = true;
+  return mat;
+}
+
+/* ── Character Loader ── */
+let currentChar = null;
+let currentMixer = null;
+let currentAction = null;
+
+async function loadChar(key){
+  if(currentChar){
+    scene.remove(currentChar);
+    currentChar.traverse(n => {
+      if(n.geometry) n.geometry.dispose();
+      if(n.material){
+        const mats = Array.isArray(n.material) ? n.material : [n.material];
+        mats.forEach(m => {
+          Object.keys(m).forEach(k => { if(m[k]?.isTexture) m[k].dispose(); });
+          m.dispose();
+        });
+      }
+    });
+    currentChar = null; currentMixer = null;
+  }
+
+  $('err').classList.remove('show');
+  $('loading').classList.remove('hide');
+  $('loading').style.display = 'flex';
+  prog(5); log(`Memuat ${CHARS[key].label}...`);
+
+  return new Promise((resolve, reject) => {
+    const loader = new GLTFLoader();
+    loader.load(CHARS[key].url, gltf => {
+      log(`Memproses material ${CHARS[key].label}...`);
+      prog(85);
+      const obj = gltf.scene;
+      obj.traverse(node => {
+        if(!node.isMesh) return;
+        node.castShadow = true;
+        node.receiveShadow = true;
+        if(Array.isArray(node.material)){
+          node.material = node.material.map(m => upgradeMat(m, node.name));
+        } else if(node.material){
+          node.material = upgradeMat(node.material, node.name);
+        }
+      });
+
+      scene.add(obj);
+      currentChar = obj;
+
+      /* ── AUTO REAL-FACE OVERLAY (muka asli user dari removix PNG) ── */
+      if (key === 'keqing') {
+        try {
+          const texLoader = new THREE.TextureLoader();
+          const faceTex = await new Promise((res, rej) =>
+            texLoader.load('avatar-real.png', t => { t.colorSpace = THREE.SRGBColorSpace; t.flipY = false; res(t); }, undefined, rej)
+          );
+          /* Find head bone */
+          let headAnchor = null;
+          obj.traverse(n => {
+            if (headAnchor || !n.isBone) return;
+            const nm = (n.name || '').toLowerCase();
+            if (nm.includes('head') || nm === 'j_hed' || nm === 'bone_head') headAnchor = n;
+          });
+          if (!headAnchor) {
+            const g = new THREE.Group();
+            const bx = new THREE.Box3().setFromObject(obj);
+            g.position.set(0, bx.min.y + (bx.max.y - bx.min.y) * 0.92, 0);
+            obj.add(g);
+            headAnchor = g;
+          }
+          const plane = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.55, 0.65),
+            new THREE.MeshBasicMaterial({ map: faceTex, transparent: true, alphaTest: 0.04, depthWrite: false, side: THREE.DoubleSide })
+          );
+          plane.position.set(0, 0.05, 0.16);
+          plane.userData.isFaceOverlay = true;
+          headAnchor.add(plane);
+          console.log('[avatar-live] REAL face overlay applied on Keqing head bone');
+        } catch (e) {
+          console.warn('[avatar-live] face overlay fail:', e);
+        }
+      }
+
+      // Auto-scale: characters are different scales
+      const box = new THREE.Box3().setFromObject(obj);
+      const sz = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(sz.x, sz.y, sz.z);
+      let scale = 1.6 / maxDim;
+      obj.scale.setScalar(scale);
+      // Recenter at origin
+      const box2 = new THREE.Box3().setFromObject(obj);
+      const cen2 = box2.getCenter(new THREE.Vector3());
+      obj.position.x -= cen2.x;
+      obj.position.z -= cen2.z;
+      obj.position.y -= box2.min.y; // Stand on floor
+
+      // Apply animations if any
+      if(gltf.animations?.length){
+        currentMixer = new THREE.AnimationMixer(obj);
+        currentAction = currentMixer.clipAction(gltf.animations[0]);
+        currentAction.play();
+      }
+
+      // Apply camera preset
+      applyCam(currentCamPreset);
+
+      prog(100); log('Avatar siap!');
+      setTimeout(() => {
+        $('loading').classList.add('hide');
+        setTimeout(() => $('loading').style.display='none', 700);
+      }, 200);
+
+      resolve(obj);
+    }, p => {
+      if(p.total){
+        const pct = Math.round((p.loaded/p.total) * 75) + 5;
+        prog(pct);
+        log(`Memuat ${CHARS[key].label}: ${pct}%`);
+      } else {
+        log(`Memuat ${(p.loaded/1048576).toFixed(1)}MB...`);
+      }
+    }, err => {
+      console.error('Load fail:', err);
+      $('err-title').textContent = `Gagal muat ${CHARS[key].label}`;
+      $('err-msg').textContent = `File ${CHARS[key].url} tidak bisa dibaca. Pastikan file ada di folder yang sama.`;
+      $('err').classList.add('show');
+      $('loading').classList.add('hide');
+      reject(err);
+    });
+  });
+}
+
+/* ── Camera presets ── */
+let currentCamPreset = 'bust';
+function applyCam(preset){
+  if(!currentChar) return;
+  const box = new THREE.Box3().setFromObject(currentChar);
+  const cen = box.getCenter(new THREE.Vector3());
+  const sz = box.getSize(new THREE.Vector3());
+  const h = sz.y;
+  let target, dist, fov;
+  if(preset==='face'){
+    target = new THREE.Vector3(cen.x, cen.y + h*0.42, cen.z);
+    dist = h*0.7;
+    fov = 22;
+  } else if(preset==='full'){
+    target = new THREE.Vector3(cen.x, cen.y, cen.z);
+    dist = h*1.4;
+    fov = 32;
+  } else { // bust
+    target = new THREE.Vector3(cen.x, cen.y + h*0.18, cen.z);
+    dist = h*1.6;
+    fov = 32;
+  }
+  ctl.target.copy(target);
+  camera.position.set(0, target.y + h*0.05, dist);
+  camera.fov = fov;
+  camera.updateProjectionMatrix();
+  ctl.update();
+  currentCamPreset = preset;
+}
+
+/* ── Background switcher ── */
+let currentBg = 'holo';
+function setBg(bg){
+  currentBg = bg;
+  if(bg==='holo'){
+    scene.background = new THREE.Color('#0A1633');
+    ringGroup.visible = true; floor.visible = true; innerDisc.visible = true;
+    pillar.visible = true; particles.visible = true;
+    renderer.setClearAlpha(1);
+  } else if(bg==='dark'){
+    scene.background = new THREE.Color('#000');
+    ringGroup.visible = false; floor.visible = false; innerDisc.visible = false;
+    pillar.visible = false; particles.visible = true;
+    renderer.setClearAlpha(1);
+  } else if(bg==='clear'){
+    scene.background = null;
+    ringGroup.visible = false; floor.visible = false; innerDisc.visible = false;
+    pillar.visible = false; particles.visible = false;
+    renderer.setClearAlpha(0);
+  } else if(bg==='chroma'){
+    scene.background = new THREE.Color('#00B140');
+    ringGroup.visible = false; floor.visible = false; innerDisc.visible = false;
+    pillar.visible = false; particles.visible = false;
+    renderer.setClearAlpha(1);
+  }
+}
+
+/* ── Resize ── */
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* ── Animate ── */
+const clock = new THREE.Clock();
+let fps=0, fF=0, fT=performance.now();
+let spinSpeed = 0;
+let isTalking = false;
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const t = clock.getElapsedTime();
+
+  // Update simple animations
+  // (shaders removed — using standard materials)
+  floorMat.opacity = 0.18 + Math.sin(t*1.2) * 0.08;
+
+  // Animate rings
+  ringGroup.children.forEach(r => {
+    r.rotation.z += r.userData.spinSpeed * dt;
+    // Subtle vertical bob
+    r.position.y = 0.02 + r.userData.baseRadius*0.005 + Math.sin(t + r.userData.baseRadius*3)*.02;
+  });
+
+  // Character idle breathing
+  if(currentChar){
+    currentChar.position.y = Math.sin(t*0.8) * 0.008 + (currentChar.userData.baseY || 0);
+    if(currentChar.userData.baseY === undefined) currentChar.userData.baseY = currentChar.position.y;
+    if(isTalking){
+      currentChar.rotation.y += Math.sin(t*8)*0.001;
+    }
+  }
+
+  // Auto rotate
+  ctl.autoRotateSpeed = spinSpeed;
+  ctl.update();
+
+  // Mixer
+  if(currentMixer) currentMixer.update(dt);
+
+  renderer.render(scene, camera);
+
+  fF++;
+  const now = performance.now();
+  if(now-fT >= 1000){
+    fps = fF; fF = 0; fT = now;
+    $('status').textContent = `◉ HOLO · ${fps}FPS · ${currentChar ? CHARS[currentChar.userData.charKey || 'anime']?.label || 'OK' : '---'}`;
+  }
+}
+animate();
+
+/* ── UI WIRING ── */
+
+// Character switcher
+document.querySelectorAll('.ch').forEach(b => b.addEventListener('click', async () => {
+  document.querySelectorAll('.ch').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  const key = b.dataset.char;
+  try {
+    const obj = await loadChar(key);
+    if(obj) obj.userData.charKey = key;
+  } catch(e){}
+}));
+
+// BG buttons
+document.querySelectorAll('[data-bg]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-bg]').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  setBg(b.dataset.bg);
+}));
+
+// Camera buttons
+document.querySelectorAll('[data-cam]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-cam]').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  applyCam(b.dataset.cam);
+}));
+
+// Spin buttons
+document.querySelectorAll('[data-spin]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-spin]').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  spinSpeed = { off: 0, slow: 0.6, fast: 2.5 }[b.dataset.spin];
+  ctl.autoRotate = spinSpeed !== 0;
+}));
+
+// TTS
+const sc = $('sc'), rdBtn = $('rd'), stBtn = $('st'), bub = $('bub');
+let ttsUtter = null;
+
+function readScript(txt){
+  if(!txt.trim()) return;
+  window.speechSynthesis.cancel();
+  isTalking = true;
+  rdBtn.style.display = 'none';
+  stBtn.style.display = 'inline-block';
+  bub.textContent = txt.length > 80 ? txt.slice(0, 80) + '…' : txt;
+  bub.classList.add('show');
+  ttsUtter = new SpeechSynthesisUtterance(txt);
+  ttsUtter.lang = 'id-ID';
+  ttsUtter.rate = 1.05;
+  ttsUtter.onend = stopTTS;
+  window.speechSynthesis.speak(ttsUtter);
+}
+function stopTTS(){
+  window.speechSynthesis.cancel();
+  isTalking = false;
+  rdBtn.style.display = 'inline-block';
+  stBtn.style.display = 'none';
+  bub.classList.remove('show');
+}
+
+rdBtn.addEventListener('click', () => readScript(sc.value));
+stBtn.addEventListener('click', stopTTS);
+sc.addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ e.preventDefault(); readScript(sc.value); }
+  e.stopPropagation();
+});
+
+// AI
+$('ai').addEventListener('click', async () => {
+  const txt = sc.value.trim(); if(!txt) return;
+  const btn = $('ai'); btn.textContent = '⋯';
+  try {
+    const r = await window.claude.complete(`Kamu AI streamer santai. Balas chat berikut dalam 1-2 kalimat singkat dan ekspresif: "${txt}"`);
+    sc.value = r;
+    readScript(r);
+  } catch(e){}
+  btn.textContent = '🤖 AI';
+});
+
+// Comments
+const cmtsEl = $('cmts');
+function addCmt(user, text, color='#00D4FF'){
+  const el = document.createElement('div');
+  el.className = 'cmt';
+  el.style.borderLeft = `3px solid ${color}`;
+  el.innerHTML = `<div class="cmt-av" style="background:${color}">${user[0].toUpperCase()}</div><div><div class="cmt-u" style="color:${color}">${user}</div><div class="cmt-t">${text}</div></div>`;
+  cmtsEl.prepend(el);
+  while(cmtsEl.children.length > 6) cmtsEl.lastElementChild.remove();
+  setTimeout(() => el.remove(), 9000);
+}
+// Demo comments
+setTimeout(() => {
+  [
+    ['viewer99', '#00D4FF', 'Avatar 3D-nya keren banget!'],
+    ['fan_xyz', '#7C3AFF', 'Bisa ganti karakter lain?'],
+    ['live_crew', '#00FF88', 'Hologram-nya cyberpunk vibe 🔥'],
+  ].forEach(([u,c,t], i) => setTimeout(() => addCmt(u,t,c), (i+1)*2400));
+}, 1800);
+
+// Back
+$('bk').addEventListener('click', () => {
+  window.parent?.postMessage({type:'PERFORMER_BACK'}, '*');
+  if(window.parent === window) window.history.back();
+});
+
+// Show controls on mouse move
+let hideTimer;
+const ctrlEl = $('ctrl'), charSwEl = $('char-sw'), wmEl = $('wm');
+function showCtrl(){
+  ctrlEl.classList.add('show');
+  charSwEl.classList.add('show');
+  wmEl.classList.add('hide');
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(() => {
+    ctrlEl.classList.remove('show');
+    charSwEl.classList.remove('show');
+    wmEl.classList.remove('hide');
+  }, 4500);
+}
+document.addEventListener('mousemove', showCtrl);
+document.addEventListener('keydown', showCtrl);
+document.addEventListener('touchstart', showCtrl);
+setTimeout(showCtrl, 1000);
+
+// postMessage API for external comment feeds (TikTok Live Studio integration)
+window.addEventListener('message', e => {
+  const { type, data } = e.data || {};
+  if(type === 'READ_SCRIPT') readScript(data.text);
+  if(type === 'STOP_TTS')    stopTTS();
+  if(type === 'ADD_COMMENT') addCmt(data.user, data.text, data.color || '#00D4FF');
+  if(type === 'SET_BG')      setBg(data.bg);
+  if(type === 'SET_CHAR') {
+    const btn = document.querySelector(`.ch[data-char="${data.char}"]`);
+    if(btn) btn.click();
+  }
+});
+
+// Init: load default character
+loadChar('keqing').then(obj => {
+  if(obj) obj.userData.charKey = 'keqing';
+  window.parent?.postMessage({type:'AVATAR_READY'}, '*');
+}).catch(() => {
+  // First load failed — show error but continue render loop
+  console.warn('Initial load failed, showing stage only');
+});
+
+console.log('%c🎭 AlterCast Holographic Engine v5','color:#00D4FF;font-weight:bold;font-size:14px');
+</script>
+</body>
+</html>
