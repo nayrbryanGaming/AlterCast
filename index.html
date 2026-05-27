@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlterCast — Stay Live. Even When You're Gone.</title>
-  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
   <style>
 /* ═══════════════════════════════════════════════════════════
    AlterCast Design System — Tokens v1.0
@@ -356,7 +356,29 @@ button,label{user-select:none;-webkit-user-select:none;}
   </template>
 </head>
 <body>
-<div id="root"></div>
+<div id="root">
+  <div id="boot-loader" style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(ellipse at 50% 70%,#0A1228 0%,#000 70%);color:#00D4FF;font-family:'Outfit',system-ui,sans-serif;z-index:9999;">
+    <div style="font-size:32px;font-weight:800;letter-spacing:-.03em;">Alter<b style="color:#00D4FF;">Cast</b></div>
+    <div style="width:44px;height:44px;border:3px solid rgba(0,212,255,.12);border-top-color:#00D4FF;border-radius:50%;animation:bootspin .9s linear infinite;"></div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8B96B0;letter-spacing:.08em;">memuat React + Babel + Court Design…</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#4A5568;letter-spacing:.12em;">⚖️ PASAL 27 jo. 5 — DARURAT HUKUM</div>
+    <div style="margin-top:24px;display:flex;gap:10px;">
+      <a href="/pure" style="padding:8px 16px;border:1px solid rgba(0,212,255,.4);border-radius:999px;color:#00D4FF;text-decoration:none;font-size:12px;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;">→ /pure (avatar 3D + muka asli langsung)</a>
+      <a href="/court" style="padding:8px 16px;border:1px solid rgba(255,255,255,.12);border-radius:999px;color:#8B96B0;text-decoration:none;font-size:12px;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;">→ /court</a>
+    </div>
+    <style>@keyframes bootspin{to{transform:rotate(360deg);}}</style>
+  </div>
+</div>
+<script>
+  /* Fallback: kalau React belum mount setelah 12 detik, auto-redirect ke /pure */
+  setTimeout(function(){
+    var boot = document.getElementById('boot-loader');
+    if (boot && document.body.contains(boot)) {
+      console.warn('[AlterCast] React+Babel boot timeout — redirecting to /pure (avatar-only fallback)');
+      location.href = '/pure';
+    }
+  }, 12000);
+</script>
 
 <script type="text/babel" data-presets="react">
 // ① CONTEXT + STRINGS
