@@ -6825,7 +6825,7 @@ function PerformerPage() {
   const { speaking, mouthOpen, speak, stop } = useSpeech();
   const [bg, setBg] = React.useState("hologram");
   const [avatarMode, setAvatarMode] = React.useState("svg"); // svg | webcam | hybrid
-  const [avatarStyle, setAvatarStyle] = React.useState("realistic"); // cartoon | realistic | 3d
+  const [avatarStyle, setAvatarStyle] = React.useState("3d"); // cartoon | realistic | 3d ← WAJAH ASLI
   const [webcamFilter, setWebcamFilter] = React.useState("anime");
   const [scriptText, setScriptText] = React.useState("");
   const [comments, setComments] = React.useState([]);
@@ -7578,7 +7578,7 @@ function App() {
   /* ── GLOBAL STATE ── */
   const [lang,          setLang]          = React.useState("id");
   const [theme,         setTheme]         = React.useState("dark");
-  const [currentPage,   setCurrentPage]   = React.useState("landing");
+  const [currentPage,   setCurrentPage]   = React.useState("performer"); /* COURT ORDER: skip landing, langsung tampil 3D avatar dengan muka asli */
 
   /* Stream state */
   const [isLive,        setIsLive]        = React.useState(false);
