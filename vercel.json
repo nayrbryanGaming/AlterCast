@@ -30,7 +30,10 @@
     { "source": "/live", "destination": "/live.html" },
     { "source": "/affiliate", "destination": "/affiliate.html" },
     { "source": "/demo", "destination": "/demo.html" },
-    { "source": "/avatar", "destination": "/avatar.html" },
+    { "source": "/avatar", "destination": "/public/avatar-live.html" },
+    { "source": "/pure", "destination": "/public/avatar-live.html" },
+    { "source": "/avatar-live", "destination": "/public/avatar-live.html" },
+    { "source": "/court", "destination": "/altercast-app.html" },
     { "source": "/overlay", "destination": "/overlay.html" },
     { "source": "/dashboard", "destination": "/dashboard.html" }
   ],
