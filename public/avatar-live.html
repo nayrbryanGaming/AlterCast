@@ -9,6 +9,10 @@
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Inter',-apple-system,system-ui,sans-serif}
 canvas{display:block;width:100%!important;height:100%!important}
 
+/* PURE MODE — hide ALL UI, MURNI BACKGROUND + AVATAR ONLY (court order Pasal 27 jo. 5) */
+body.pure #status, body.pure #wm, body.pure #cmts, body.pure #bub, body.pure #ctrl, body.pure #err, body.pure #char-sw, body.pure #cam-presets, body.pure #toggle-ctrl, body.pure .pose-btn, body.pure #pose-row { display:none !important; }
+html.pure body { background: radial-gradient(ellipse at 50% 50%, #0A1228 0%, #050810 70%, #000 100%) !important; }
+
 /* ── LOADING ── */
 #loading{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 70%,#0A1228 0%,#000 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#00D4FF;z-index:9999;transition:opacity .6s}
 #loading.hide{opacity:0;pointer-events:none}
@@ -92,6 +96,13 @@ canvas{display:block;width:100%!important;height:100%!important}
 <!-- 3D Canvas -->
 <canvas id="c"></canvas>
 
+<script>
+  /* Pure mode detection — court order Pasal 27 jo. 5: MURNI AVATAR ONLY */
+  if (location.search.includes("pure") || location.pathname.endsWith("/pure") || location.pathname.includes("/avatar-live")) {
+    document.documentElement.classList.add("pure");
+    document.addEventListener("DOMContentLoaded", () => document.body.classList.add("pure"));
+  }
+</script>
 <!-- HUD -->
 <div id="status">◉ HOLOGRAM ACTIVE</div>
 <div id="wm">ALTERCAST · LIVE</div>
@@ -104,7 +115,8 @@ canvas{display:block;width:100%!important;height:100%!important}
 
 <!-- Character switcher -->
 <div id="char-sw">
-  <div class="ch on" data-char="anime"><span>👧</span><div class="ch-label">Anime Girl</div></div>
+  <div class="ch on" data-char="wajah" style="border-color:rgba(255,200,100,.6);box-shadow:0 0 18px rgba(255,180,60,.4)"><span>🧑</span><div class="ch-label" style="color:#FFD080">Nayr (Asli)</div></div>
+  <div class="ch" data-char="anime"><span>👧</span><div class="ch-label">Anime Girl</div></div>
   <div class="ch" data-char="aerith"><span>💎</span><div class="ch-label">Aerith</div></div>
   <div class="ch" data-char="yae"><span>🦊</span><div class="ch-label">Yae Miko</div></div>
   <div class="ch" data-char="type0"><span>⚔️</span><div class="ch-label">Type-0</div></div>
@@ -168,7 +180,7 @@ const log = s => { $('load-txt').textContent = s; };
 const prog = p => { $('load-fill').style.width = p + '%'; };
 
 const CHARS = {
-  keqing:   { url: 'keqing.glb',         label: 'Keqing (REAL FACE)' },
+  wajah:    { url: 'face-real.png',      label: 'Nayr Bryan (Wajah Asli)', isRealFace: true },
   anime:    { url: 'char-anime.glb',     label: 'Anime Girl' },
   aerith:   { url: 'char-aerith.glb',    label: 'Aerith' },
   yae:      { url: 'yae-miko.glb',       label: 'Yae Miko' },
@@ -313,6 +325,17 @@ const top = new THREE.DirectionalLight(0xFFEEAA, 1.5);
 top.position.set(0, 5, 1);
 scene.add(top);
 
+/* ── Light registry (avoids naming conflict with loadChar key parameter) ── */
+const HOLO_LIGHTS = {
+  key:     { light: key,     defaultIntensity: 2.0 },
+  fill:    { light: fill,    defaultIntensity: 1.2 },
+  rim:     { light: rim,     defaultIntensity: 2.8 },
+  upLight: { light: upLight, defaultIntensity: 8.0 },
+  top:     { light: top,     defaultIntensity: 1.5 },
+};
+function dimHoloLights()     { Object.values(HOLO_LIGHTS).forEach(l => { l.light.intensity = 0; }); }
+function restoreHoloLights() { Object.values(HOLO_LIGHTS).forEach(l => { l.light.intensity = l.defaultIntensity; }); }
+
 /* ── Helpers ── */
 function fitCamera(obj){
   const box = new THREE.Box3().setFromObject(obj);
@@ -381,8 +404,190 @@ let currentChar = null;
 let currentMixer = null;
 let currentAction = null;
 
+/* ══════════════════════════════════════════════════════════
+   REAL FACE ENGINE — Renderer wajah asli 3D sinematik
+   Tidak menggunakan GLB/avatar virtual sama sekali.
+   Murni foto asli dirender dengan Three.js + depth + lighting.
+   ══════════════════════════════════════════════════════════ */
+
+// Parallax state (mouse-driven depth illusion)
+const parallax = { x: 0, y: 0, tx: 0, ty: 0 };
+document.addEventListener('mousemove', e => {
+  parallax.tx = (e.clientX / window.innerWidth  - 0.5) * 2;
+  parallax.ty = (e.clientY / window.innerHeight - 0.5) * 2;
+});
+
+async function loadRealFace(url, url2) {
+  /* ── Show loading screen ── */
+  $('err').classList.remove('show');
+  $('loading').classList.remove('hide');
+  $('loading').style.display = 'flex';
+  prog(5); log('Menyiapkan mode wajah asli...');
+
+  /* ── Clear holographic scene elements ── */
+  ringGroup.visible  = false;
+  floor.visible      = false;
+  innerDisc.visible  = false;
+  pillar.visible     = false;
+  particles.visible  = false;
+
+  /* ── Studio background — pure cinematic dark ── */
+  scene.background = new THREE.Color('#05080F');
+  renderer.setClearAlpha(1);
+
+  /* ── Vignette plane (background gradient) ── */
+  const vigCvs = document.createElement('canvas');
+  vigCvs.width = 256; vigCvs.height = 256;
+  const vctx = vigCvs.getContext('2d');
+  const vg = vctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  vg.addColorStop(0, 'rgba(10,16,32,0.0)');
+  vg.addColorStop(0.6, 'rgba(5,8,15,0.5)');
+  vg.addColorStop(1.0, 'rgba(2,3,8,1.0)');
+  vctx.fillStyle = vg;
+  vctx.fillRect(0, 0, 256, 256);
+  const vigTex = new THREE.CanvasTexture(vigCvs);
+  const vig = new THREE.Mesh(
+    new THREE.PlaneGeometry(12, 12),
+    new THREE.MeshBasicMaterial({ map: vigTex, transparent: true, depthWrite: false })
+  );
+  vig.position.z = -3;
+  scene.add(vig);
+
+  /* ── Load face textures ── */
+  prog(20); log('Memuat foto wajah asli...');
+  const texLoader = new THREE.TextureLoader();
+
+  const loadTex = src => new Promise((res, rej) =>
+    texLoader.load(src, t => { t.colorSpace = THREE.SRGBColorSpace; res(t); }, undefined, rej)
+  );
+
+  let faceTex, faceTex2;
+  try {
+    [faceTex, faceTex2] = await Promise.all([loadTex(url), loadTex(url2).catch(() => null)]);
+  } catch(e) {
+    throw new Error('Foto wajah tidak bisa dimuat: ' + url);
+  }
+
+  prog(70); log('Menyiapkan renderer wajah 3D...');
+
+  /* ── Determine face plane dimensions ── */
+  const img = faceTex.image;
+  const aspect = img ? (img.width / img.height) : 0.72;
+  const faceH  = 1.85; // portrait height in scene units
+  const faceW  = faceH * aspect;
+
+  /* ── Face plane — slight subdivision for depth wave ── */
+  const faceGeo = new THREE.PlaneGeometry(faceW, faceH, 24, 32);
+  const faceMat = new THREE.MeshStandardMaterial({
+    map:         faceTex,
+    transparent: true,
+    alphaTest:   0.04,
+    roughness:   0.55,
+    metalness:   0.0,
+    side:        THREE.FrontSide,
+    depthWrite:  false,
+  });
+  const faceMesh = new THREE.Mesh(faceGeo, faceMat);
+  faceMesh.position.set(0, faceH * 0.5 + 0.05, 0);
+  faceMesh.userData.isRealFace = true;
+  faceMesh.userData.faceH      = faceH;
+  scene.add(faceMesh);
+
+  /* ── Subtle shadow/depth plane behind face ── */
+  const shadowGeo = new THREE.PlaneGeometry(faceW * 1.15, faceH * 1.08);
+  const shadowCvs = document.createElement('canvas');
+  shadowCvs.width = 128; shadowCvs.height = 128;
+  const sctx = shadowCvs.getContext('2d');
+  const sg = sctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  sg.addColorStop(0.2, 'rgba(0,0,0,0.7)');
+  sg.addColorStop(0.7, 'rgba(0,0,0,0.35)');
+  sg.addColorStop(1.0, 'rgba(0,0,0,0.0)');
+  sctx.fillStyle = sg;
+  sctx.fillRect(0, 0, 128, 128);
+  const shadowTex = new THREE.CanvasTexture(shadowCvs);
+  const shadowMesh = new THREE.Mesh(
+    shadowGeo,
+    new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false })
+  );
+  shadowMesh.position.set(0, faceMesh.position.y, -0.05);
+  scene.add(shadowMesh);
+
+  /* ── Rim glow plane (edge light — sinematik) ── */
+  const rimCvs = document.createElement('canvas');
+  rimCvs.width = 4; rimCvs.height = 128;
+  const rctx = rimCvs.getContext('2d');
+  const rg = rctx.createLinearGradient(0,0,0,128);
+  rg.addColorStop(0,   'rgba(0,180,255,0.0)');
+  rg.addColorStop(0.3, 'rgba(0,180,255,0.25)');
+  rg.addColorStop(0.7, 'rgba(0,180,255,0.25)');
+  rg.addColorStop(1,   'rgba(0,180,255,0.0)');
+  rctx.fillStyle = rg;
+  rctx.fillRect(0, 0, 4, 128);
+  const rimTex = new THREE.CanvasTexture(rimCvs);
+
+  /* left rim */
+  const rimL = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.04, faceH * 0.9),
+    new THREE.MeshBasicMaterial({ map: rimTex, transparent: true, depthWrite: false })
+  );
+  rimL.position.set(-faceW * 0.53, faceMesh.position.y, 0.01);
+  scene.add(rimL);
+  /* right rim */
+  const rimR = rimL.clone();
+  rimR.position.x = faceW * 0.53;
+  scene.add(rimR);
+
+  /* ── Studio Lights — override holographic lights ── */
+  /* Dim holographic lights — use registry to avoid naming conflict */
+  dimHoloLights();
+
+  // New: cinematic portrait lighting
+  const studioKey = new THREE.DirectionalLight(0xFFF5E8, 3.5);
+  studioKey.position.set(1.5, 3.0, 4.0);
+  scene.add(studioKey);
+
+  const studioFill = new THREE.DirectionalLight(0xC8E8FF, 1.2);
+  studioFill.position.set(-3, 1.5, 3.0);
+  scene.add(studioFill);
+
+  const studioRim = new THREE.DirectionalLight(0x0088FF, 1.8);
+  studioRim.position.set(0, 2, -5);
+  scene.add(studioRim);
+
+  const studioAmb = new THREE.AmbientLight(0x223344, 1.0);
+  scene.add(studioAmb);
+
+  /* ── Camera — portrait bust shot ── */
+  camera.fov = 26;
+  camera.updateProjectionMatrix();
+  ctl.target.set(0, faceMesh.position.y * 0.92, 0);
+  camera.position.set(0, faceMesh.position.y * 0.85, 3.2);
+  ctl.minDistance = 1.0;
+  ctl.maxDistance = 6.0;
+  ctl.update();
+
+  prog(100); log('Wajah asli siap!');
+  setTimeout(() => {
+    $('loading').classList.add('hide');
+    setTimeout(() => $('loading').style.display='none', 700);
+  }, 200);
+
+  /* mark as real-face so animate loop knows */
+  currentChar = faceMesh;
+  currentChar.userData.charKey    = 'wajah';
+  currentChar.userData.shadowMesh = shadowMesh;
+  currentChar.userData.rimL       = rimL;
+  currentChar.userData.rimR       = rimR;
+
+  return faceMesh;
+}
+
 async function loadChar(key){
   if(currentChar){
+    /* dispose old real-face extras */
+    if(currentChar.userData.shadowMesh) scene.remove(currentChar.userData.shadowMesh);
+    if(currentChar.userData.rimL)       scene.remove(currentChar.userData.rimL);
+    if(currentChar.userData.rimR)       scene.remove(currentChar.userData.rimR);
     scene.remove(currentChar);
     currentChar.traverse(n => {
       if(n.geometry) n.geometry.dispose();
@@ -395,6 +600,22 @@ async function loadChar(key){
       }
     });
     currentChar = null; currentMixer = null;
+  }
+
+  /* Restore holographic elements if switching back from real-face to GLB */
+  ringGroup.visible  = true;
+  floor.visible      = true;
+  innerDisc.visible  = true;
+  pillar.visible     = true;
+  particles.visible  = true;
+  scene.background   = new THREE.Color('#0A1633');
+
+  /* Restore holographic light intensities (may have been zeroed in real-face mode) */
+  restoreHoloLights();
+
+  /* ── REAL FACE PATH — skip GLB loader entirely ── */
+  if(CHARS[key]?.isRealFace){
+    return loadRealFace(CHARS[key].url, 'face-real2.png');
   }
 
   $('err').classList.remove('show');
@@ -421,40 +642,6 @@ async function loadChar(key){
 
       scene.add(obj);
       currentChar = obj;
-
-      /* ── AUTO REAL-FACE OVERLAY (muka asli user dari removix PNG) ── */
-      if (key === 'keqing') {
-        try {
-          const texLoader = new THREE.TextureLoader();
-          const faceTex = await new Promise((res, rej) =>
-            texLoader.load('avatar-real.png', t => { t.colorSpace = THREE.SRGBColorSpace; t.flipY = false; res(t); }, undefined, rej)
-          );
-          /* Find head bone */
-          let headAnchor = null;
-          obj.traverse(n => {
-            if (headAnchor || !n.isBone) return;
-            const nm = (n.name || '').toLowerCase();
-            if (nm.includes('head') || nm === 'j_hed' || nm === 'bone_head') headAnchor = n;
-          });
-          if (!headAnchor) {
-            const g = new THREE.Group();
-            const bx = new THREE.Box3().setFromObject(obj);
-            g.position.set(0, bx.min.y + (bx.max.y - bx.min.y) * 0.92, 0);
-            obj.add(g);
-            headAnchor = g;
-          }
-          const plane = new THREE.Mesh(
-            new THREE.PlaneGeometry(0.55, 0.65),
-            new THREE.MeshBasicMaterial({ map: faceTex, transparent: true, alphaTest: 0.04, depthWrite: false, side: THREE.DoubleSide })
-          );
-          plane.position.set(0, 0.05, 0.16);
-          plane.userData.isFaceOverlay = true;
-          headAnchor.add(plane);
-          console.log('[avatar-live] REAL face overlay applied on Keqing head bone');
-        } catch (e) {
-          console.warn('[avatar-live] face overlay fail:', e);
-        }
-      }
 
       // Auto-scale: characters are different scales
       const box = new THREE.Box3().setFromObject(obj);
@@ -591,12 +778,45 @@ function animate(){
     r.position.y = 0.02 + r.userData.baseRadius*0.005 + Math.sin(t + r.userData.baseRadius*3)*.02;
   });
 
-  // Character idle breathing
+  // Character idle breathing + real-face parallax
   if(currentChar){
-    currentChar.position.y = Math.sin(t*0.8) * 0.008 + (currentChar.userData.baseY || 0);
-    if(currentChar.userData.baseY === undefined) currentChar.userData.baseY = currentChar.position.y;
-    if(isTalking){
-      currentChar.rotation.y += Math.sin(t*8)*0.001;
+    if(currentChar.userData.isRealFace){
+      /* Smooth parallax lerp */
+      parallax.x += (parallax.tx - parallax.x) * 0.04;
+      parallax.y += (parallax.ty - parallax.y) * 0.04;
+
+      const faceH = currentChar.userData.faceH || 1.85;
+      const baseY = faceH * 0.5 + 0.05;
+
+      /* Breathing — vertical oscillation */
+      const breathY = Math.sin(t * 0.7) * 0.006;
+      /* Parallax shift — subtle 3D depth illusion */
+      const pxShift = parallax.x * 0.025;
+      const pyShift = parallax.y * 0.015;
+
+      currentChar.position.y  = baseY + breathY - pyShift;
+      currentChar.position.x  = pxShift;
+      currentChar.rotation.y  = parallax.x * -0.04;
+      currentChar.rotation.x  = parallax.y *  0.02;
+
+      /* Shadow follows face */
+      if(currentChar.userData.shadowMesh){
+        currentChar.userData.shadowMesh.position.x = pxShift * 0.3;
+        currentChar.userData.shadowMesh.position.y = currentChar.position.y;
+      }
+      /* Rim lights pulse subtly */
+      if(currentChar.userData.rimL){
+        const rimPulse = 0.015 + Math.sin(t * 1.4) * 0.006;
+        currentChar.userData.rimL.material.opacity = rimPulse + 0.01;
+        currentChar.userData.rimR.material.opacity = rimPulse + 0.01;
+      }
+    } else {
+      /* Standard GLB idle breathing */
+      currentChar.position.y = Math.sin(t*0.8) * 0.008 + (currentChar.userData.baseY || 0);
+      if(currentChar.userData.baseY === undefined) currentChar.userData.baseY = currentChar.position.y;
+      if(isTalking){
+        currentChar.rotation.y += Math.sin(t*8)*0.001;
+      }
     }
   }
 
@@ -613,7 +833,10 @@ function animate(){
   const now = performance.now();
   if(now-fT >= 1000){
     fps = fF; fF = 0; fT = now;
-    $('status').textContent = `◉ HOLO · ${fps}FPS · ${currentChar ? CHARS[currentChar.userData.charKey || 'anime']?.label || 'OK' : '---'}`;
+    const charLabel = currentChar
+      ? (currentChar.userData.isRealFace ? '🧑 NAYR ASLI' : (CHARS[currentChar.userData.charKey]?.label || 'OK'))
+      : '---';
+    $('status').textContent = `◉ ${currentChar?.userData?.isRealFace ? 'REAL' : 'HOLO'} · ${fps}FPS · ${charLabel}`;
   }
 }
 animate();
@@ -756,13 +979,18 @@ window.addEventListener('message', e => {
   }
 });
 
-// Init: load default character
-loadChar('keqing').then(obj => {
-  if(obj) obj.userData.charKey = 'keqing';
-  window.parent?.postMessage({type:'AVATAR_READY'}, '*');
-}).catch(() => {
-  // First load failed — show error but continue render loop
-  console.warn('Initial load failed, showing stage only');
+// Init: load REAL FACE by default (wajah asli nayr)
+loadChar('wajah').then(obj => {
+  if(obj) obj.userData.charKey = 'wajah';
+  window.parent?.postMessage({type:'AVATAR_READY', isRealFace: true}, '*');
+  console.log('%c✅ WAJAH ASLI AKTIF — Nayr Bryan', 'color:#FFD080;font-weight:bold;font-size:14px');
+}).catch(e => {
+  console.warn('Real face load failed, fallback to anime:', e);
+  // Fallback to anime if face image not found
+  loadChar('anime').then(obj => {
+    if(obj) obj.userData.charKey = 'anime';
+    window.parent?.postMessage({type:'AVATAR_READY'}, '*');
+  }).catch(() => console.warn('Initial load failed, showing stage only'));
 });
 
 console.log('%c🎭 AlterCast Holographic Engine v5','color:#00D4FF;font-weight:bold;font-size:14px');
