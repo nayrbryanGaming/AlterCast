@@ -26,16 +26,15 @@
     }
   ],
   "rewrites": [
-    { "source": "/studio", "destination": "/studio.html" },
-    { "source": "/live", "destination": "/live.html" },
-    { "source": "/affiliate", "destination": "/affiliate.html" },
-    { "source": "/demo", "destination": "/demo.html" },
-    { "source": "/avatar", "destination": "/public/avatar-live" },
-    { "source": "/pure", "destination": "/public/avatar-live" },
-    { "source": "/avatar-live", "destination": "/public/avatar-live" },
-    { "source": "/court", "destination": "/altercast-app.html" },
-    { "source": "/overlay", "destination": "/overlay.html" },
-    { "source": "/dashboard", "destination": "/dashboard.html" }
+    { "source": "/app",        "destination": "/AlterCast.html" },
+    { "source": "/studio",     "destination": "/AlterCast.html" },
+    { "source": "/dashboard",  "destination": "/AlterCast.html" },
+    { "source": "/settings",   "destination": "/AlterCast.html" },
+    { "source": "/overlay",    "destination": "/AlterCast.html" },
+    { "source": "/affiliate",  "destination": "/affiliate.html" },
+    { "source": "/avatar",     "destination": "/public/avatar-live.html" },
+    { "source": "/pure",       "destination": "/public/avatar-live.html" },
+    { "source": "/avatar-live","destination": "/public/avatar-live.html" }
   ],
   "cleanUrls": true
 }

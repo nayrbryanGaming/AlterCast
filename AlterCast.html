@@ -1336,7 +1336,7 @@ function TypingIndicator({ label = "AI is typing" }) {
 const EMOTION_CONFIG = {
   idle:    { emoji: "", color: "#8B96B0", label: { id: "Siaga",   en: "Idle"    } },
   happy:   { emoji: "[SMILE]", color: "#00FF88", label: { id: "Senang",  en: "Happy"   } },
-  talking: { emoji: "️", color: "#00D4FF", label: { id: "Bicara",  en: "Talking" } },
+  talking: { emoji: "", color: "#00D4FF", label: { id: "Bicara",  en: "Talking" } },
   excited: { emoji: "[HOT]", color: "#FFB800", label: { id: "Excited", en: "Excited" } },
   sad:     { emoji: "", color: "#7C3AFF", label: { id: "Sedih",   en: "Sad"     } },
   angry:   { emoji: "", color: "#FF3C3C", label: { id: "Marah",   en: "Angry"   } },
@@ -5010,7 +5010,7 @@ function VoiceLabPage() {
     <div style={{flex:1, overflow:"auto", padding:"24px", background:"var(--bg-base)"}}>
       <div style={{maxWidth:"1100px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px"}}>
         <div>
-          <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>[MIC]️ Voice Lab</h1>
+          <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>[MIC] Voice Lab</h1>
           <p style={{color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px"}}>{lang==="id"?"Clone suara, tes TTS, dan atur parameter suara avatar":"Clone voice, test TTS, and configure avatar voice parameters"}</p>
         </div>
 
@@ -5790,7 +5790,7 @@ function ClipsPage() {
     setRecording(true);
     setTimeout(() => {
       setRecording(false);
-      const newClip = { id: Date.now(), title: lang==="id"?"Clip Baru":"New Clip", dur: fmt(30), ts: new Date().toLocaleString("id-ID"), views: 0, thumb: "️", tags: ["manual"] };
+      const newClip = { id: Date.now(), title: lang==="id"?"Clip Baru":"New Clip", dur: fmt(30), ts: new Date().toLocaleString("id-ID"), views: 0, thumb: "", tags: ["manual"] };
       setClips(p => [newClip, ...p]);
       addToast(lang==="id"?"Clip tersimpan!":"Clip saved!", "success");
     }, 5000);
@@ -5801,7 +5801,7 @@ function ClipsPage() {
       <div style={{ maxWidth:"1100px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:"12px" }}>
           <div>
-            <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>️ {lang==="id"?"Clip Studio":"Clip Studio"}</h1>
+            <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}> {lang==="id"?"Clip Studio":"Clip Studio"}</h1>
             <p style={{ color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px" }}>{lang==="id"?"Rekam, edit, dan bagikan highlight terbaik stream kamu":"Record, edit, and share your best stream highlights"}</p>
           </div>
           <div style={{ display:"flex", gap:"8px" }}>
@@ -6287,7 +6287,7 @@ function StreamDeckPage() {
     { id:8, label:"Sleepy",                                 icon:"", color:"#7C3AFF", action:"sleepy",  col:3, row:2 },
     { id:9, label:"Happy",                                  icon:"[SMILE]", color:"#00FF88", action:"happy",   col:4, row:2 },
     { id:10,label:"Scene: BRB",                             icon:"", color:"#FF6B9D", action:"brb",     col:5, row:2 },
-    { id:11,label:"Clip!",                                  icon:"️", color:"#FF3C3C", action:"clip",    col:1, row:3 },
+    { id:11,label:"Clip!",                                  icon:"", color:"#FF3C3C", action:"clip",    col:1, row:3 },
     { id:12,label:lang==="id"?"Refresh":"Refresh",          icon:"", color:"#8B96B0", action:"refresh", col:2, row:3 },
     { id:13,label:lang==="id"?"Screenshot":"Screenshot",    icon:"", color:"#8B96B0", action:"ss",      col:3, row:3 },
     { id:14,label:"Spin Wheel",                             icon:"", color:"#00D4FF", action:"wheel",   col:4, row:3 },
@@ -6333,7 +6333,7 @@ function StreamDeckPage() {
       <div style={{ maxWidth:"720px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:"12px" }}>
           <div>
-            <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>⌨️ Stream Deck</h1>
+            <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>⌨ Stream Deck</h1>
             <p style={{ color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px" }}>{lang==="id"?"Panel kontrol shortcut untuk aksi cepat":"Shortcut control panel for quick actions"}</p>
           </div>
           <Button variant={editMode?"primary":"surface"} size="sm" icon={<IcSettings/>} onClick={()=>setEditMode(p=>!p)}>
@@ -6430,7 +6430,7 @@ function EmotesPage() {
     { id:1, name:lang==="id"?"Subscriber":"Subscriber",    img:"", tier:"Sub 1",   color:"#7C3AFF" },
     { id:2, name:lang==="id"?"Mod":"Mod",                  img:"[SWD]", tier:"Mod",     color:"#00FF88" },
     { id:3, name:lang==="id"?"VIP":"VIP",                  img:"[GEM]", tier:"VIP",     color:"#FFB800" },
-    { id:4, name:lang==="id"?"Veteran":"Veteran",          img:"️", tier:"24+ mo",  color:"#FF6B9D" },
+    { id:4, name:lang==="id"?"Veteran":"Veteran",          img:"", tier:"24+ mo",  color:"#FF6B9D" },
     { id:5, name:lang==="id"?"Donator":"Donator",          img:"", tier:"Rp 100k+",color:"#FFB800" },
     { id:6, name:lang==="id"?"Creator":"Creator",          img:"[STD]", tier:"Creator", color:"#00D4FF" },
   ];
@@ -7338,7 +7338,7 @@ function PerformerPage() {
               value={scriptText}
               onChange={e => setScriptText(e.target.value)}
               onKeyDown={e => { if(e.key==="Enter"){ e.preventDefault(); readScript(scriptText); } e.stopPropagation(); }}
-              placeholder={lang==="id" ? "️  Tulis skrip yang akan dibacakan avatar... (Enter untuk baca)" : "️  Type script for avatar to speak... (Enter to read)"}
+              placeholder={lang==="id" ? "  Tulis skrip yang akan dibacakan avatar... (Enter untuk baca)" : "  Type script for avatar to speak... (Enter to read)"}
               style={{
                 flex:1, background:"rgba(255,255,255,0.05)",
                 border:"1px solid rgba(0,212,255,0.22)", borderRadius:999,
@@ -7432,7 +7432,7 @@ function PerformerPage() {
                 {v:"green",         l:"Chroma",     c:"#00B140"},
                 {v:"room_affiliate",l:"[HOME] Kamar",   c:"#C8A882"},
                 {v:"room_studio",   l:"[STD] Studio",  c:"#7C3AFF"},
-                {v:"room_minimal",  l:"️ Minimal", c:"#A0A0A0"},
+                {v:"room_minimal",  l:" Minimal", c:"#A0A0A0"},
               ].map(b=>(
                 <button key={b.v} onClick={()=>setBg(b.v)} style={{
                   padding:"4px 9px", borderRadius:999, cursor:"pointer",

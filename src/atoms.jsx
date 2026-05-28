@@ -327,7 +327,7 @@ function TypingIndicator({ label = "AI is typing" }) {
 const EMOTION_CONFIG = {
   idle:    { emoji: "", color: "#8B96B0", label: { id: "Siaga",   en: "Idle"    } },
   happy:   { emoji: "[SMILE]", color: "#00FF88", label: { id: "Senang",  en: "Happy"   } },
-  talking: { emoji: "️", color: "#00D4FF", label: { id: "Bicara",  en: "Talking" } },
+  talking: { emoji: "", color: "#00D4FF", label: { id: "Bicara",  en: "Talking" } },
   excited: { emoji: "[HOT]", color: "#FFB800", label: { id: "Excited", en: "Excited" } },
   sad:     { emoji: "", color: "#7C3AFF", label: { id: "Sedih",   en: "Sad"     } },
   angry:   { emoji: "", color: "#FF3C3C", label: { id: "Marah",   en: "Angry"   } },
