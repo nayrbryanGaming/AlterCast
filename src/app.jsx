@@ -1,12 +1,23 @@
 /* ─────────────────────────────────────────────
+   AlterCast — Local Database (no registration)
+   localStorage auto-persist, zero server needed
+   ───────────────────────────────────────────── */
+const _LS = "altercast_v1";
+function lsLoad() { try { return JSON.parse(localStorage.getItem(_LS) || "{}"); } catch { return {}; } }
+function lsGet(k, def) { const v = lsLoad()[k]; return v !== undefined ? v : def; }
+function lsSave(patch) {
+  try { localStorage.setItem(_LS, JSON.stringify({ ...lsLoad(), ...patch })); } catch {}
+}
+
+/* ─────────────────────────────────────────────
    AlterCast — Main App v1.0
    Root component, state management, routing
    ───────────────────────────────────────────── */
 
 function App() {
-  /* ── GLOBAL STATE ── */
-  const [lang,          setLang]          = React.useState("id");
-  const [theme,         setTheme]         = React.useState("dark");
+  /* ── GLOBAL STATE — initial values loaded from localStorage ── */
+  const [lang,          setLang]          = React.useState(() => lsGet("lang",  "id"));
+  const [theme,         setTheme]         = React.useState(() => lsGet("theme", "dark"));
   const [currentPage,   setCurrentPage]   = React.useState("landing");
 
   /* Stream state */
@@ -16,9 +27,9 @@ function App() {
 
   /* Controls */
   const [isMicOn,       setIsMicOn]       = React.useState(false);
-  const [isVoiceOn,     setIsVoiceOn]     = React.useState(true);
+  const [isVoiceOn,     setIsVoiceOn]     = React.useState(() => lsGet("isVoiceOn", true));
   const [isCameraOn,    setIsCameraOn]    = React.useState(false);
-  const [isAIActive,    setIsAIActive]    = React.useState(true);
+  const [isAIActive,    setIsAIActive]    = React.useState(() => lsGet("isAIActive", true));
 
   /* Avatar */
   const [avatarState,   setAvatarState]   = React.useState("idle");
@@ -27,7 +38,14 @@ function App() {
   const [chatMessages,  setChatMessages]  = React.useState(MOCK_CHAT);
 
   /* Volume */
-  const [volume,        setVolume]        = React.useState(80);
+  const [volume,        setVolume]        = React.useState(() => lsGet("volume", 80));
+
+  /* ── AUTO-SAVE preferences to localStorage on every change ── */
+  React.useEffect(() => { lsSave({ lang }); }, [lang]);
+  React.useEffect(() => { lsSave({ theme }); }, [theme]);
+  React.useEffect(() => { lsSave({ volume }); }, [volume]);
+  React.useEffect(() => { lsSave({ isVoiceOn }); }, [isVoiceOn]);
+  React.useEffect(() => { lsSave({ isAIActive }); }, [isAIActive]);
 
   /* Toasts */
   const [toasts,        setToasts]        = React.useState([]);

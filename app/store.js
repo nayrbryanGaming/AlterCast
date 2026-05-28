@@ -244,11 +244,42 @@ const initialState = {
   tweaksOpen: false,
 };
 
-/* ── Reactive store with subscribe API ── */
+/* ── Keys that survive page refresh (user preferences only) ── */
+const PERSIST_KEYS = new Set([
+  "lang", "theme", "currentAvatar", "emotion", "angle",
+  "orbit", "mouseTrack", "showLandmarks", "particles",
+  "gridBackground", "avatarGlow",
+  "depth", "faceScale", "faceOffsetY",
+  "lightingPreset", "bgThreshold",
+  "volume", "ttsSpeed", "ttsPitch", "voiceId",
+  "afkMode", "afkInterval",
+  "obsEnabled", "obsPort", "obsPassword",
+  "sidebarCollapsed",
+]);
+
+const LS_KEY = "altercast_v1";
+
+function loadPersistedState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function persistState(state) {
+  try {
+    const data = {};
+    for (const k of PERSIST_KEYS) if (k in state) data[k] = state[k];
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  } catch { /* storage quota exceeded — no-op */ }
+}
+
+/* ── Reactive store with localStorage persistence ── */
 class Store {
   constructor(state) {
-    this.state = { ...state };
-    this.subscribers = new Map(); // key -> Set<callback>
+    // Merge saved preferences over defaults — no registration required
+    this.state = { ...state, ...loadPersistedState() };
+    this.subscribers = new Map();
     this.anySubscribers = new Set();
   }
 
@@ -267,6 +298,7 @@ class Store {
     const prev = this.state[key];
     if (prev === value) return;
     this.state[key] = value;
+    if (PERSIST_KEYS.has(key)) persistState(this.state);
     (this.subscribers.get(key) || new Set()).forEach(cb => {
       try { cb(value, prev); } catch (e) { console.error("Store sub error:", e); }
     });
@@ -284,6 +316,11 @@ class Store {
   subscribeAny(callback) {
     this.anySubscribers.add(callback);
     return () => this.anySubscribers.delete(callback);
+  }
+
+  reset() {
+    try { localStorage.removeItem(LS_KEY); } catch {}
+    Object.entries(initialState).forEach(([k, v]) => this._setOne(k, v));
   }
 }
 
