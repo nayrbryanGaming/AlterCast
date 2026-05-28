@@ -363,8 +363,22 @@ const Motion = {
   /* Weight shift — pelvis/hip sway */
   hipSway(t){ return Math.sin(t*0.19)*0.008 + Math.sin(t*0.41)*0.003; },
 
-  /* Talking jaw proxy (root Y rotation jitter) */
-  jawJitter(t){ return this.state==='talking'?Math.sin(t*12)*0.008:0; },
+  /* Jaw open amount 0-1 */
+  jawOpen(t){ return this.state==='talking'
+    ? Math.max(0, Math.sin(t*9)*0.5 + Math.sin(t*13)*0.3 + Math.sin(t*7)*0.2)
+    : Math.max(0, Math.sin(t*0.7)*0.08); },
+
+  /* Eye blink — periodic natural blink */
+  eyeBlink(t){
+    const cycle = t % 4.2;
+    if(cycle < 0.08) return cycle/0.08;
+    if(cycle < 0.16) return 1-(cycle-0.08)/0.08;
+    return 0;
+  },
+
+  /* Subtle eye look direction */
+  eyeLookX(t){ return Math.sin(t*0.23)*0.15 + Math.sin(t*0.61)*0.05; },
+  eyeLookY(t){ return Math.sin(t*0.19)*0.08 + Math.sin(t*0.44)*0.03; },
 
   /* Camera target drift — camera gently follows body */
   camDriftX(t){ return Math.sin(t*0.21)*0.06 + Math.sin(t*0.57)*0.02; },
@@ -480,6 +494,18 @@ async function loadChar(key){
       headBone  = findBone(obj,['head','skull','neck_01','neck1']);
       hipBone   = findBone(obj,['hips','pelvis','hip','root','bip01']);
       spineBone = findBone(obj,['spine','chest','torso']);
+      jawBone   = findBone(obj,['jaw','jaw_lower','lowerjaw','chin','mandible']);
+      eyeLBone  = findBone(obj,['eye_l','eyeleft','eye.l','lefteye','l_eye']);
+      eyeRBone  = findBone(obj,['eye_r','eyeright','eye.r','righteye','r_eye']);
+
+      /* Collect morph target meshes (jaw, eyes, face expressions) */
+      morphMeshes=[];
+      obj.traverse(n=>{
+        if(n.isMesh && n.morphTargetDictionary && Object.keys(n.morphTargetDictionary).length>0){
+          morphMeshes.push(n);
+        }
+      });
+      isProcedural=false;
 
       /* Animations */
       if(gltf.animations?.length){
@@ -500,14 +526,147 @@ async function loadChar(key){
       const pct = p.total ? Math.round(p.loaded/p.total*72)+5 : 50;
       prog(pct); log(`${CHARS[key].label}: ${pct}%`);
     }, err=>{
-      console.warn('Load fail:',key,err);
-      $('err-title').textContent = `Gagal: ${CHARS[key].label}`;
-      $('err-msg').textContent   = `${CHARS[key].file} — ${err.message||'File tidak bisa dibaca'}`;
-      $('err').classList.add('show');
-      $('loading').classList.add('hide');
-      reject(err);
+      console.warn('Load fail, using procedural fallback:',key, err.message);
+      loadProceduralChar(key);
+      resolve(null);
     });
   });
+}
+
+/* ══════════════════════════════════════════════
+   PROCEDURAL HUMANOID — always works, no GLB needed
+   Proves AI motion system even when files not hosted
+   ══════════════════════════════════════════════ */
+function loadProceduralChar(key){
+  /* Dispose previous */
+  if(currentChar){
+    scene.remove(currentChar);
+    currentChar.traverse(n=>{ if(n.geometry)n.geometry.dispose(); });
+    currentChar=null; currentMixer=null;
+    headBone=null; hipBone=null; spineBone=null;
+    jawBone=null; eyeLBone=null; eyeRBone=null;
+    morphMeshes=[];
+  }
+  isProcedural=true;
+  $('err').classList.remove('show');
+  $('loading').classList.add('hide');
+  setTimeout(()=>$('loading').style.display='none',300);
+
+  const root = new THREE.Group();
+  const skinMat  = new THREE.MeshStandardMaterial({color:0xF5C5A3,roughness:.6,metalness:0});
+  const clothMat = new THREE.MeshStandardMaterial({color:0x1a2540,roughness:.7,metalness:.08});
+  const hairMat  = new THREE.MeshStandardMaterial({color:0x1A0A00,roughness:.8,metalness:0});
+  const eyeWhMat = new THREE.MeshStandardMaterial({color:0xFFFFFF,roughness:.1,metalness:0});
+  const eyeIrisMat=new THREE.MeshStandardMaterial({color:0x1155BB,roughness:.08,metalness:.1});
+  const pupilMat = new THREE.MeshStandardMaterial({color:0x050505,roughness:.1,metalness:.05});
+
+  const mk=(geo,mat,px=0,py=0,pz=0)=>{
+    const m=new THREE.Mesh(geo,mat); m.position.set(px,py,pz);
+    m.castShadow=true; return m;
+  };
+
+  /* TORSO */
+  const torsoGroup=new THREE.Group(); torsoGroup.position.y=1.05;
+  torsoGroup.add(mk(new THREE.BoxGeometry(.32,.52,.18),clothMat,0,0,0));
+  root.add(torsoGroup); spineBone=torsoGroup;
+
+  /* HIP */
+  const hipGroup=new THREE.Group(); hipGroup.position.y=0.78;
+  hipGroup.add(mk(new THREE.BoxGeometry(.30,.22,.16),clothMat));
+  root.add(hipGroup); hipBone=hipGroup;
+
+  /* LEGS */
+  const mkLeg=(sx)=>{
+    const lg=new THREE.Group(); lg.position.set(sx*.12,.55,0);
+    lg.add(mk(new THREE.CylinderGeometry(.065,.075,.42,10),clothMat,0,0,0));
+    lg.add(mk(new THREE.CylinderGeometry(.055,.065,.40,10),clothMat,0,-.42,0));
+    lg.add(mk(new THREE.BoxGeometry(.11,.06,.18),skinMat,0,-.65,.04));
+    root.add(lg);
+  };
+  mkLeg(-1); mkLeg(1);
+
+  /* ARMS */
+  const mkArm=(sx)=>{
+    const ag=new THREE.Group(); ag.position.set(sx*.21,1.20,0);
+    ag.add(mk(new THREE.CylinderGeometry(.045,.055,.32,8),clothMat,0,0,0));
+    ag.add(mk(new THREE.CylinderGeometry(.035,.045,.28,8),skinMat,0,-.31,0));
+    ag.add(mk(new THREE.SphereGeometry(.04,6,6),skinMat,0,-.48,0));
+    root.add(ag);
+  };
+  mkArm(-1); mkArm(1);
+
+  /* NECK */
+  const neckGroup=new THREE.Group(); neckGroup.position.y=1.35;
+  neckGroup.add(mk(new THREE.CylinderGeometry(.055,.065,.14,10),skinMat));
+  root.add(neckGroup);
+
+  /* HEAD GROUP */
+  const headGroup=new THREE.Group(); headGroup.position.y=1.57;
+  const headMesh=mk(new THREE.SphereGeometry(.14,18,14),skinMat,0,.02,0);
+  headGroup.add(headMesh);
+
+  /* HAIR */
+  headGroup.add(mk(new THREE.SphereGeometry(.148,16,12),hairMat,0,.06,0));
+  const hairFront=mk(new THREE.BoxGeometry(.29,.06,.1),hairMat,0,.16,0.08);
+  headGroup.add(hairFront);
+
+  /* EYES */
+  const mkEye=(sx)=>{
+    const eg=new THREE.Group(); eg.position.set(sx*.055,.04,.12);
+    eg.add(mk(new THREE.SphereGeometry(.028,10,8),eyeWhMat));
+    eg.add(mk(new THREE.SphereGeometry(.018,8,7),eyeIrisMat,0,0,.016));
+    eg.add(mk(new THREE.SphereGeometry(.011,8,7),pupilMat,0,0,.026));
+    /* Upper eyelid (lid that closes) */
+    const lid=mk(new THREE.BoxGeometry(.06,.012,.006),new THREE.MeshStandardMaterial({color:0xE8B4A0,roughness:.6}),0,.022,.024);
+    eg.add(lid);
+    eg.userData.lid=lid;
+    return eg;
+  };
+  const eyeLG=mkEye(-1), eyeRG=mkEye(1);
+  headGroup.add(eyeLG); headGroup.add(eyeRG);
+  eyeLBone=eyeLG; eyeRBone=eyeRG;
+  procEyeL=eyeRG.userData.lid; procEyeR=eyeRG.userData.lid;
+
+  /* NOSE */
+  headGroup.add(mk(new THREE.ConeGeometry(.018,.04,6),skinMat,0,-.01,.13));
+
+  /* UPPER LIP */
+  headGroup.add(mk(new THREE.BoxGeometry(.075,.016,.008),skinMat,0,-.07,.13));
+
+  /* JAW GROUP — rotates for mouth open/close */
+  const jawGroup=new THREE.Group(); jawGroup.position.set(0,-.065,.06);
+  jawGroup.add(mk(new THREE.BoxGeometry(.09,.03,.12),skinMat,0,-.012,-.03));
+  jawGroup.add(mk(new THREE.BoxGeometry(.062,.016,.008),skinMat,0,-.02,.08)); /* lower lip */
+  headGroup.add(jawGroup); jawBone=jawGroup; procJaw=jawGroup;
+
+  root.add(headGroup); headBone=headGroup;
+
+  /* LABEL */
+  const label=CHARS[key]?.label||'Procedural';
+  const canvas2d=document.createElement('canvas'); canvas2d.width=256; canvas2d.height=64;
+  const ctx2=canvas2d.getContext('2d');
+  ctx2.fillStyle='rgba(0,212,255,0.9)'; ctx2.font='bold 20px Inter,sans-serif';
+  ctx2.textAlign='center'; ctx2.fillText(label,128,40);
+  const sprTex=new THREE.CanvasTexture(canvas2d);
+  const sprMat=new THREE.SpriteMaterial({map:sprTex,transparent:true,opacity:.8});
+  const spr=new THREE.Sprite(sprMat); spr.scale.set(.9,.23,1); spr.position.y=2.0;
+  root.add(spr);
+
+  /* Auto-scale & center same as GLB */
+  const box=new THREE.Box3().setFromObject(root);
+  const sz=box.getSize(new THREE.Vector3());
+  const scl=1.7/Math.max(sz.x,sz.y,sz.z);
+  root.scale.setScalar(scl);
+  const box2=new THREE.Box3().setFromObject(root);
+  root.position.y -= box2.min.y;
+  root.userData.baseY=root.position.y;
+
+  scene.add(root);
+  currentChar=root;
+  applyCam(currentCamPreset);
+  $('status').textContent=`HOLO · ${label} · AI:PROCEDURAL`;
+  currentCharKey=key;
+  document.querySelectorAll('.ch').forEach(b=>b.classList.toggle('on',b.dataset.key===key));
 }
 
 /* ══════════════════════════════════════════════
@@ -515,6 +674,10 @@ async function loadChar(key){
    ══════════════════════════════════════════════ */
 let currentCamPreset='bust', spinSpeed=0;
 let headBone=null, hipBone=null, spineBone=null;
+let jawBone=null, eyeLBone=null, eyeRBone=null;
+let morphMeshes=[]; /* meshes with morph targets */
+let isProcedural=false; /* true when showing built-in fallback */
+let procJaw=null, procEyeL=null, procEyeR=null; /* procedural part refs */
 
 /* Camera soft-tracking target (lerped) */
 const camTargetLook = new THREE.Vector3(0,0.9,0);
@@ -659,8 +822,6 @@ function animate(){
     currentChar.position.y = (currentChar.userData.baseY||0) + Motion.breatheY(t);
     /* Hip sway */
     currentChar.position.x = Motion.hipSway(t);
-    /* Jaw jitter when talking */
-    currentChar.rotation.y = Motion.jawJitter(t);
 
     /* Head bone micro-motion */
     if(headBone){
@@ -677,6 +838,41 @@ function animate(){
     if(hipBone){
       hipBone.rotation.z = Motion.hipSway(t) * 0.5;
     }
+
+    /* JAW BONE — mouth open/close */
+    const jaw = Motion.jawOpen(t);
+    if(jawBone){
+      jawBone.rotation.x = jaw * 0.28; /* max ~16 degrees */
+    }
+
+    /* EYE BONES — look direction */
+    const blk = Motion.eyeBlink(t);
+    const elx = Motion.eyeLookX(t), ely = Motion.eyeLookY(t);
+    if(eyeLBone){ eyeLBone.rotation.y = elx; eyeLBone.rotation.x = ely; }
+    if(eyeRBone){ eyeRBone.rotation.y = elx; eyeRBone.rotation.x = ely; }
+
+    /* PROCEDURAL eyelid close */
+    if(isProcedural){
+      if(procEyeL){ procEyeL.scale.y = 1 + blk*5; procEyeL.position.y = 0.022 - blk*0.016; }
+      if(procEyeR){ procEyeR.scale.y = 1 + blk*5; procEyeR.position.y = 0.022 - blk*0.016; }
+    }
+
+    /* MORPH TARGETS — drive jaw/eye blend shapes on GLB characters */
+    morphMeshes.forEach(mesh=>{
+      const d=mesh.morphTargetDictionary;
+      const infl=mesh.morphTargetInfluences;
+      const set=(names,v)=>{ names.forEach(n=>{ if(d[n]!==undefined) infl[d[n]]=Math.max(0,Math.min(1,v)); }); };
+      /* Jaw / mouth */
+      set(['jawOpen','mouthOpen','Mouth_Open','jaw_open','A'],jaw);
+      /* Eye blink */
+      set(['eyeBlinkLeft','blink_L','eyesClosed_L','Eye_Blink_L'],blk);
+      set(['eyeBlinkRight','blink_R','eyesClosed_R','Eye_Blink_R'],blk);
+      /* Eye look */
+      set(['eyeLookUpLeft','eyeLookUpRight'],Math.max(0,-ely));
+      set(['eyeLookDownLeft','eyeLookDownRight'],Math.max(0,ely));
+      set(['eyeLookInLeft','eyeLookOutRight'],Math.max(0,elx));
+      set(['eyeLookOutLeft','eyeLookInRight'],Math.max(0,-elx));
+    });
 
     /* Camera soft-tracking — follow head/body drift gently */
     if(spinSpeed===0 && !ctl.autoRotate){
