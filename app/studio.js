@@ -139,7 +139,7 @@ function renderShell() {
     <!-- NAVBAR -->
     <nav class="navbar">
       <div class="brand" id="brand">
-        <div class="brand-mark">A</div>
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" style="flex-shrink:0"><rect width="32" height="32" rx="8" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/><circle cx="16" cy="12" r="5" fill="none" stroke="#00D4FF" stroke-width="1.5"/><circle cx="21" cy="10" r="2" fill="none" stroke="#7C3AFF" stroke-width="1.2"/><path d="M9 24c0-3.87 3.13-7 7-7s7 3.13 7 7" stroke="#00D4FF" stroke-width="1.5" stroke-linecap="round"/><path d="M23 20c0-1.66 1.34-3 3-3" stroke="#7C3AFF" stroke-width="1.2" stroke-linecap="round"/><circle cx="16" cy="12" r="2" fill="#00D4FF" opacity="0.8"/></svg>
         <span>Alter<b>Cast</b></span>
       </div>
       <div class="nav-divider"></div>
@@ -153,8 +153,8 @@ function renderShell() {
       </div>
       <div class="navbar-right">
         <div class="lang-toggle" id="lang-toggle">
-          <button data-lang="id" class="${lang === "id" ? "active" : ""}">🇮🇩 ID</button>
-          <button data-lang="en" class="${lang === "en" ? "active" : ""}">🇺🇸 EN</button>
+          <button data-lang="id" class="${lang === "id" ? "active" : ""}">[I][D] ID</button>
+          <button data-lang="en" class="${lang === "en" ? "active" : ""}">[U][S] EN</button>
         </div>
         <span class="fps" id="fps-counter">— fps</span>
         <span class="online-badge"><span class="online-dot"></span>WEBGL</span>
@@ -212,10 +212,10 @@ function renderShell() {
         <div class="sidebar-section">
           <div class="section-title">${t("section_controls", lang)}</div>
           <div class="tog-row" id="ctrl-toggles">
-            <div class="tog-item"><span>🎤 ${t("ctrl_mic", lang)}</span><div class="tog" data-tog="isMicOn"></div></div>
-            <div class="tog-item"><span>🔊 ${t("ctrl_voice", lang)}</span><div class="tog on" data-tog="isVoiceOn"></div></div>
-            <div class="tog-item"><span>📷 ${t("ctrl_camera", lang)}</span><div class="tog" data-tog="isCameraOn"></div></div>
-            <div class="tog-item"><span>🧠 ${t("ctrl_ai", lang)}</span><div class="tog on" data-tog="isAIActive"></div></div>
+            <div class="tog-item"><span>[MIC] ${t("ctrl_mic", lang)}</span><div class="tog" data-tog="isMicOn"></div></div>
+            <div class="tog-item"><span>[VOL] ${t("ctrl_voice", lang)}</span><div class="tog on" data-tog="isVoiceOn"></div></div>
+            <div class="tog-item"><span> ${t("ctrl_camera", lang)}</span><div class="tog" data-tog="isCameraOn"></div></div>
+            <div class="tog-item"><span> ${t("ctrl_ai", lang)}</span><div class="tog on" data-tog="isAIActive"></div></div>
           </div>
         </div>
 
@@ -267,8 +267,8 @@ function renderShell() {
       <!-- RIGHT PANEL -->
       <aside class="right-panel" id="right-panel">
         <div class="right-tabs">
-          <div class="right-tab active" data-tab="chat">💬 ${t("chat_title", lang)}</div>
-          <div class="right-tab" data-tab="controls">🎛 ${t("section_controls", lang)}</div>
+          <div class="right-tab active" data-tab="chat">[MSG] ${t("chat_title", lang)}</div>
+          <div class="right-tab" data-tab="controls"> ${t("section_controls", lang)}</div>
         </div>
 
         <!-- Chat pane -->
@@ -353,7 +353,7 @@ function renderShell() {
       <button class="btn primary" id="btn-stream">${icons.play(14)}<span>${t("start_stream", lang)}</span></button>
       <button class="btn" id="btn-record">${icons.record(14)}<span>${t("record", lang)}</span></button>
       <button class="btn cyan" id="btn-obs">${icons.monitor(14)}<span>${t("connect_obs", lang)}</span></button>
-      <button class="btn violet" id="btn-afk">🌙 <span>${t("enable_afk", lang)}</span></button>
+      <button class="btn violet" id="btn-afk">[MOON] <span>${t("enable_afk", lang)}</span></button>
       <button class="btn" id="btn-speak-now">${icons.message(14)}<span>${t("speak", lang)}</span></button>
       <div class="volume-control">
         <button class="icon-btn" id="btn-mute">${icons.vol(14)}</button>

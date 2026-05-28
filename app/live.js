@@ -66,7 +66,7 @@ async function boot() {
   $("btn-mute").addEventListener("click", () => {
     const m = !store.get("muted");
     store.set("muted", m);
-    $("btn-mute").textContent = m ? "🔇" : "🔊";
+    $("btn-mute").textContent = m ? "[MUTE]" : "[VOL]";
     $("btn-mute").classList.toggle("active", m);
     if (m) cancelTTS();
   });

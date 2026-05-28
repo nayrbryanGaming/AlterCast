@@ -260,7 +260,7 @@ function AvatarCanvas() {
               [40, 50], [160, 45], [165, 80], [35, 75]
             ].map(([x, y], i) => (
               <g key={i} style={{ animation: `float-particle ${2 + i * 0.5}s ${i * 0.3}s ease-in-out infinite` }}>
-                <text x={x} y={y} fill="#FFB800" fontSize="10" opacity="0.7">✦</text>
+                <text x={x} y={y} fill="#FFB800" fontSize="10" opacity="0.7"></text>
               </g>
             ))}
 

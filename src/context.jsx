@@ -304,7 +304,7 @@ const STRINGS = {
 
 /* ── MOCK DATA ── */
 const MOCK_CHAT = [
-  { id:1,  user:"nayrbryan",    color:"#00D4FF", text:"halo semua! lagi test AlterCast nih 🔥",       type:"message",  ts:"12:01" },
+  { id:1,  user:"nayrbryan",    color:"#00D4FF", text:"halo semua! lagi test AlterCast nih [HOT]",       type:"message",  ts:"12:01" },
   { id:2,  user:"StreamerX",    color:"#7C3AFF", text:"wah avatar lo keren banget bro!",               type:"message",  ts:"12:01" },
   { id:3,  user:"anime_fan99",  color:"#00FF88", text:"suaranya mirip banget sama lo hahaha",          type:"message",  ts:"12:02" },
   { id:4,  user:"xXDarkXx",     color:"#FFB800", text:"ini pakai AI apa? GPT?",                        type:"message",  ts:"12:02" },
@@ -312,7 +312,7 @@ const MOCK_CHAT = [
   { id:6,  user:"tech_wizard",  color:"#00D4FF", text:"bisa konek ke OBS juga? mantap",               type:"message",  ts:"12:03" },
   { id:7,  user:"luna_chan",    color:"#7C3AFF", text:"udah berapa lama live nih?",                    type:"message",  ts:"12:04" },
   { id:8,  user:"pro_gamer_99", color:"#00FF88", text:"!song",                                         type:"command",  ts:"12:04" },
-  { id:9,  user:"viewer_123",   color:"#FFB800", text:"mantap jiwa 🙌🙌",                               type:"message",  ts:"12:05" },
+  { id:9,  user:"viewer_123",   color:"#FFB800", text:"mantap jiwa ",                               type:"message",  ts:"12:05" },
   { id:10, user:"big_donator",  color:"#FF3C3C", text:"teruskan karyanya bro!",                        type:"donation", amount:"Rp 50.000", ts:"12:05" },
 ];
 
@@ -330,11 +330,11 @@ const MOCK_NEW_MSGS = [
 ];
 
 const MOCK_AI_RESPONSES = [
-  "Haha makasih ya udah tanya! Jadi ceritanya aku ini AI yang ngejaga stream kalau streamer-nya lagi gak bisa online 😄",
+  "Haha makasih ya udah tanya! Jadi ceritanya aku ini AI yang ngejaga stream kalau streamer-nya lagi gak bisa online ",
   "Wah pertanyaan bagus! Aku pakai model AI yang canggih buat jawab semua pertanyaan kalian. Jangan sungkan nanya ya!",
-  "Salam balik bro! Seneng banget ada yang nemenin stream hari ini, kalian the best! 🔥",
+  "Salam balik bro! Seneng banget ada yang nemenin stream hari ini, kalian the best! [HOT]",
   "Hm menarik pertanyaannya~ Aku lagi ditraining buat jadi lebih pintar tiap harinya hihi",
-  "Bener banget! AlterCast emang didesain buat bikin streaming lebih mudah dan profesional 🎬",
+  "Bener banget! AlterCast emang didesain buat bikin streaming lebih mudah dan profesional [STD]",
 ];
 
 Object.assign(window, { AppContext, useApp, STRINGS, MOCK_CHAT, MOCK_NEW_MSGS, MOCK_AI_RESPONSES });

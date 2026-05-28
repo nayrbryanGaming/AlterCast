@@ -149,7 +149,7 @@ export class KeqingGLBRenderer {
           }
 
           this._loaded = true;
-          console.log("[KeqingGLB] loaded ✓", gltf.animations?.length, "anim(s)");
+          console.log("[KeqingGLB] loaded v", gltf.animations?.length, "anim(s)");
           resolve(true);
         },
         (xhr) => { if (xhr.total) console.log(`[KeqingGLB] ${Math.round(xhr.loaded/xhr.total*100)}%`); },

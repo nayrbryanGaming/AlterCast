@@ -235,7 +235,7 @@ function AlterCastTweaks({ onClose }) {
         <div>
           <div style={{ fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-muted)", marginBottom: "6px" }}>Language</div>
           <div style={{ display: "flex", gap: "6px" }}>
-            {[{v:"id",l:"🇮🇩 ID"},{v:"en",l:"🇺🇸 EN"}].map(({v,l}) => (
+            {[{v:"id",l:" ID"},{v:"en",l:" EN"}].map(({v,l}) => (
               <button key={v}
                 onClick={() => { setTweak("language", v); setLang(v); }}
                 style={{
@@ -301,12 +301,12 @@ function AlterCastTweaks({ onClose }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>
-                {isLive ? "🔴 " + S.status_live : "⚫ " + S.status_offline}
+                {isLive ? "[LIVE] " + S.status_live : "[OFF] " + S.status_offline}
               </span>
               <Toggle checked={isLive} onChange={(v) => { setIsLive(v); addToast(v ? S.toast_live : S.toast_stopped, v ? "success" : "default"); }} size="sm" />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>🌙 AFK Mode</span>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>[AFK] AFK Mode</span>
               <Toggle checked={isAFKMode} onChange={(v) => { setIsAFKMode(v); addToast(v ? S.toast_afk_on : S.toast_afk_off, "info"); }} size="sm" />
             </div>
           </div>

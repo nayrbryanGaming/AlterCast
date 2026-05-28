@@ -10,3 +10,6 @@ Thumbs.db
 .sixth/
 
 .vercel
+
+# Large 3D character GLB files (4.8GB, served separately from CDN or local)
+public/chars/

@@ -3,18 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<base href="/public/">
-<title>AlterCast Live — Holographic</title>
+<title>AlterCast Live — Holographic Engine v6</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32' fill='none'%3E%3Crect width='32' height='32' rx='8' fill='%230D1520'/%3E%3Crect width='32' height='32' rx='8' fill='rgba(0,212,255,0.12)' stroke='rgba(0,212,255,0.3)' stroke-width='1'/%3E%3Ccircle cx='16' cy='12' r='5' fill='none' stroke='%2300D4FF' stroke-width='1.5'/%3E%3Ccircle cx='21' cy='10' r='2' fill='none' stroke='%237C3AFF' stroke-width='1.2'/%3E%3Cpath d='M9 24c0-3.87 3.13-7 7-7s7 3.13 7 7' stroke='%2300D4FF' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M23 20c0-1.66 1.34-3 3-3' stroke='%237C3AFF' stroke-width='1.2' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='12' r='2' fill='%2300D4FF' opacity='.8'/%3E%3C/svg%3E" />
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Inter',-apple-system,system-ui,sans-serif}
 canvas{display:block;width:100%!important;height:100%!important}
 
-/* PURE MODE — hide ALL UI, MURNI BACKGROUND + AVATAR ONLY (court order Pasal 27 jo. 5) */
-body.pure #status, body.pure #wm, body.pure #cmts, body.pure #bub, body.pure #ctrl, body.pure #err, body.pure #char-sw, body.pure #cam-presets, body.pure #toggle-ctrl, body.pure .pose-btn, body.pure #pose-row { display:none !important; }
-html.pure body { background: radial-gradient(ellipse at 50% 50%, #0A1228 0%, #050810 70%, #000 100%) !important; }
-
-/* ── LOADING ── */
+/* LOADING */
 #loading{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 70%,#0A1228 0%,#000 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#00D4FF;z-index:9999;transition:opacity .6s}
 #loading.hide{opacity:0;pointer-events:none}
 .spin{width:44px;height:44px;border:3px solid rgba(0,212,255,.12);border-top-color:#00D4FF;border-radius:50%;animation:sp .9s linear infinite}
@@ -24,17 +20,21 @@ html.pure body { background: radial-gradient(ellipse at 50% 50%, #0A1228 0%, #05
 #load-fill{height:100%;width:0;background:#00D4FF;box-shadow:0 0 12px #00D4FF;transition:width .25s}
 #load-txt{font:11px/1.5 monospace;opacity:.55;text-align:center}
 
-/* ── STATUS HUD ── */
+/* STATUS HUD */
 #status{position:fixed;top:14px;left:14px;font:10px/1 monospace;color:rgba(0,212,255,.45);letter-spacing:.18em;pointer-events:none;z-index:50;text-transform:uppercase}
 #wm{position:fixed;bottom:14px;left:14px;font:10px/1 monospace;color:rgba(0,212,255,.22);letter-spacing:.18em;pointer-events:none;z-index:5;transition:opacity .4s}
 #wm.hide{opacity:0}
 
-/* ── SPEECH BUBBLE ── */
+/* AI MOTION INDICATOR */
+#motion-hud{position:fixed;top:14px;left:50%;transform:translateX(-50%);font:9px/1 monospace;color:rgba(0,212,255,.35);letter-spacing:.12em;pointer-events:none;z-index:50;text-transform:uppercase;transition:opacity .4s}
+#motion-hud.hide{opacity:0}
+
+/* SPEECH BUBBLE */
 #bub{position:fixed;bottom:20%;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(0,8,18,.92);border:1px solid rgba(0,212,255,.4);backdrop-filter:blur(20px);border-radius:999px;padding:11px 26px;font-size:14px;color:#E8F4FF;max-width:60%;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:40;opacity:0;transition:all .3s;box-shadow:0 0 40px rgba(0,212,255,.25)}
 #bub.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #bub::before{content:'◉';color:#00D4FF;margin-right:10px;font-size:8px;vertical-align:middle}
 
-/* ── COMMENTS ── */
+/* COMMENTS */
 #cmts{position:fixed;right:24px;bottom:120px;display:flex;flex-direction:column-reverse;gap:8px;max-width:280px;z-index:30;pointer-events:none}
 .cmt{background:rgba(0,8,18,.78);backdrop-filter:blur(10px);border-radius:14px;padding:9px 14px;display:flex;gap:10px;animation:cmt-in .4s cubic-bezier(.34,1.56,.64,1)}
 @keyframes cmt-in{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
@@ -42,15 +42,32 @@ html.pure body { background: radial-gradient(ellipse at 50% 50%, #0A1228 0%, #05
 .cmt-u{font-size:11px;font-weight:700;margin-bottom:2px;letter-spacing:.02em}
 .cmt-t{font-size:13px;color:#E8EEFF;line-height:1.4}
 
-/* ── CONTROLS PANEL ── */
-#ctrl{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:rgba(0,8,18,.85);backdrop-filter:blur(24px);border:1px solid rgba(0,212,255,.18);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;z-index:100;width:min(720px,calc(100vw - 48px));transition:transform .4s cubic-bezier(.4,0,.2,1),opacity .3s;opacity:0}
-#ctrl.show{transform:translateX(-50%) translateY(0);opacity:1}
+/* AUTO-CYCLE PROGRESS BAR */
+#auto-bar{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,#00D4FF,#7C3AFF);width:0%;z-index:60;transition:none;box-shadow:0 0 8px #00D4FF}
 
+/* CHARACTER PANEL */
+#char-panel{position:fixed;top:50%;right:14px;transform:translateY(-50%) translateX(20px);display:flex;flex-direction:column;gap:4px;z-index:80;opacity:0;transition:all .4s cubic-bezier(.4,0,.2,1);max-height:85vh;overflow-y:auto;padding:4px;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,.3) transparent}
+#char-panel::-webkit-scrollbar{width:3px}
+#char-panel::-webkit-scrollbar-thumb{background:rgba(0,212,255,.3);border-radius:3px}
+#char-panel.show{opacity:1;transform:translateY(-50%) translateX(0)}
+.ch{min-width:130px;height:28px;border-radius:6px;cursor:pointer;border:1px solid rgba(0,212,255,.18);background:rgba(0,8,18,.75);backdrop-filter:blur(8px);display:flex;align-items:center;padding:0 10px;gap:6px;font-size:10px;font-weight:600;color:rgba(255,255,255,.5);letter-spacing:.04em;transition:all .15s;white-space:nowrap;overflow:hidden}
+.ch:hover{border-color:rgba(0,212,255,.5);color:#E8F4FF;background:rgba(0,212,255,.08)}
+.ch.on{border-color:#00D4FF;color:#00D4FF;background:rgba(0,212,255,.12);box-shadow:0 0 12px rgba(0,212,255,.25)}
+.ch-num{font-size:8px;color:rgba(0,212,255,.4);font-family:monospace;min-width:22px;flex-shrink:0}
+.ch-name{overflow:hidden;text-overflow:ellipsis}
+
+/* SEARCH */
+#char-search{display:block;width:130px;padding:5px 10px;border-radius:6px;background:rgba(0,8,18,.85);border:1px solid rgba(0,212,255,.25);color:#E8F4FF;font-size:10px;font-family:inherit;outline:none;caret-color:#00D4FF;margin-bottom:4px}
+#char-search::placeholder{color:rgba(255,255,255,.25)}
+#char-search:focus{border-color:#00D4FF}
+
+/* CONTROLS PANEL */
+#ctrl{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:rgba(0,8,18,.85);backdrop-filter:blur(24px);border:1px solid rgba(0,212,255,.18);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;z-index:100;width:min(760px,calc(100vw - 48px));transition:transform .4s cubic-bezier(.4,0,.2,1),opacity .3s;opacity:0}
+#ctrl.show{transform:translateX(-50%) translateY(0);opacity:1}
 .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 #sc{flex:1;min-width:0;background:rgba(255,255,255,.05);border:1px solid rgba(0,212,255,.2);border-radius:999px;padding:9px 16px;color:#E8F4FF;font-size:13px;font-family:inherit;outline:none;caret-color:#00D4FF}
 #sc::placeholder{color:rgba(255,255,255,.3)}
 #sc:focus{border-color:#00D4FF;background:rgba(0,212,255,.05)}
-
 .btn{padding:8px 14px;border-radius:999px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;border:1px solid rgba(0,212,255,.35);background:rgba(0,212,255,.1);color:#00D4FF;transition:all .15s;white-space:nowrap}
 .btn:hover{background:rgba(0,212,255,.2);transform:translateY(-1px)}
 .btn.stop{border-color:rgba(255,80,80,.5);background:rgba(255,80,80,.1);color:#FF5050}
@@ -59,34 +76,24 @@ html.pure body { background: radial-gradient(ellipse at 50% 50%, #0A1228 0%, #05
 .btn.sm.on{border-color:#00D4FF;background:rgba(0,212,255,.18);color:#00D4FF;box-shadow:0 0 0 1px rgba(0,212,255,.3)}
 .btn.ghost{border-color:rgba(255,255,255,.12);background:transparent;color:rgba(255,255,255,.5)}
 .btn.ghost.sm.on{border-color:rgba(255,255,255,.4);color:#fff}
-
 .lbl{font-size:9px;color:rgba(255,255,255,.3);letter-spacing:.12em;text-transform:uppercase;margin-right:2px}
 .sep{width:1px;height:20px;background:rgba(255,255,255,.08)}
 .sp{flex:1}
-
 #info{font:9px/1.4 monospace;color:rgba(0,212,255,.3);letter-spacing:.08em;text-align:center}
 
-/* ── CHARACTER SWITCHER ── */
-#char-sw{position:fixed;top:14px;right:14px;display:flex;flex-direction:column;gap:6px;z-index:80;opacity:0;transform:translateX(20px);transition:all .4s cubic-bezier(.4,0,.2,1);max-height:calc(100vh - 28px);overflow-y:auto;padding-right:4px}
-#char-sw::-webkit-scrollbar{width:0}
-#char-sw.show{opacity:1;transform:translateX(0)}
-.ch{width:44px;height:44px;border-radius:50%;cursor:pointer;border:2px solid rgba(0,212,255,.2);background:rgba(0,8,18,.7);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:all .2s;position:relative;flex-shrink:0}
-.ch:hover{border-color:#00D4FF;transform:scale(1.08)}
-.ch.on{border-color:#00D4FF;box-shadow:0 0 18px rgba(0,212,255,.5),inset 0 0 12px rgba(0,212,255,.2)}
-.ch .ch-label{position:absolute;right:52px;top:50%;transform:translateY(-50%);background:rgba(0,8,18,.92);backdrop-filter:blur(8px);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;color:#E8F4FF;border:1px solid rgba(0,212,255,.2);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s}
-.ch:hover .ch-label{opacity:1}
-
-/* ── ERROR / FALLBACK ── */
+/* ERROR */
 #err{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;color:#FF8C42;font-family:inherit;text-align:center;padding:24px;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(8px)}
 #err.show{display:flex}
-#err .icon{font-size:3rem}
+#err .icon{font-size:2rem;color:#FFB800}
 #err h3{font-size:18px;font-weight:700;color:#FFB800}
 #err p{font-size:13px;color:rgba(255,255,255,.6);max-width:480px;line-height:1.7}
+
+/* CHAR COUNTER */
+#char-count{font:9px/1 monospace;color:rgba(0,212,255,.4);padding:2px 0 4px;letter-spacing:.08em;text-align:center}
 </style>
 </head>
 <body>
 
-<!-- Loading screen -->
 <div id="loading">
   <div class="spin"></div>
   <div id="load-title">ALTERCAST</div>
@@ -94,49 +101,29 @@ html.pure body { background: radial-gradient(ellipse at 50% 50%, #0A1228 0%, #05
   <div id="load-txt">Inisialisasi engine 3D...</div>
 </div>
 
-<!-- 3D Canvas -->
 <canvas id="c"></canvas>
 
-<script>
-  /* Pure mode detection — court order Pasal 27 jo. 5: MURNI AVATAR ONLY */
-  if (location.search.includes("pure") || location.pathname.endsWith("/pure") || location.pathname.includes("/avatar-live")) {
-    document.documentElement.classList.add("pure");
-    document.addEventListener("DOMContentLoaded", () => document.body.classList.add("pure"));
-  }
-</script>
-<!-- HUD -->
-<div id="status">◉ HOLOGRAM ACTIVE</div>
+<div id="auto-bar"></div>
+<div id="status">HOLOGRAM ACTIVE</div>
+<div id="motion-hud">AI MOTION · IDLE</div>
 <div id="wm">ALTERCAST · LIVE</div>
-
-<!-- Speech bubble -->
 <div id="bub"></div>
-
-<!-- Comments -->
 <div id="cmts"></div>
 
-<!-- Character switcher -->
-<div id="char-sw">
-  <div class="ch on" data-char="wajah" style="border-color:rgba(255,200,100,.6);box-shadow:0 0 18px rgba(255,180,60,.4)"><span>🧑</span><div class="ch-label" style="color:#FFD080">Nayr (Asli)</div></div>
-  <div class="ch" data-char="anime"><span>👧</span><div class="ch-label">Anime Girl</div></div>
-  <div class="ch" data-char="aerith"><span>💎</span><div class="ch-label">Aerith</div></div>
-  <div class="ch" data-char="yae"><span>🦊</span><div class="ch-label">Yae Miko</div></div>
-  <div class="ch" data-char="type0"><span>⚔️</span><div class="ch-label">Type-0</div></div>
-  <div class="ch" data-char="delke"><span>🌸</span><div class="ch-label">Delke</div></div>
-  <div class="ch" data-char="helen"><span>💪</span><div class="ch-label">Helen Parr</div></div>
-  <div class="ch" data-char="cyborg"><span>🤖</span><div class="ch-label">Cyborg</div></div>
-  <div class="ch" data-char="girl04"><span>💋</span><div class="ch-label">Sexy Girl</div></div>
-  <div class="ch" data-char="anime2"><span>🎀</span><div class="ch-label">Anime 2</div></div>
-  <div class="ch" data-char="valkyrie"><span>⚡</span><div class="ch-label">Valkyrie</div></div>
-  <div class="ch" data-char="delara"><span>👑</span><div class="ch-label">Delara</div></div>
+<!-- Character panel (built dynamically) -->
+<div id="char-panel">
+  <input id="char-search" type="text" placeholder="Cari karakter..." spellcheck="false">
+  <div id="char-count"></div>
+  <div id="char-list"></div>
 </div>
 
-<!-- Control panel -->
+<!-- Controls -->
 <div id="ctrl">
   <div class="row">
-    <input id="sc" type="text" placeholder="Tulis skrip yang akan dibacakan avatar…">
-    <button class="btn" id="rd">▶ Baca</button>
-    <button class="btn stop" id="st" style="display:none">⬛ Stop</button>
-    <button class="btn vio" id="ai">🤖 AI</button>
+    <input id="sc" type="text" placeholder="Tulis skrip yang akan dibacakan avatar...">
+    <button class="btn" id="rd">Baca</button>
+    <button class="btn stop" id="st" style="display:none">Stop</button>
+    <button class="btn vio" id="ai-btn">AI</button>
   </div>
   <div class="row">
     <span class="lbl">BG</span>
@@ -145,27 +132,30 @@ html.pure body { background: radial-gradient(ellipse at 50% 50%, #0A1228 0%, #05
     <button class="btn sm" data-bg="clear">Clear</button>
     <button class="btn sm" data-bg="chroma">Chroma</button>
     <div class="sep"></div>
-    <span class="lbl">Cam</span>
+    <span class="lbl">Kamera</span>
     <button class="btn ghost sm on" data-cam="bust">Bust</button>
     <button class="btn ghost sm" data-cam="face">Wajah</button>
     <button class="btn ghost sm" data-cam="full">Full</button>
     <div class="sep"></div>
-    <span class="lbl">Spin</span>
-    <button class="btn ghost sm" data-spin="slow">Slow</button>
+    <span class="lbl">Putar</span>
+    <button class="btn ghost sm" data-spin="slow">Pelan</button>
     <button class="btn ghost sm on" data-spin="off">Off</button>
-    <button class="btn ghost sm" data-spin="fast">Fast</button>
+    <button class="btn ghost sm" data-spin="fast">Cepat</button>
+    <div class="sep"></div>
+    <span class="lbl">Auto</span>
+    <button class="btn ghost sm" id="auto-btn">Cycle: OFF</button>
     <div class="sp"></div>
-    <button class="btn ghost sm" id="bk">← Kembali</button>
+    <button class="btn ghost sm" id="bk">Kembali</button>
   </div>
-  <div id="info">PURE HOLOGRAPHIC DISPLAY · ZERO UI CHROME · gerakkan mouse untuk kontrol · TikTok Live Studio Browser Source ready</div>
+  <div id="info">ALTERCAST HOLOGRAPHIC v6 · 164 KARAKTER · AI MOTION BRAIN · CAMERA TRACKING</div>
 </div>
 
-<!-- Error overlay -->
 <div id="err">
-  <div class="icon">⚠️</div>
+  <div class="icon">[!]</div>
   <h3 id="err-title">Model gagal dimuat</h3>
   <p id="err-msg"></p>
-  <p style="font-size:11px;opacity:.5">Tip: buka file ini langsung di Chrome (file:// atau localhost) untuk performa terbaik.</p>
+  <p style="font-size:11px;opacity:.5">Pastikan file ada di folder public/chars/ dan buka via localhost.</p>
+  <button class="btn" id="err-next">Coba Karakter Berikutnya</button>
 </div>
 
 <script type="importmap">
@@ -173,519 +163,346 @@ html.pure body { background: radial-gradient(ellipse at 50% 50%, #0A1228 0%, #05
 </script>
 <script type="module">
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+/* ══════════════════════════════════════════════
+   CHARACTER MANIFEST — 164 GLB dari E:\0download blender
+   ══════════════════════════════════════════════ */
+function glbLabel(fn){
+  return fn.replace(/\.glb$/i,'')
+    .replace(/[_\-]+/g,' ')
+    .replace(/\(\d+\)/g,'').trim()
+    .replace(/\s+/g,' ')
+    .replace(/\b\w/g,c=>c.toUpperCase())
+    .slice(0,38);
+}
+
+const ALL_CHARS = [
+  '18_female_body_s3x_toy.glb','a_contortionist_dancer.glb','abandoned_factory_remodelled__gameready.glb',
+  'ada_wong_-_1_ar_-_katherine_cat_keyhole_lingerie.glb','ada_wong_-_luxury_night_dress (1).glb',
+  'ada_wong_-_luxury_night_dress.glb','ada_wong_suora_lussuosa_con_louboutins.glb','ada_wong_v2.glb',
+  'adult_nude_sexy_girl_in_anime_style_fbx.glb','aerith_sexy_dress.glb',
+  'airi_dimension_breaker_arena_of_valor.glb','anby_demara_zzz (1).glb','anby_demara_zzz.glb',
+  'anime_-_female_nude_base_mesh.glb','anime_girl.glb','anime_girl_2.glb','anime_girl_in_bikini.glb',
+  'anime_school_girl_in_bikini.glb','aoi_arena_of_valor.glb','aoi_sora.glb','ayanami_rei_figure.glb',
+  'bai_moqing_nude.glb','beidou.glb','big_tits_brunete.glb','burnice__nsfw__zzz.glb',
+  'ca_nurse_with_bones.glb','cc0_-_condom.glb','charlotte_nude__-_fortnite_-_nsfw_-_unrigged.glb',
+  'chloe_toy_1.glb','chloe_toy_2.glb','chloe_toy_3.glb','chun_li_battle-suit.glb',
+  'columbina_1_genshin_impact.glb','columbina_rigged_free.glb','dance_1 (1).glb','dance_1.glb',
+  'delara_the_princess_knight_of_sex_nsfw.glb','delke_js2.glb','diao_chan_summer_bash_aov.glb',
+  'elf_girl_2_textured (1).glb','elf_girl_2_textured.glb','elf_texturized.glb','ellen_joe_zzz.glb',
+  'emerald_serenity.glb','epona.glb','fan_art_-_sexy_girl.glb','female_n_male_base_mesh_study.glb',
+  'female_torso__clean_topology_base_mesh.glb','free_-_female_mesh_with_butt_and_vagina_and_tits.glb',
+  'genshin_impact_-_yae_miko.glb','genshin_impact_ningguang.glb',
+  'gf2_exilium_-florence-_marvelous_yam_pastry.glb','gigi_futa_x_poppy.glb',
+  'giraffe_head-_shaking_animation.glb','girl_model.glb','goth_girl.glb','grace_howard_zzz.glb',
+  'granado_espada_diluca_3d_model_extract (1).glb','granado_espada_diluca_3d_model_extract.glb',
+  'granado_espada_erica_3d_model_extract (1).glb','granado_espada_erica_3d_model_extract.glb',
+  'granado_espada_rebecca_3d_model_extract (1).glb','granado_espada_rebecca_3d_model_extract.glb',
+  'granado_espada_stia_3d_model_extract (1).glb','granado_espada_stia_3d_model_extract.glb',
+  'half_naked_anime_girl.glb','helen_parr.glb','hentai_girl_ahoga_naked.glb','hentai_girl_naked.glb',
+  'hitem3d (1).glb','hitem3d.glb','hu_tao_swimsuit.glb','keqing_demo_model (1).glb',
+  'keqing_demo_model.glb','keqing_fbx_with_textures.glb','lady_dmc4.glb','lady_in_red_dress.glb',
+  'latch_suit.glb','lauma_naked.glb','lauma_rigged_free.glb',
+  'low_poly_head_-_panda_-_fortnite.glb','melina_naked_tpose_ridged.glb',
+  'mina_dance_of_death_aov.glb','molly.glb','mountain_goat_demo_free_download.glb',
+  'my_1st_character.glb','naked_queen.glb','nefer_rigged_free (1).glb','nefer_rigged_free.glb',
+  'nekomiya_mana_zzz.glb','nicole_demara_nude.glb','nicole_demara_zzz (1).glb',
+  'nicole_demara_zzz.glb','ningguang.glb','ningguang_1_genshin_impact.glb',
+  'ningguang_and_forbidden_water_problem..glb','nude_3.glb','nude_female_goddess.glb','nude_girl.glb',
+  'panda_head.glb','persephone._goddess_of_spring.glb','punk-style_lady_with_pigtails.glb',
+  'raiden__shogun_cyka_blyat__dance.glb','roblox_nsfw_rr34_base.glb',
+  'rouie_arena_of_valor (1).glb','rouie_arena_of_valor (2).glb','rouie_arena_of_valor.glb',
+  'sanuri.glb','scifi_sexy_girl.glb','scrap_baby_from_sister_location_fnaf_6_nsfw.glb',
+  'sexy_anime_girl_3d_model__free_to_use (1).glb','sexy_anime_girl_3d_model__free_to_use (2).glb',
+  'sexy_anime_girl_3d_model__free_to_use (3).glb','sexy_anime_girl_3d_model__free_to_use.glb',
+  'sexy_cartoonish_woman (1).glb','sexy_cartoonish_woman.glb','sexy_elf_ninja.glb',
+  'sexy_frozen_queen.glb','sexy_girl (1).glb','sexy_girl.glb','sexy_girl_03.glb','sexy_girl_04.glb',
+  'sexy_girl_05.glb','sexy_girls.glb','sexy_nude_elf_big_boobs_topless_girl_full_rigged.glb',
+  'sexy_nude_girls_filming_cosplay_horror.glb','sexy_patient_escape.glb',
+  'sexy_salazzle_nsfw_parts_body.glb','sexy_woman.glb','sexycyborg_heels_no_base.glb',
+  'sexy-women.glb','sinestrea_aov.glb','sinestrea_cerulean_princess_aov (1).glb',
+  'sinestrea_cerulean_princess_aov.glb','stardom_wwe_wrestling.glb','still_in_love_port.glb',
+  'succubus_vii.glb','swimsuit__girl_101.glb','tbk11 (1).glb','tbk11.glb',
+  'the_fallen._fanmade_story.glb','tifa_remake_white_outfit.glb',
+  'topless_sexy_girl_with_heels (1).glb','topless_sexy_girl_with_heels.glb',
+  'type0_pose_2_sexy.glb','uterus.glb','uterus__vagina.glb','vagina_temp_2.glb',
+  'valeria_girl_3d_model_free.glb','valkyrie_tyan_nsfw.glb','vamp_vixen.glb',
+  'varesa_rigged_free.glb','veera_aov.glb','violet_demonic_morphed_aov.glb',
+  'violet_dimension_breaker_arena_of_valor.glb','vrc_kipfel_youth.glb',
+  'vrc_rurune_on_bunny_outfit_items_on_booth (1).glb','vrc_rurune_on_bunny_outfit_items_on_booth.glb',
+  'walrider_nudemisaki.glb','wooden_girl.glb','yae_miko.glb',
+  'yidhari_rigged_free (1).glb','yidhari_rigged_free.glb','zelina_naked_riged_tpose.glb',
+];
+
+/* Build CHARS map */
+const CHARS = {};
+ALL_CHARS.forEach((fn, i) => {
+  const key = 'c' + i;
+  CHARS[key] = { url: 'chars/' + fn, label: glbLabel(fn), file: fn };
+});
+const CHAR_KEYS = Object.keys(CHARS);
+
+/* ══════════════════════════════════════════════
+   RENDERER
+   ══════════════════════════════════════════════ */
 const $ = id => document.getElementById(id);
 const log = s => { $('load-txt').textContent = s; };
 const prog = p => { $('load-fill').style.width = p + '%'; };
 
-const CHARS = {
-  wajah:    { url: 'face-real.png',      label: 'Nayr Bryan (Wajah Asli)', isRealFace: true },
-  anime:    { url: 'char-anime.glb',     label: 'Anime Girl' },
-  aerith:   { url: 'char-aerith.glb',    label: 'Aerith' },
-  yae:      { url: 'yae-miko.glb',       label: 'Yae Miko' },
-  type0:    { url: 'char-type0.glb',     label: 'Type-0' },
-  delke:    { url: 'char-delke.glb',     label: 'Delke' },
-  helen:    { url: 'char-helen.glb',     label: 'Helen Parr' },
-  cyborg:   { url: 'char-cyborg.glb',    label: 'Cyborg Girl' },
-  girl04:   { url: 'char-girl04.glb',    label: 'Sexy Girl' },
-  anime2:   { url: 'char-anime2.glb',    label: 'Anime Girl 2' },
-  valkyrie: { url: 'char-valkyrie.glb',  label: 'Valkyrie' },
-  delara:   { url: 'char-delara.glb',    label: 'Delara' },
-};
-
-/* ── Renderer ── */
 const canvas = $('c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
+renderer.toneMappingExposure = 1.1;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.NoToneMapping;
-renderer.setClearColor(0x0A1633, 1);
 
-/* ── Scene ── */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#0A1633');
 
-const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.05, 100);
+const camera = new THREE.PerspectiveCamera(32, window.innerWidth/window.innerHeight, 0.05, 200);
 camera.position.set(0, 1.0, 3.5);
 camera.lookAt(0, 0.9, 0);
 
-/* ── OrbitControls (mouse drag to inspect) ── */
 const ctl = new OrbitControls(camera, renderer.domElement);
-ctl.enableDamping = true; ctl.dampingFactor = 0.08;
-ctl.minDistance = 0.5; ctl.maxDistance = 8;
+ctl.enableDamping = true; ctl.dampingFactor = 0.07;
+ctl.minDistance = 0.3; ctl.maxDistance = 12;
 ctl.target.set(0, 0.9, 0);
 ctl.enablePan = false;
 ctl.autoRotate = false;
 ctl.autoRotateSpeed = 0;
 
-/* ── Holographic Background Stage ── */
-// Simple gradient via scene.background already set
-
-/* ── Holographic Floor Disc ── */
-const floorGeo = new THREE.CircleGeometry(1.4, 64);
-const floorMat = new THREE.MeshBasicMaterial({
-  color: 0x00DDFF,
-  transparent: true,
-  opacity: 0.18,
-  side: THREE.DoubleSide,
-});
+/* ══════════════════════════════════════════════
+   SCENE ELEMENTS
+   ══════════════════════════════════════════════ */
+const floorGeo = new THREE.CircleGeometry(1.6, 64);
+const floorMat = new THREE.MeshBasicMaterial({ color:0x00DDFF, transparent:true, opacity:0.14, side:THREE.DoubleSide });
 const floor = new THREE.Mesh(floorGeo, floorMat);
-floor.rotation.x = -Math.PI / 2;
-floor.position.y = 0;
+floor.rotation.x = -Math.PI/2;
 scene.add(floor);
 
-// Inner brighter disc
 const innerDisc = new THREE.Mesh(
-  new THREE.CircleGeometry(0.5, 48),
-  new THREE.MeshBasicMaterial({ color: 0x00DDFF, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
+  new THREE.CircleGeometry(0.55,48),
+  new THREE.MeshBasicMaterial({color:0x00DDFF,transparent:true,opacity:0.32,side:THREE.DoubleSide})
 );
-innerDisc.rotation.x = -Math.PI / 2;
+innerDisc.rotation.x = -Math.PI/2;
 innerDisc.position.y = 0.01;
 scene.add(innerDisc);
 
-/* ── Holographic Light Rings (3 stacked) ── */
 const ringGroup = new THREE.Group();
-[1.0, 1.4, 1.8].forEach((r, i) => {
-  const g = new THREE.TorusGeometry(r, 0.005, 4, 80);
-  const m = new THREE.MeshBasicMaterial({
-    color: i === 1 ? 0x00DDFF : 0x0088FF,
-    transparent: true,
-    opacity: 0.5 - i * 0.08,
-  });
-  const t = new THREE.Mesh(g, m);
-  t.rotation.x = Math.PI / 2;
-  t.position.y = 0.02 + i * 0.01;
-  t.userData.spinSpeed = (i % 2 === 0 ? 1 : -1) * (0.2 + i * 0.1);
-  t.userData.baseRadius = r;
-  ringGroup.add(t);
+[0.9,1.3,1.7,2.1].forEach((r,i) => {
+  const m = new THREE.Mesh(
+    new THREE.TorusGeometry(r,0.004,4,80),
+    new THREE.MeshBasicMaterial({color:i%2===0?0x00DDFF:0x4488FF,transparent:true,opacity:.45-i*.07})
+  );
+  m.rotation.x = Math.PI/2; m.position.y = 0.015+i*.008;
+  m.userData.spd = (i%2===0?1:-1)*(0.18+i*.08);
+  m.userData.r = r;
+  ringGroup.add(m);
 });
 scene.add(ringGroup);
 
-/* ── Vertical light pillar ── */
 const pillar = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.6, 0.6, 4, 32, 1, true),
-  new THREE.MeshBasicMaterial({ color: 0x0099CC, transparent: true, opacity: 0.06, side: THREE.DoubleSide, depthWrite: false })
+  new THREE.CylinderGeometry(0.55,0.55,5,32,1,true),
+  new THREE.MeshBasicMaterial({color:0x0099CC,transparent:true,opacity:0.05,side:THREE.DoubleSide,depthWrite:false})
 );
-pillar.position.y = 1.0;
+pillar.position.y = 1.2;
 scene.add(pillar);
 
-/* ── Particles (simple PointsMaterial) ── */
-const N = 200;
-const partGeo = new THREE.BufferGeometry();
-const partPos = new Float32Array(N*3);
-for(let i=0;i<N;i++){
-  partPos[i*3]   = (Math.random()-.5) * 4;
-  partPos[i*3+1] = Math.random() * 3;
-  partPos[i*3+2] = (Math.random()-.5) * 4;
-}
-partGeo.setAttribute('position', new THREE.BufferAttribute(partPos, 3));
-const particles = new THREE.Points(partGeo, new THREE.PointsMaterial({
-  color: 0x00DDFF,
-  size: 0.025,
-  transparent: true,
-  opacity: 0.6,
-  sizeAttenuation: true,
-}));
+const N=280, pGeo=new THREE.BufferGeometry(), pPos=new Float32Array(N*3);
+for(let i=0;i<N;i++){pPos[i*3]=(Math.random()-.5)*5;pPos[i*3+1]=Math.random()*4;pPos[i*3+2]=(Math.random()-.5)*5;}
+pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({color:0x00DDFF,size:.022,transparent:true,opacity:.55,sizeAttenuation:true}));
 scene.add(particles);
 
-/* ── LIGHTS ── */
-// Strong ambient — holographic models look ethereal
-scene.add(new THREE.AmbientLight(0x4477AA, 1.8));
+/* LIGHTS */
+scene.add(new THREE.AmbientLight(0x4477AA, 1.6));
+const keyL = new THREE.DirectionalLight(0xFFEEDD,2.2); keyL.position.set(2,4,3); keyL.castShadow=true; scene.add(keyL);
+const fillL = new THREE.DirectionalLight(0x00CCFF,1.3); fillL.position.set(-3,2,2); scene.add(fillL);
+const rimL  = new THREE.DirectionalLight(0x00DDFF,3.0); rimL.position.set(0,2.5,-4); scene.add(rimL);
+const upL   = new THREE.PointLight(0x00CCFF,9,4.5,1.4); upL.position.set(0,.05,0); scene.add(upL);
+const topL  = new THREE.DirectionalLight(0xFFEEAA,1.4); topL.position.set(0,5,1); scene.add(topL);
 
-// Key — soft front-top
-const key = new THREE.DirectionalLight(0xFFEEDD, 2.0);
-key.position.set(2, 4, 3);
-key.castShadow = true;
-key.shadow.mapSize.set(1024, 1024);
-scene.add(key);
+/* ══════════════════════════════════════════════
+   AI NATURAL MOTION BRAIN
+   Multi-layer organic noise — drives body, head, breathing
+   ══════════════════════════════════════════════ */
+const Motion = {
+  state: 'idle',  /* idle | talking | excited | listening */
 
-// Fill — left cyan
-const fill = new THREE.DirectionalLight(0x00CCFF, 1.2);
-fill.position.set(-3, 2, 2);
-scene.add(fill);
+  /* Layered sine noise: more natural than single frequency */
+  noise(t, layers=[
+    [1.0, 1.0],[2.3, 0.5],[0.37, 0.25],[5.1, 0.1],[0.17, 0.05]
+  ]){
+    return layers.reduce((s,[f,a])=>s+Math.sin(t*f)*a, 0) /
+           layers.reduce((s,[,a])=>s+a, 0);
+  },
 
-// Rim — strong back cyan (holographic look)
-const rim = new THREE.DirectionalLight(0x00DDFF, 2.8);
-rim.position.set(0, 2.5, -4);
-scene.add(rim);
+  /* Body sway — slow organic drift */
+  bodySwayX(t){ return this.noise(t,[
+    [0.3,1],[0.7,0.4],[1.8,0.15],[0.11,0.1]]) * (this.state==='excited'?.012:.005); },
+  bodySwayZ(t){ return this.noise(t+10,[
+    [0.25,1],[0.6,0.35],[2.1,0.12]]) * (this.state==='excited'?.008:.003); },
 
-// Up — from floor, signature Gatebox glow
-const upLight = new THREE.PointLight(0x00CCFF, 8, 4, 1.5);
-upLight.position.set(0, 0.05, 0);
-scene.add(upLight);
+  /* Breathing — chest rise */
+  breatheY(t){ return (Math.sin(t*0.9)*0.6 + Math.sin(t*1.8)*0.2 + Math.sin(t*0.3)*0.2) *
+    (this.state==='idle'?.007:.011); },
 
-// Top — hair light
-const top = new THREE.DirectionalLight(0xFFEEAA, 1.5);
-top.position.set(0, 5, 1);
-scene.add(top);
+  /* Head micro-movement */
+  headYaw(t){ return this.noise(t+3,[
+    [0.22,1],[0.55,0.5],[1.3,0.2],[3.5,0.05]]) * (this.state==='talking'?.06:.03); },
+  headPitch(t){ return this.noise(t+7,[
+    [0.18,1],[0.45,0.45],[1.1,0.18]]) * (this.state==='talking'?.04:.02); },
+  headRoll(t){ return this.noise(t+15,[
+    [0.14,1],[0.38,0.4]]) * .015; },
 
-/* ── Light registry (avoids naming conflict with loadChar key parameter) ── */
-const HOLO_LIGHTS = {
-  key:     { light: key,     defaultIntensity: 2.0 },
-  fill:    { light: fill,    defaultIntensity: 1.2 },
-  rim:     { light: rim,     defaultIntensity: 2.8 },
-  upLight: { light: upLight, defaultIntensity: 8.0 },
-  top:     { light: top,     defaultIntensity: 1.5 },
+  /* Weight shift — pelvis/hip sway */
+  hipSway(t){ return Math.sin(t*0.19)*0.008 + Math.sin(t*0.41)*0.003; },
+
+  /* Talking jaw proxy (root Y rotation jitter) */
+  jawJitter(t){ return this.state==='talking'?Math.sin(t*12)*0.008:0; },
+
+  /* Camera target drift — camera gently follows body */
+  camDriftX(t){ return Math.sin(t*0.21)*0.06 + Math.sin(t*0.57)*0.02; },
+  camDriftY(t){ return Math.sin(t*0.17)*0.04 + Math.sin(t*0.44)*0.015; },
+
+  setState(s){ this.state=s; $('motion-hud').textContent = `AI MOTION · ${s.toUpperCase()}`; },
 };
-function dimHoloLights()     { Object.values(HOLO_LIGHTS).forEach(l => { l.light.intensity = 0; }); }
-function restoreHoloLights() { Object.values(HOLO_LIGHTS).forEach(l => { l.light.intensity = l.defaultIntensity; }); }
 
-/* ── Helpers ── */
-function fitCamera(obj){
-  const box = new THREE.Box3().setFromObject(obj);
-  const cen = box.getCenter(new THREE.Vector3());
-  const sz  = box.getSize(new THREE.Vector3());
-  const h   = sz.y;
-  // Position camera based on size
-  const target = new THREE.Vector3(cen.x, cen.y + h*0.15, cen.z);
-  ctl.target.copy(target);
-  const dist = Math.max(h * 1.2, 1.5);
-  camera.position.set(0, cen.y + h*0.2, dist);
-  camera.lookAt(target);
-  ctl.update();
-  return { center: cen, size: sz };
-}
+/* ══════════════════════════════════════════════
+   CHARACTER SYSTEM
+   ══════════════════════════════════════════════ */
+let currentChar = null, currentMixer = null, currentCharKey = null;
+let charInfoBox = null;  /* bounding box info */
 
-/* ── Material upgrade for clean cel-shaded look ── */
+/* Material upgrade */
 function upgradeMat(mat, meshName=''){
   if(!mat) return mat;
-  // DON'T REPLACE — just tune properties on existing material
-  // This preserves all textures (map, normalMap, alphaMap, etc.)
-  const n = ((mat.name||'') + ' ' + meshName).toLowerCase();
-
-  // Ensure material has reasonable color if missing
-  if(mat.color && mat.color.getHex() === 0xffffff && !mat.map){
-    // Pure white with no texture — give a default skin tone if face-like
-    if(['skin','face','body','head','neck','hand','arm','leg'].some(k=>n.includes(k))){
+  const n = ((mat.name||'')+' '+meshName).toLowerCase();
+  if(mat.color && mat.color.getHex()===0xffffff && !mat.map){
+    if(['skin','face','body','head','neck','hand','arm','leg'].some(k=>n.includes(k)))
       mat.color.setHex(0xF5C5A3);
-    }
   }
-
-  // Boost env response for nicer lighting
-  if(mat.envMapIntensity !== undefined) mat.envMapIntensity = 0.5;
-
-  // Eyes — glossy
+  if(mat.envMapIntensity!==undefined) mat.envMapIntensity=0.5;
   if(['eye','iris','cornea','pupil'].some(k=>n.includes(k))){
-    if(mat.roughness !== undefined) mat.roughness = 0.1;
-    if(mat.metalness !== undefined) mat.metalness = 0.15;
+    if(mat.roughness!==undefined) mat.roughness=0.08;
+    if(mat.metalness!==undefined) mat.metalness=0.18;
   }
-
-  // Hair — double-sided
   if(['hair','eyebrow','eyelash'].some(k=>n.includes(k))){
-    mat.side = THREE.DoubleSide;
-    if(mat.roughness !== undefined) mat.roughness = 0.55;
+    mat.side=THREE.DoubleSide;
+    if(mat.roughness!==undefined) mat.roughness=0.6;
   }
-
-  // Convert pure-basic/lambert to standard so it responds to lighting
   if(mat.isMeshBasicMaterial && !mat.transparent){
-    const newMat = new THREE.MeshStandardMaterial({
-      map: mat.map,
-      color: mat.color,
-      alphaMap: mat.alphaMap,
-      transparent: mat.transparent,
-      side: mat.side || THREE.FrontSide,
-      roughness: 0.7, metalness: 0,
+    return new THREE.MeshStandardMaterial({
+      map:mat.map, color:mat.color, alphaMap:mat.alphaMap,
+      transparent:mat.transparent, side:mat.side||THREE.FrontSide,
+      roughness:0.7, metalness:0,
     });
-    return newMat;
   }
-
-  mat.needsUpdate = true;
+  mat.needsUpdate=true;
   return mat;
 }
 
-/* ── Character Loader ── */
-let currentChar = null;
-let currentMixer = null;
-let currentAction = null;
-
-/* ══════════════════════════════════════════════════════════
-   REAL FACE ENGINE — Renderer wajah asli 3D sinematik
-   Tidak menggunakan GLB/avatar virtual sama sekali.
-   Murni foto asli dirender dengan Three.js + depth + lighting.
-   ══════════════════════════════════════════════════════════ */
-
-// Parallax state (mouse-driven depth illusion)
-const parallax = { x: 0, y: 0, tx: 0, ty: 0 };
-document.addEventListener('mousemove', e => {
-  parallax.tx = (e.clientX / window.innerWidth  - 0.5) * 2;
-  parallax.ty = (e.clientY / window.innerHeight - 0.5) * 2;
-});
-
-async function loadRealFace(url, url2) {
-  /* ── Show loading screen ── */
-  $('err').classList.remove('show');
-  $('loading').classList.remove('hide');
-  $('loading').style.display = 'flex';
-  prog(5); log('Menyiapkan mode wajah asli...');
-
-  /* ── Clear holographic scene elements ── */
-  ringGroup.visible  = false;
-  floor.visible      = false;
-  innerDisc.visible  = false;
-  pillar.visible     = false;
-  particles.visible  = false;
-
-  /* ── Studio background — pure cinematic dark ── */
-  scene.background = new THREE.Color('#05080F');
-  renderer.setClearAlpha(1);
-
-  /* ── Vignette plane (background gradient) ── */
-  const vigCvs = document.createElement('canvas');
-  vigCvs.width = 256; vigCvs.height = 256;
-  const vctx = vigCvs.getContext('2d');
-  const vg = vctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-  vg.addColorStop(0, 'rgba(10,16,32,0.0)');
-  vg.addColorStop(0.6, 'rgba(5,8,15,0.5)');
-  vg.addColorStop(1.0, 'rgba(2,3,8,1.0)');
-  vctx.fillStyle = vg;
-  vctx.fillRect(0, 0, 256, 256);
-  const vigTex = new THREE.CanvasTexture(vigCvs);
-  const vig = new THREE.Mesh(
-    new THREE.PlaneGeometry(12, 12),
-    new THREE.MeshBasicMaterial({ map: vigTex, transparent: true, depthWrite: false })
-  );
-  vig.position.z = -3;
-  scene.add(vig);
-
-  /* ── Load face textures ── */
-  prog(20); log('Memuat foto wajah asli...');
-  const texLoader = new THREE.TextureLoader();
-
-  const loadTex = src => new Promise((res, rej) =>
-    texLoader.load(src, t => { t.colorSpace = THREE.SRGBColorSpace; res(t); }, undefined, rej)
-  );
-
-  let faceTex, faceTex2;
-  try {
-    [faceTex, faceTex2] = await Promise.all([loadTex(url), loadTex(url2).catch(() => null)]);
-  } catch(e) {
-    throw new Error('Foto wajah tidak bisa dimuat: ' + url);
-  }
-
-  prog(70); log('Menyiapkan renderer wajah 3D...');
-
-  /* ── Determine face plane dimensions ── */
-  const img = faceTex.image;
-  const aspect = img ? (img.width / img.height) : 0.72;
-  const faceH  = 1.85; // portrait height in scene units
-  const faceW  = faceH * aspect;
-
-  /* ── Face plane — slight subdivision for depth wave ── */
-  const faceGeo = new THREE.PlaneGeometry(faceW, faceH, 24, 32);
-  const faceMat = new THREE.MeshStandardMaterial({
-    map:         faceTex,
-    transparent: true,
-    alphaTest:   0.04,
-    roughness:   0.55,
-    metalness:   0.0,
-    side:        THREE.FrontSide,
-    depthWrite:  false,
+/* Bone search helper */
+function findBone(obj, names){
+  let found=null;
+  obj.traverse(n=>{
+    if(found) return;
+    const ln=(n.name||'').toLowerCase();
+    if(names.some(k=>ln.includes(k))) found=n;
   });
-  const faceMesh = new THREE.Mesh(faceGeo, faceMat);
-  faceMesh.position.set(0, faceH * 0.5 + 0.05, 0);
-  faceMesh.userData.isRealFace = true;
-  faceMesh.userData.faceH      = faceH;
-  scene.add(faceMesh);
-
-  /* ── Subtle shadow/depth plane behind face ── */
-  const shadowGeo = new THREE.PlaneGeometry(faceW * 1.15, faceH * 1.08);
-  const shadowCvs = document.createElement('canvas');
-  shadowCvs.width = 128; shadowCvs.height = 128;
-  const sctx = shadowCvs.getContext('2d');
-  const sg = sctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-  sg.addColorStop(0.2, 'rgba(0,0,0,0.7)');
-  sg.addColorStop(0.7, 'rgba(0,0,0,0.35)');
-  sg.addColorStop(1.0, 'rgba(0,0,0,0.0)');
-  sctx.fillStyle = sg;
-  sctx.fillRect(0, 0, 128, 128);
-  const shadowTex = new THREE.CanvasTexture(shadowCvs);
-  const shadowMesh = new THREE.Mesh(
-    shadowGeo,
-    new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false })
-  );
-  shadowMesh.position.set(0, faceMesh.position.y, -0.05);
-  scene.add(shadowMesh);
-
-  /* ── Rim glow plane (edge light — sinematik) ── */
-  const rimCvs = document.createElement('canvas');
-  rimCvs.width = 4; rimCvs.height = 128;
-  const rctx = rimCvs.getContext('2d');
-  const rg = rctx.createLinearGradient(0,0,0,128);
-  rg.addColorStop(0,   'rgba(0,180,255,0.0)');
-  rg.addColorStop(0.3, 'rgba(0,180,255,0.25)');
-  rg.addColorStop(0.7, 'rgba(0,180,255,0.25)');
-  rg.addColorStop(1,   'rgba(0,180,255,0.0)');
-  rctx.fillStyle = rg;
-  rctx.fillRect(0, 0, 4, 128);
-  const rimTex = new THREE.CanvasTexture(rimCvs);
-
-  /* left rim */
-  const rimL = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.04, faceH * 0.9),
-    new THREE.MeshBasicMaterial({ map: rimTex, transparent: true, depthWrite: false })
-  );
-  rimL.position.set(-faceW * 0.53, faceMesh.position.y, 0.01);
-  scene.add(rimL);
-  /* right rim */
-  const rimR = rimL.clone();
-  rimR.position.x = faceW * 0.53;
-  scene.add(rimR);
-
-  /* ── Studio Lights — override holographic lights ── */
-  /* Dim holographic lights — use registry to avoid naming conflict */
-  dimHoloLights();
-
-  // New: cinematic portrait lighting
-  const studioKey = new THREE.DirectionalLight(0xFFF5E8, 3.5);
-  studioKey.position.set(1.5, 3.0, 4.0);
-  scene.add(studioKey);
-
-  const studioFill = new THREE.DirectionalLight(0xC8E8FF, 1.2);
-  studioFill.position.set(-3, 1.5, 3.0);
-  scene.add(studioFill);
-
-  const studioRim = new THREE.DirectionalLight(0x0088FF, 1.8);
-  studioRim.position.set(0, 2, -5);
-  scene.add(studioRim);
-
-  const studioAmb = new THREE.AmbientLight(0x223344, 1.0);
-  scene.add(studioAmb);
-
-  /* ── Camera — portrait bust shot ── */
-  camera.fov = 26;
-  camera.updateProjectionMatrix();
-  ctl.target.set(0, faceMesh.position.y * 0.92, 0);
-  camera.position.set(0, faceMesh.position.y * 0.85, 3.2);
-  ctl.minDistance = 1.0;
-  ctl.maxDistance = 6.0;
-  ctl.update();
-
-  prog(100); log('Wajah asli siap!');
-  setTimeout(() => {
-    $('loading').classList.add('hide');
-    setTimeout(() => $('loading').style.display='none', 700);
-  }, 200);
-
-  /* mark as real-face so animate loop knows */
-  currentChar = faceMesh;
-  currentChar.userData.charKey    = 'wajah';
-  currentChar.userData.shadowMesh = shadowMesh;
-  currentChar.userData.rimL       = rimL;
-  currentChar.userData.rimR       = rimR;
-
-  return faceMesh;
+  return found;
 }
 
 async function loadChar(key){
+  if(!CHARS[key]) return;
+
+  /* Dispose previous */
   if(currentChar){
-    /* dispose old real-face extras */
-    if(currentChar.userData.shadowMesh) scene.remove(currentChar.userData.shadowMesh);
-    if(currentChar.userData.rimL)       scene.remove(currentChar.userData.rimL);
-    if(currentChar.userData.rimR)       scene.remove(currentChar.userData.rimR);
     scene.remove(currentChar);
-    currentChar.traverse(n => {
+    currentChar.traverse(n=>{
       if(n.geometry) n.geometry.dispose();
       if(n.material){
-        const mats = Array.isArray(n.material) ? n.material : [n.material];
-        mats.forEach(m => {
-          Object.keys(m).forEach(k => { if(m[k]?.isTexture) m[k].dispose(); });
+        [].concat(n.material).forEach(m=>{
+          Object.values(m).forEach(v=>{if(v?.isTexture)v.dispose();});
           m.dispose();
         });
       }
     });
-    currentChar = null; currentMixer = null;
-  }
-
-  /* Restore holographic elements if switching back from real-face to GLB */
-  ringGroup.visible  = true;
-  floor.visible      = true;
-  innerDisc.visible  = true;
-  pillar.visible     = true;
-  particles.visible  = true;
-  scene.background   = new THREE.Color('#0A1633');
-
-  /* Restore holographic light intensities (may have been zeroed in real-face mode) */
-  restoreHoloLights();
-
-  /* ── REAL FACE PATH — skip GLB loader entirely ── */
-  if(CHARS[key]?.isRealFace){
-    return loadRealFace(CHARS[key].url, 'face-real2.png');
+    currentChar=null; currentMixer=null; charInfoBox=null;
+    headBone=null; hipBone=null; spineBone=null;
   }
 
   $('err').classList.remove('show');
   $('loading').classList.remove('hide');
-  $('loading').style.display = 'flex';
+  $('loading').style.display='flex';
   prog(5); log(`Memuat ${CHARS[key].label}...`);
+  currentCharKey=key;
 
-  return new Promise((resolve, reject) => {
+  /* Highlight button */
+  document.querySelectorAll('.ch').forEach(b=>b.classList.toggle('on',b.dataset.key===key));
+
+  return new Promise((resolve,reject)=>{
     const loader = new GLTFLoader();
-    loader.load(CHARS[key].url, gltf => {
-      log(`Memproses material ${CHARS[key].label}...`);
-      prog(85);
+    loader.load(CHARS[key].url, gltf=>{
+      log('Memproses material...'); prog(80);
       const obj = gltf.scene;
-      obj.traverse(node => {
-        if(!node.isMesh) return;
-        node.castShadow = true;
-        node.receiveShadow = true;
-        if(Array.isArray(node.material)){
-          node.material = node.material.map(m => upgradeMat(m, node.name));
-        } else if(node.material){
-          node.material = upgradeMat(node.material, node.name);
-        }
+      obj.traverse(n=>{
+        if(!n.isMesh) return;
+        n.castShadow=true; n.receiveShadow=true;
+        n.material = Array.isArray(n.material)
+          ? n.material.map(m=>upgradeMat(m,n.name))
+          : upgradeMat(n.material,n.name);
       });
 
-      scene.add(obj);
-      currentChar = obj;
-
-      // Auto-scale: characters are different scales
-      const box = new THREE.Box3().setFromObject(obj);
-      const sz = box.getSize(new THREE.Vector3());
-      const maxDim = Math.max(sz.x, sz.y, sz.z);
-      let scale = 1.6 / maxDim;
+      /* Auto-scale to ~1.7 units height */
+      const box=new THREE.Box3().setFromObject(obj);
+      const sz=box.getSize(new THREE.Vector3());
+      const maxDim=Math.max(sz.x,sz.y,sz.z);
+      const scale = maxDim>0 ? 1.7/maxDim : 1;
       obj.scale.setScalar(scale);
-      // Recenter at origin
-      const box2 = new THREE.Box3().setFromObject(obj);
-      const cen2 = box2.getCenter(new THREE.Vector3());
+      const box2=new THREE.Box3().setFromObject(obj);
+      const cen2=box2.getCenter(new THREE.Vector3());
       obj.position.x -= cen2.x;
       obj.position.z -= cen2.z;
-      obj.position.y -= box2.min.y; // Stand on floor
+      obj.position.y -= box2.min.y;
+      obj.userData.baseY = obj.position.y;
 
-      // Apply animations if any
+      scene.add(obj);
+      currentChar=obj;
+      charInfoBox = { box:box2, center:cen2, size:sz };
+
+      /* Search bones for AI motion */
+      headBone  = findBone(obj,['head','skull','neck_01','neck1']);
+      hipBone   = findBone(obj,['hips','pelvis','hip','root','bip01']);
+      spineBone = findBone(obj,['spine','chest','torso']);
+
+      /* Animations */
       if(gltf.animations?.length){
-        currentMixer = new THREE.AnimationMixer(obj);
-        currentAction = currentMixer.clipAction(gltf.animations[0]);
-        currentAction.play();
+        currentMixer=new THREE.AnimationMixer(obj);
+        const clip=THREE.AnimationClip.findByName(gltf.animations,'idle') || gltf.animations[0];
+        const action=currentMixer.clipAction(clip);
+        action.timeScale=0.85;
+        action.play();
       }
 
-      // Apply camera preset
+      /* Apply cam */
       applyCam(currentCamPreset);
-
       prog(100); log('Avatar siap!');
-      setTimeout(() => {
-        $('loading').classList.add('hide');
-        setTimeout(() => $('loading').style.display='none', 700);
-      }, 200);
-
+      setTimeout(()=>{$('loading').classList.add('hide');setTimeout(()=>$('loading').style.display='none',700);},200);
+      $('status').textContent = `HOLO · ${CHARS[key].label} · ${key.replace('c','')}/${CHAR_KEYS.length}`;
       resolve(obj);
-    }, p => {
-      if(p.total){
-        const pct = Math.round((p.loaded/p.total) * 75) + 5;
-        prog(pct);
-        log(`Memuat ${CHARS[key].label}: ${pct}%`);
-      } else {
-        log(`Memuat ${(p.loaded/1048576).toFixed(1)}MB...`);
-      }
-    }, err => {
-      console.error('Load fail:', err);
-      $('err-title').textContent = `Gagal muat ${CHARS[key].label}`;
-      $('err-msg').textContent = `File ${CHARS[key].url} tidak bisa dibaca. Pastikan file ada di folder yang sama.`;
+    }, p=>{
+      const pct = p.total ? Math.round(p.loaded/p.total*72)+5 : 50;
+      prog(pct); log(`${CHARS[key].label}: ${pct}%`);
+    }, err=>{
+      console.warn('Load fail:',key,err);
+      $('err-title').textContent = `Gagal: ${CHARS[key].label}`;
+      $('err-msg').textContent   = `${CHARS[key].file} — ${err.message||'File tidak bisa dibaca'}`;
       $('err').classList.add('show');
       $('loading').classList.add('hide');
       reject(err);
@@ -693,308 +510,328 @@ async function loadChar(key){
   });
 }
 
-/* ── Camera presets ── */
-let currentCamPreset = 'bust';
+/* ══════════════════════════════════════════════
+   CAMERA PRESETS + AUTO-TRACKING
+   ══════════════════════════════════════════════ */
+let currentCamPreset='bust', spinSpeed=0;
+let headBone=null, hipBone=null, spineBone=null;
+
+/* Camera soft-tracking target (lerped) */
+const camTargetLook = new THREE.Vector3(0,0.9,0);
+const camTargetPos  = new THREE.Vector3(0,1.0,3.5);
+
 function applyCam(preset){
   if(!currentChar) return;
-  const box = new THREE.Box3().setFromObject(currentChar);
-  const cen = box.getCenter(new THREE.Vector3());
-  const sz = box.getSize(new THREE.Vector3());
-  const h = sz.y;
-  let target, dist, fov;
+  const box=new THREE.Box3().setFromObject(currentChar);
+  const cen=box.getCenter(new THREE.Vector3());
+  const sz=box.getSize(new THREE.Vector3()); const h=sz.y;
+  let target,dist,fov;
   if(preset==='face'){
-    target = new THREE.Vector3(cen.x, cen.y + h*0.42, cen.z);
-    dist = h*0.7;
-    fov = 22;
+    target=new THREE.Vector3(cen.x,cen.y+h*.44,cen.z); dist=h*.65; fov=20;
   } else if(preset==='full'){
-    target = new THREE.Vector3(cen.x, cen.y, cen.z);
-    dist = h*1.4;
-    fov = 32;
-  } else { // bust
-    target = new THREE.Vector3(cen.x, cen.y + h*0.18, cen.z);
-    dist = h*1.6;
-    fov = 32;
+    target=new THREE.Vector3(cen.x,cen.y,cen.z); dist=h*1.5; fov=30;
+  } else { /* bust */
+    target=new THREE.Vector3(cen.x,cen.y+h*.16,cen.z); dist=h*1.55; fov=30;
   }
   ctl.target.copy(target);
-  camera.position.set(0, target.y + h*0.05, dist);
-  camera.fov = fov;
-  camera.updateProjectionMatrix();
+  camTargetLook.copy(target);
+  camera.position.set(0,target.y+h*.04,dist);
+  camTargetPos.copy(camera.position);
+  camera.fov=fov; camera.updateProjectionMatrix();
   ctl.update();
-  currentCamPreset = preset;
+  currentCamPreset=preset;
 }
 
-/* ── Background switcher ── */
-let currentBg = 'holo';
+/* ══════════════════════════════════════════════
+   AUTO-CYCLE
+   ══════════════════════════════════════════════ */
+let autoCycle=false, autoIdx=0, autoTimer=null, autoBarStart=0;
+const AUTO_INTERVAL=35000; /* 35s per char */
+
+function startAuto(){
+  autoCycle=true;
+  $('auto-btn').textContent='Cycle: ON';
+  $('auto-btn').classList.add('on');
+  scheduleNext(false);
+}
+function stopAuto(){
+  autoCycle=false;
+  $('auto-btn').textContent='Cycle: OFF';
+  $('auto-btn').classList.remove('on');
+  clearTimeout(autoTimer);
+  $('auto-bar').style.width='0%';
+  $('auto-bar').style.transition='none';
+}
+function scheduleNext(advance=true){
+  clearTimeout(autoTimer);
+  if(advance){ autoIdx=(autoIdx+1)%CHAR_KEYS.length; }
+  const key=CHAR_KEYS[autoIdx];
+  loadChar(key).catch(()=>scheduleNext(true));
+  $('auto-bar').style.transition='none'; $('auto-bar').style.width='0%';
+  requestAnimationFrame(()=>{
+    $('auto-bar').style.transition=`width ${AUTO_INTERVAL}ms linear`;
+    $('auto-bar').style.width='100%';
+  });
+  autoBarStart=Date.now();
+  autoTimer=setTimeout(()=>{ if(autoCycle) scheduleNext(true); }, AUTO_INTERVAL);
+}
+
+/* ══════════════════════════════════════════════
+   BUILD CHARACTER LIST UI
+   ══════════════════════════════════════════════ */
+const charList = $('char-list');
+CHAR_KEYS.forEach((key,i)=>{
+  const b=document.createElement('div');
+  b.className='ch'; b.dataset.key=key;
+  b.innerHTML=`<span class="ch-num">${String(i+1).padStart(3,'0')}</span><span class="ch-name">${CHARS[key].label}</span>`;
+  b.addEventListener('click',()=>{
+    stopAuto();
+    autoIdx=i;
+    loadChar(key).catch(()=>{});
+  });
+  charList.appendChild(b);
+});
+$('char-count').textContent=`${CHAR_KEYS.length} KARAKTER`;
+
+/* Search filter */
+$('char-search').addEventListener('input',e=>{
+  const q=e.target.value.toLowerCase();
+  document.querySelectorAll('.ch').forEach(b=>{
+    b.style.display=b.querySelector('.ch-name').textContent.toLowerCase().includes(q)?'flex':'none';
+  });
+  $('char-count').textContent = q
+    ? `${[...document.querySelectorAll('.ch')].filter(b=>b.style.display!=='none').length} hasil`
+    : `${CHAR_KEYS.length} KARAKTER`;
+});
+
+/* ══════════════════════════════════════════════
+   BACKGROUND
+   ══════════════════════════════════════════════ */
+let currentBg='holo';
 function setBg(bg){
-  currentBg = bg;
+  currentBg=bg;
   if(bg==='holo'){
-    scene.background = new THREE.Color('#0A1633');
-    ringGroup.visible = true; floor.visible = true; innerDisc.visible = true;
-    pillar.visible = true; particles.visible = true;
+    scene.background=new THREE.Color('#0A1633');
+    [ringGroup,floor,innerDisc,pillar,particles].forEach(x=>x.visible=true);
     renderer.setClearAlpha(1);
   } else if(bg==='dark'){
-    scene.background = new THREE.Color('#000');
-    ringGroup.visible = false; floor.visible = false; innerDisc.visible = false;
-    pillar.visible = false; particles.visible = true;
-    renderer.setClearAlpha(1);
+    scene.background=new THREE.Color('#000');
+    [ringGroup,floor,innerDisc,pillar].forEach(x=>x.visible=false);
+    particles.visible=true; renderer.setClearAlpha(1);
   } else if(bg==='clear'){
-    scene.background = null;
-    ringGroup.visible = false; floor.visible = false; innerDisc.visible = false;
-    pillar.visible = false; particles.visible = false;
+    scene.background=null;
+    [ringGroup,floor,innerDisc,pillar,particles].forEach(x=>x.visible=false);
     renderer.setClearAlpha(0);
   } else if(bg==='chroma'){
-    scene.background = new THREE.Color('#00B140');
-    ringGroup.visible = false; floor.visible = false; innerDisc.visible = false;
-    pillar.visible = false; particles.visible = false;
+    scene.background=new THREE.Color('#00B140');
+    [ringGroup,floor,innerDisc,pillar,particles].forEach(x=>x.visible=false);
     renderer.setClearAlpha(1);
   }
 }
 
-/* ── Resize ── */
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-/* ── Animate ── */
-const clock = new THREE.Clock();
-let fps=0, fF=0, fT=performance.now();
-let spinSpeed = 0;
-let isTalking = false;
+/* ══════════════════════════════════════════════
+   RENDER LOOP
+   ══════════════════════════════════════════════ */
+const clock=new THREE.Clock();
+let fps=0,fF=0,fT=performance.now();
+let isTalking=false;
 
 function animate(){
   requestAnimationFrame(animate);
-  const dt = clock.getDelta();
-  const t = clock.getElapsedTime();
+  const dt=clock.getDelta();
+  const t=clock.getElapsedTime();
 
-  // Update simple animations
-  // (shaders removed — using standard materials)
-  floorMat.opacity = 0.18 + Math.sin(t*1.2) * 0.08;
+  /* Floor pulse */
+  floorMat.opacity=0.14+Math.sin(t*1.1)*.06;
 
-  // Animate rings
-  ringGroup.children.forEach(r => {
-    r.rotation.z += r.userData.spinSpeed * dt;
-    // Subtle vertical bob
-    r.position.y = 0.02 + r.userData.baseRadius*0.005 + Math.sin(t + r.userData.baseRadius*3)*.02;
+  /* Rings */
+  ringGroup.children.forEach(r=>{
+    r.rotation.z+=r.userData.spd*dt;
+    r.position.y=0.015+r.userData.r*.004+Math.sin(t+r.userData.r*2.5)*.018;
   });
 
-  // Character idle breathing + real-face parallax
+  /* AI NATURAL MOTION on character */
   if(currentChar){
-    if(currentChar.userData.isRealFace){
-      /* Smooth parallax lerp */
-      parallax.x += (parallax.tx - parallax.x) * 0.04;
-      parallax.y += (parallax.ty - parallax.y) * 0.04;
+    /* Body sway */
+    currentChar.rotation.z = Motion.bodySwayX(t);
+    currentChar.rotation.x = Motion.bodySwayZ(t);
+    /* Breathing — vertical float */
+    currentChar.position.y = (currentChar.userData.baseY||0) + Motion.breatheY(t);
+    /* Hip sway */
+    currentChar.position.x = Motion.hipSway(t);
+    /* Jaw jitter when talking */
+    currentChar.rotation.y = Motion.jawJitter(t);
 
-      const faceH = currentChar.userData.faceH || 1.85;
-      const baseY = faceH * 0.5 + 0.05;
+    /* Head bone micro-motion */
+    if(headBone){
+      headBone.rotation.y = Motion.headYaw(t);
+      headBone.rotation.x = Motion.headPitch(t);
+      headBone.rotation.z = Motion.headRoll(t);
+    }
+    /* Spine gentle sway */
+    if(spineBone){
+      spineBone.rotation.z = Motion.bodySwayX(t) * 0.4;
+      spineBone.rotation.x = Motion.bodySwayZ(t) * 0.3;
+    }
+    /* Hip bone sway */
+    if(hipBone){
+      hipBone.rotation.z = Motion.hipSway(t) * 0.5;
+    }
 
-      /* Breathing — vertical oscillation */
-      const breathY = Math.sin(t * 0.7) * 0.006;
-      /* Parallax shift — subtle 3D depth illusion */
-      const pxShift = parallax.x * 0.025;
-      const pyShift = parallax.y * 0.015;
-
-      currentChar.position.y  = baseY + breathY - pyShift;
-      currentChar.position.x  = pxShift;
-      currentChar.rotation.y  = parallax.x * -0.04;
-      currentChar.rotation.x  = parallax.y *  0.02;
-
-      /* Shadow follows face */
-      if(currentChar.userData.shadowMesh){
-        currentChar.userData.shadowMesh.position.x = pxShift * 0.3;
-        currentChar.userData.shadowMesh.position.y = currentChar.position.y;
-      }
-      /* Rim lights pulse subtly */
-      if(currentChar.userData.rimL){
-        const rimPulse = 0.015 + Math.sin(t * 1.4) * 0.006;
-        currentChar.userData.rimL.material.opacity = rimPulse + 0.01;
-        currentChar.userData.rimR.material.opacity = rimPulse + 0.01;
-      }
-    } else {
-      /* Standard GLB idle breathing */
-      currentChar.position.y = Math.sin(t*0.8) * 0.008 + (currentChar.userData.baseY || 0);
-      if(currentChar.userData.baseY === undefined) currentChar.userData.baseY = currentChar.position.y;
-      if(isTalking){
-        currentChar.rotation.y += Math.sin(t*8)*0.001;
-      }
+    /* Camera soft-tracking — follow head/body drift gently */
+    if(spinSpeed===0 && !ctl.autoRotate){
+      const driftX = Motion.camDriftX(t) * 0.015;
+      const driftY = Motion.camDriftY(t) * 0.010;
+      ctl.target.x += (camTargetLook.x + driftX - ctl.target.x) * 0.012;
+      ctl.target.y += (camTargetLook.y + driftY - ctl.target.y) * 0.010;
     }
   }
 
-  // Auto rotate
-  ctl.autoRotateSpeed = spinSpeed;
+  /* Auto-rotate */
+  ctl.autoRotateSpeed=spinSpeed;
   ctl.update();
-
-  // Mixer
   if(currentMixer) currentMixer.update(dt);
-
-  renderer.render(scene, camera);
+  renderer.render(scene,camera);
 
   fF++;
-  const now = performance.now();
-  if(now-fT >= 1000){
-    fps = fF; fF = 0; fT = now;
-    const charLabel = currentChar
-      ? (currentChar.userData.isRealFace ? '🧑 NAYR ASLI' : (CHARS[currentChar.userData.charKey]?.label || 'OK'))
-      : '---';
-    $('status').textContent = `◉ ${currentChar?.userData?.isRealFace ? 'REAL' : 'HOLO'} · ${fps}FPS · ${charLabel}`;
+  const now=performance.now();
+  if(now-fT>=1000){
+    fps=fF; fF=0; fT=now;
+    if(currentChar){
+      $('status').textContent=`HOLO · ${fps}FPS · ${CHARS[currentCharKey]?.label||'OK'} · AI:${Motion.state.toUpperCase()}`;
+    }
   }
 }
 animate();
 
-/* ── UI WIRING ── */
+/* ══════════════════════════════════════════════
+   UI WIRING
+   ══════════════════════════════════════════════ */
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
 
-// Character switcher
-document.querySelectorAll('.ch').forEach(b => b.addEventListener('click', async () => {
-  document.querySelectorAll('.ch').forEach(x => x.classList.remove('on'));
-  b.classList.add('on');
-  const key = b.dataset.char;
-  try {
-    const obj = await loadChar(key);
-    if(obj) obj.userData.charKey = key;
-  } catch(e){}
+document.querySelectorAll('[data-bg]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('[data-bg]').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); setBg(b.dataset.bg);
 }));
 
-// BG buttons
-document.querySelectorAll('[data-bg]').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('[data-bg]').forEach(x => x.classList.remove('on'));
-  b.classList.add('on');
-  setBg(b.dataset.bg);
+document.querySelectorAll('[data-cam]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('[data-cam]').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); applyCam(b.dataset.cam);
 }));
 
-// Camera buttons
-document.querySelectorAll('[data-cam]').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('[data-cam]').forEach(x => x.classList.remove('on'));
+document.querySelectorAll('[data-spin]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('[data-spin]').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');
-  applyCam(b.dataset.cam);
+  spinSpeed={off:0,slow:0.55,fast:2.4}[b.dataset.spin];
+  ctl.autoRotate=spinSpeed!==0;
 }));
 
-// Spin buttons
-document.querySelectorAll('[data-spin]').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('[data-spin]').forEach(x => x.classList.remove('on'));
-  b.classList.add('on');
-  spinSpeed = { off: 0, slow: 0.6, fast: 2.5 }[b.dataset.spin];
-  ctl.autoRotate = spinSpeed !== 0;
-}));
+$('auto-btn').addEventListener('click',()=>{ autoCycle?stopAuto():startAuto(); });
+$('err-next').addEventListener('click',()=>{ $('err').classList.remove('show'); scheduleNext(true); });
 
-// TTS
-const sc = $('sc'), rdBtn = $('rd'), stBtn = $('st'), bub = $('bub');
-let ttsUtter = null;
-
+/* TTS */
+const sc=$('sc'), rdBtn=$('rd'), stBtn=$('st'), bub=$('bub');
 function readScript(txt){
   if(!txt.trim()) return;
   window.speechSynthesis.cancel();
-  isTalking = true;
-  rdBtn.style.display = 'none';
-  stBtn.style.display = 'inline-block';
-  bub.textContent = txt.length > 80 ? txt.slice(0, 80) + '…' : txt;
+  isTalking=true; Motion.setState('talking');
+  rdBtn.style.display='none'; stBtn.style.display='inline-block';
+  bub.textContent=txt.length>80?txt.slice(0,80)+'...':txt;
   bub.classList.add('show');
-  ttsUtter = new SpeechSynthesisUtterance(txt);
-  ttsUtter.lang = 'id-ID';
-  ttsUtter.rate = 1.05;
-  ttsUtter.onend = stopTTS;
-  window.speechSynthesis.speak(ttsUtter);
+  const u=new SpeechSynthesisUtterance(txt);
+  u.lang='id-ID'; u.rate=1.05;
+  u.onend=stopTTS;
+  window.speechSynthesis.speak(u);
 }
 function stopTTS(){
   window.speechSynthesis.cancel();
-  isTalking = false;
-  rdBtn.style.display = 'inline-block';
-  stBtn.style.display = 'none';
+  isTalking=false; Motion.setState('idle');
+  rdBtn.style.display='inline-block'; stBtn.style.display='none';
   bub.classList.remove('show');
 }
+rdBtn.addEventListener('click',()=>readScript(sc.value));
+stBtn.addEventListener('click',stopTTS);
+sc.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();readScript(sc.value);} e.stopPropagation(); });
 
-rdBtn.addEventListener('click', () => readScript(sc.value));
-stBtn.addEventListener('click', stopTTS);
-sc.addEventListener('keydown', e => {
-  if(e.key === 'Enter'){ e.preventDefault(); readScript(sc.value); }
-  e.stopPropagation();
+/* AI button */
+$('ai-btn').addEventListener('click',async()=>{
+  const txt=sc.value.trim(); if(!txt) return;
+  const btn=$('ai-btn'); btn.textContent='...';
+  Motion.setState('listening');
+  try{
+    const r=await window.claude?.complete(`Kamu AI streamer santai. Balas chat berikut dalam 1-2 kalimat singkat dan ekspresif: "${txt}"`);
+    if(r){ sc.value=r; readScript(r); }
+  }catch(e){ Motion.setState('idle'); }
+  btn.textContent='AI';
 });
 
-// AI
-$('ai').addEventListener('click', async () => {
-  const txt = sc.value.trim(); if(!txt) return;
-  const btn = $('ai'); btn.textContent = '⋯';
-  try {
-    const r = await window.claude.complete(`Kamu AI streamer santai. Balas chat berikut dalam 1-2 kalimat singkat dan ekspresif: "${txt}"`);
-    sc.value = r;
-    readScript(r);
-  } catch(e){}
-  btn.textContent = '🤖 AI';
-});
-
-// Comments
-const cmtsEl = $('cmts');
-function addCmt(user, text, color='#00D4FF'){
-  const el = document.createElement('div');
-  el.className = 'cmt';
-  el.style.borderLeft = `3px solid ${color}`;
-  el.innerHTML = `<div class="cmt-av" style="background:${color}">${user[0].toUpperCase()}</div><div><div class="cmt-u" style="color:${color}">${user}</div><div class="cmt-t">${text}</div></div>`;
+/* Comments */
+const cmtsEl=$('cmts');
+function addCmt(user,text,color='#00D4FF'){
+  const el=document.createElement('div');
+  el.className='cmt'; el.style.borderLeft=`3px solid ${color}`;
+  el.innerHTML=`<div class="cmt-av" style="background:${color}">${user[0].toUpperCase()}</div><div><div class="cmt-u" style="color:${color}">${user}</div><div class="cmt-t">${text}</div></div>`;
   cmtsEl.prepend(el);
-  while(cmtsEl.children.length > 6) cmtsEl.lastElementChild.remove();
-  setTimeout(() => el.remove(), 9000);
+  while(cmtsEl.children.length>6) cmtsEl.lastElementChild.remove();
+  setTimeout(()=>el.remove(),9000);
 }
-// Demo comments
-setTimeout(() => {
-  [
-    ['viewer99', '#00D4FF', 'Avatar 3D-nya keren banget!'],
-    ['fan_xyz', '#7C3AFF', 'Bisa ganti karakter lain?'],
-    ['live_crew', '#00FF88', 'Hologram-nya cyberpunk vibe 🔥'],
-  ].forEach(([u,c,t], i) => setTimeout(() => addCmt(u,t,c), (i+1)*2400));
-}, 1800);
+setTimeout(()=>{
+  [['Nayr','#00D4FF','Avatar-nya keren banget!'],['viewer02','#7C3AFF','Bisa ganti karakter lain?'],['livefan','#00FF88','164 karakter mantap!']]
+    .forEach(([u,c,t],i)=>setTimeout(()=>addCmt(u,t,c),(i+1)*2400));
+},2000);
 
-// Back
-$('bk').addEventListener('click', () => {
-  window.parent?.postMessage({type:'PERFORMER_BACK'}, '*');
-  if(window.parent === window) window.history.back();
-});
-
-// Show controls on mouse move
-let hideTimer;
-const ctrlEl = $('ctrl'), charSwEl = $('char-sw'), wmEl = $('wm');
+/* Controls visibility */
+let hideT;
+const ctrlEl=$('ctrl'), cpEl=$('char-panel'), wmEl=$('wm'), mhEl=$('motion-hud');
 function showCtrl(){
-  ctrlEl.classList.add('show');
-  charSwEl.classList.add('show');
-  wmEl.classList.add('hide');
-  clearTimeout(hideTimer);
-  hideTimer = setTimeout(() => {
-    ctrlEl.classList.remove('show');
-    charSwEl.classList.remove('show');
-    wmEl.classList.remove('hide');
-  }, 4500);
+  ctrlEl.classList.add('show'); cpEl.classList.add('show');
+  wmEl.classList.add('hide'); mhEl.classList.remove('hide');
+  clearTimeout(hideT);
+  hideT=setTimeout(()=>{
+    ctrlEl.classList.remove('show'); cpEl.classList.remove('show');
+    wmEl.classList.remove('hide'); mhEl.classList.add('hide');
+  },5000);
 }
-document.addEventListener('mousemove', showCtrl);
-document.addEventListener('keydown', showCtrl);
-document.addEventListener('touchstart', showCtrl);
-setTimeout(showCtrl, 1000);
+document.addEventListener('mousemove',showCtrl);
+document.addEventListener('keydown',showCtrl);
+document.addEventListener('touchstart',showCtrl);
+setTimeout(showCtrl,800);
 
-// postMessage API for external comment feeds (TikTok Live Studio integration)
-window.addEventListener('message', e => {
-  const { type, data } = e.data || {};
-  if(type === 'READ_SCRIPT') readScript(data.text);
-  if(type === 'STOP_TTS')    stopTTS();
-  if(type === 'ADD_COMMENT') addCmt(data.user, data.text, data.color || '#00D4FF');
-  if(type === 'SET_BG')      setBg(data.bg);
-  if(type === 'SET_CHAR') {
-    const btn = document.querySelector(`.ch[data-char="${data.char}"]`);
-    if(btn) btn.click();
+/* Back */
+$('bk').addEventListener('click',()=>{
+  window.parent?.postMessage({type:'PERFORMER_BACK'},'*');
+  if(window.parent===window) window.history.back();
+});
+
+/* postMessage API */
+window.addEventListener('message',e=>{
+  const {type,data}=e.data||{};
+  if(type==='READ_SCRIPT')  readScript(data.text);
+  if(type==='STOP_TTS')     stopTTS();
+  if(type==='ADD_COMMENT')  addCmt(data.user,data.text,data.color||'#00D4FF');
+  if(type==='SET_BG')       setBg(data.bg);
+  if(type==='SET_CHAR'){
+    const idx=CHAR_KEYS.findIndex(k=>CHARS[k].file===data.char||CHARS[k].label===data.char);
+    if(idx>=0) loadChar(CHAR_KEYS[idx]).catch(()=>{});
   }
+  if(type==='NEXT_CHAR') scheduleNext(true);
+  if(type==='AUTO_CYCLE') { data.on?startAuto():stopAuto(); }
+  if(type==='SET_MOTION') Motion.setState(data.state||'idle');
 });
 
-// Init: load REAL FACE by default (wajah asli nayr)
-loadChar('wajah').then(obj => {
-  if(obj) obj.userData.charKey = 'wajah';
-  window.parent?.postMessage({type:'AVATAR_READY', isRealFace: true}, '*');
-  console.log('%c✅ WAJAH ASLI AKTIF — Nayr Bryan', 'color:#FFD080;font-weight:bold;font-size:14px');
-}).catch(e => {
-  console.warn('Real face load failed, fallback to anime:', e);
-  // Fallback to anime if face image not found
-  loadChar('anime').then(obj => {
-    if(obj) obj.userData.charKey = 'anime';
-    window.parent?.postMessage({type:'AVATAR_READY'}, '*');
-  }).catch(() => console.warn('Initial load failed, showing stage only'));
-});
+/* ══════════════════════════════════════════════
+   INIT — load first character
+   ══════════════════════════════════════════════ */
+loadChar(CHAR_KEYS[0]).then(()=>{
+  autoIdx=0;
+  window.parent?.postMessage({type:'AVATAR_READY',data:{total:CHAR_KEYS.length}},'*');
+}).catch(()=>{ autoIdx=1; scheduleNext(false); });
 
-console.log('%c🎭 AlterCast Holographic Engine v5','color:#00D4FF;font-weight:bold;font-size:14px');
+console.log('%cAlterCast Holographic Engine v6 — 164 chars — AI Motion Brain','color:#00D4FF;font-weight:bold;font-size:13px');
 </script>
 </body>
 </html>

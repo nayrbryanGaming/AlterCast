@@ -144,7 +144,7 @@ function renderPinnedProduct() {
         ${p.originalPrice && p.originalPrice > p.price ? `<span class="was">Rp ${p.originalPrice.toLocaleString("id-ID")}</span>` : ""}
       </div>
     </div>
-    <a class="pp-cta" href="${p.link}" target="_blank">🛒 CHECKOUT</a>
+    <a class="pp-cta" href="${p.link}" target="_blank">[SHOP] CHECKOUT</a>
   `;
 }
 
@@ -185,7 +185,7 @@ function renderSessionControls() {
       <label><span>Speak pitch tiap</span><span class="val" id="pit-val">${store.get("affiliatePitchSeconds")} detik</span></label>
       <input type="range" min="15" max="120" value="${store.get("affiliatePitchSeconds")}" id="pit-slider">
     </div>
-    <button class="btn-session-start" id="btn-session">🔴 MULAI LIVE AFFILIATE</button>
+    <button class="btn-session-start" id="btn-session">[LIVE] MULAI LIVE AFFILIATE</button>
   `;
 
   $("rot-slider").addEventListener("input", (e) => {
@@ -202,7 +202,7 @@ function renderSessionControls() {
     if (isActive()) {
       stopSession();
       $("btn-session").classList.remove("active");
-      $("btn-session").textContent = "🔴 MULAI LIVE AFFILIATE";
+      $("btn-session").textContent = "[LIVE] MULAI LIVE AFFILIATE";
       $("aff-live-badge").classList.remove("on");
     } else {
       startSession({
@@ -223,7 +223,7 @@ function renderSessionControls() {
       $("btn-session").classList.add("active");
       $("btn-session").textContent = "⏹ STOP LIVE";
       $("aff-live-badge").classList.add("on");
-      pushAlert("🔴 LIVE DIMULAI!");
+      pushAlert("[LIVE] LIVE DIMULAI!");
     }
   });
 }
@@ -256,15 +256,15 @@ function bindUI() {
     const u = "user_" + Math.floor(Math.random() * 9999);
     appendChat({ user: u, color: "#00FF88", text: "baru follow!", isFollow: true });
     enqueueSpeak(reactToFollow(u));
-    pushAlert(`💚 ${u} follow!`);
+    pushAlert(`[OK] ${u} follow!`);
   });
   $("sim-gift").addEventListener("click", () => {
     const u = "user_" + Math.floor(Math.random() * 9999);
-    const gifts = ["Rose 🌹", "TikTok 🎵", "Heart Me ❤️", "Galaxy 🌌", "Lion 🦁"];
+    const gifts = ["Rose ", "TikTok [MUS]", "Heart Me [HEART]", "Galaxy ", "Lion "];
     const g = pickRandom(gifts);
     appendChat({ user: u, color: "#FFB800", text: `mengirim ${g}`, isGift: true, giftIcon: g.match(/(\S+)$/)?.[1] });
     enqueueSpeak(reactToGift(u, g));
-    pushAlert(`🎁 ${u} kirim ${g}!`);
+    pushAlert(`[GIFT] ${u} kirim ${g}!`);
   });
   $("sim-question").addEventListener("click", () => {
     const qs = ["berapa harganya kak?", "ready ga sis?", "ongkir kemana aja?", "warnanya apa aja?", "BPOM ga?", "asli ga ini?", "size m ada?", "bisa COD?"];
@@ -281,7 +281,7 @@ function bindUI() {
     const u = "user_" + Math.floor(Math.random() * 9999);
     appendChat({ user: u, color: "#7C3AFF", text: "share live ini!" });
     enqueueSpeak(reactToShare(u));
-    pushAlert(`🔄 ${u} share live!`);
+    pushAlert(` ${u} share live!`);
   });
 
   /* Manual chat input → AI answer */

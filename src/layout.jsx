@@ -78,7 +78,7 @@ function Navbar() {
           onMouseOver={e => Object.assign(e.currentTarget.style, { borderColor: "var(--border-accent)", color: "var(--accent-primary)" })}
           onMouseOut={e => Object.assign(e.currentTarget.style, { borderColor: "var(--border-subtle)", color: "var(--text-secondary)" })}
         >
-          {lang === "id" ? "🇮🇩 ID" : "🇺🇸 EN"}
+          {lang === "id" ? " ID" : " EN"}
         </button>
 
         {/* Theme toggle */}
@@ -107,12 +107,12 @@ function Sidebar() {
   const S = STRINGS[lang];
 
   const emotions = [
-    { id: "idle",    emoji: "😐", label: lang === "id" ? "Siaga" : "Idle" },
-    { id: "happy",   emoji: "😊", label: lang === "id" ? "Senang" : "Happy" },
-    { id: "excited", emoji: "🔥", label: lang === "id" ? "Excited" : "Excited" },
-    { id: "sleepy",  emoji: "😴", label: lang === "id" ? "Ngantuk" : "Sleepy" },
-    { id: "laughing",emoji: "😂", label: lang === "id" ? "Ketawa" : "Laugh" },
-    { id: "sad",     emoji: "😔", label: lang === "id" ? "Sedih" : "Sad" },
+    { id: "idle",    emoji: "", label: lang === "id" ? "Siaga" : "Idle" },
+    { id: "happy",   emoji: "[SMILE]", label: lang === "id" ? "Senang" : "Happy" },
+    { id: "excited", emoji: "[HOT]", label: lang === "id" ? "Excited" : "Excited" },
+    { id: "sleepy",  emoji: "", label: lang === "id" ? "Ngantuk" : "Sleepy" },
+    { id: "laughing",emoji: "[LOL]", label: lang === "id" ? "Ketawa" : "Laugh" },
+    { id: "sad",     emoji: "", label: lang === "id" ? "Sedih" : "Sad" },
   ];
 
   return (

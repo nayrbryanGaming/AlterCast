@@ -88,7 +88,7 @@ function AvatarPage() {
                 cursor: "pointer",
                 transition: "all var(--t-fast)",
               }}>
-                <div style={{ fontSize: "2rem", marginBottom: "8px" }}>📸</div>
+                <div style={{ fontSize: "2rem", marginBottom: "8px" }}></div>
                 <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>
                   {lang === "id" ? "Klik atau drag foto selfie" : "Click or drag selfie photo"}
                 </div>
@@ -170,7 +170,7 @@ function AvatarPage() {
           {step === 3 && (
             <div style={{ display: "flex", flexDirection: "column", gap: "16px", animation: "bounce-in 0.5s ease" }}>
               <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <div style={{ fontSize: "3rem", marginBottom: "8px" }}>🎉</div>
+                <div style={{ fontSize: "3rem", marginBottom: "8px" }}>[YAY]</div>
                 <h3 style={{ fontSize: "var(--text-xl)", fontWeight: 800, marginBottom: "4px" }}>
                   {lang === "id" ? "Avatar Berhasil Dibuat!" : "Avatar Created!"}
                 </h3>
@@ -229,7 +229,7 @@ function AvatarPage() {
                   {created && (
                     <g>
                       <rect x="68" y="250" width="64" height="18" rx="9" fill="rgba(0,255,136,0.2)" stroke="rgba(0,255,136,0.5)" strokeWidth="1" />
-                      <text x="100" y="263" fill="#00FF88" fontSize="9" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">READY ✓</text>
+                      <text x="100" y="263" fill="#00FF88" fontSize="9" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">READY </text>
                     </g>
                   )}
                 </svg>
@@ -391,7 +391,7 @@ function DashboardPage() {
               { user: "big_donator", amount: "Rp 50.000", msg: "teruskan karyanya bro!",    time: "12:05" },
               { user: "gifter_pro",  amount: "Rp 10.000", msg: "Semangat terus!",            time: "12:03" },
               { user: "super_fan",   amount: "Rp 100.000",msg: "konten lo selalu keren!",    time: "11:58" },
-              { user: "night_owl",   amount: "Rp 25.000", msg: "salam dari Yogyakarta 🙏",   time: "11:52" },
+              { user: "night_owl",   amount: "Rp 25.000", msg: "salam dari Yogyakarta ",   time: "11:52" },
             ].map((d, i) => (
               <div key={i} style={{
                 display: "flex", alignItems: "center", gap: "12px",
@@ -605,7 +605,7 @@ function SettingsSection({ activeSection, lang, S, onSave }) {
               <StatusDot status="online" size={8} pulse />
             </div>
             <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
-              {aiModel === "ollama" ? `http://localhost:11434 — Qwen2.5:7b ✓` : `api.openai.com — gpt-4o-mini`}
+              {aiModel === "ollama" ? `http://localhost:11434 — Qwen2.5:7b ` : `api.openai.com — gpt-4o-mini`}
             </div>
           </div>
         </div>
@@ -702,7 +702,7 @@ function SettingsSection({ activeSection, lang, S, onSave }) {
           </FormField>
           <FormField label={lang === "id" ? "Bahasa / Language" : "Language / Bahasa"}>
             <div style={{ display: "flex", gap: "8px" }}>
-              {[{v:"id",l:"🇮🇩 Indonesia"},{v:"en",l:"🇺🇸 English"}].map(({v,l}) => (
+              {[{v:"id",l:" Indonesia"},{v:"en",l:" English"}].map(({v,l}) => (
                 <button key={v}
                   onClick={() => setLang(v)}
                   style={{
@@ -919,7 +919,7 @@ function LandingPage() {
 
           <Badge variant="primary" size="md" style={{ marginBottom: "20px" }}>
             <IcZap size={11} style={{ marginRight: 5 }} />
-            {lang === "id" ? "AI Streaming Twin — Phase 1 MVP" : "AI Streaming Twin — Phase 1 MVP"}
+            {lang === "id" ? "AI Streaming Twin · Platform Siaran Indonesia" : "AI Streaming Twin · Platform Siaran Indonesia"}
           </Badge>
 
           <h1 style={{

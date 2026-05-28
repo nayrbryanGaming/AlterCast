@@ -94,14 +94,14 @@ export const AVATARS = {
 
 /* ── Emotion configurations — drive rim color, animation, particles ── */
 export const EMOTIONS = {
-  idle:      { emoji: "😐", float: .022, breath: .003, rimA: .55, rimRGB: [0,.83,1],     glow: .9,  partA: 1.0 },
-  happy:     { emoji: "✨", float: .030, breath: .005, rimA: .70, rimRGB: [1,.82,0],     glow: 1.2, partA: 1.3 },
-  excited:   { emoji: "⚡", float: .055, breath: .008, rimA: .95, rimRGB: [1,.35,.35],   glow: 1.5, partA: 1.9, shake: true },
-  wave:      { emoji: "👋", float: .034, breath: .004, rimA: .65, rimRGB: [0,.83,1],     glow: 1.0, partA: 1.2 },
-  sad:       { emoji: "💧", float: .013, breath: .002, rimA: .25, rimRGB: [.4,.45,1],    glow: .6,  partA: .6 },
-  surprised: { emoji: "😮", float: .042, breath: .007, rimA: .80, rimRGB: [1,.65,0],     glow: 1.3, partA: 1.5 },
-  laughing:  { emoji: "😂", float: .048, breath: .009, rimA: .80, rimRGB: [1,.78,.4],    glow: 1.4, partA: 1.7 },
-  thinking:  { emoji: "🤔", float: .018, breath: .003, rimA: .40, rimRGB: [.6,.7,1],     glow: .8,  partA: .9 },
+  idle:      { emoji: "[NEUTRAL]", float: .022, breath: .003, rimA: .55, rimRGB: [0,.83,1],     glow: .9,  partA: 1.0 },
+  happy:     { emoji: "*", float: .030, breath: .005, rimA: .70, rimRGB: [1,.82,0],     glow: 1.2, partA: 1.3 },
+  excited:   { emoji: "[PWR]", float: .055, breath: .008, rimA: .95, rimRGB: [1,.35,.35],   glow: 1.5, partA: 1.9, shake: true },
+  wave:      { emoji: "[HI]", float: .034, breath: .004, rimA: .65, rimRGB: [0,.83,1],     glow: 1.0, partA: 1.2 },
+  sad:       { emoji: "[DROP]", float: .013, breath: .002, rimA: .25, rimRGB: [.4,.45,1],    glow: .6,  partA: .6 },
+  surprised: { emoji: "", float: .042, breath: .007, rimA: .80, rimRGB: [1,.65,0],     glow: 1.3, partA: 1.5 },
+  laughing:  { emoji: "[LOL]", float: .048, breath: .009, rimA: .80, rimRGB: [1,.78,.4],    glow: 1.4, partA: 1.7 },
+  thinking:  { emoji: "", float: .018, breath: .003, rimA: .40, rimRGB: [.6,.7,1],     glow: .8,  partA: .9 },
 };
 
 /* ── Camera angle presets ── */
@@ -302,7 +302,7 @@ export const MOCK_CHAT_INITIAL = [
   { id: 1, user: "andiPro", color: "#00D4FF", text: "halo bro!", time: "now" },
   { id: 2, user: "MeyMey88", color: "#FF6BB5", text: "wah avatarnya hidup banget", time: "now" },
   { id: 3, user: "ggDanu", color: "#7C3AFF", text: "ini WebGL ya?", time: "1m" },
-  { id: 4, user: "Risma_K", color: "#00FF88", text: "🔥🔥🔥", time: "2m" },
+  { id: 4, user: "Risma_K", color: "#00FF88", text: "[HOT][HOT][HOT]", time: "2m" },
 ];
 
 export const MOCK_CHAT_LIVE = [

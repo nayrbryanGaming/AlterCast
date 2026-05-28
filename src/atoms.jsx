@@ -325,15 +325,15 @@ function TypingIndicator({ label = "AI is typing" }) {
 
 /* ══ EMOTION TAG ══ */
 const EMOTION_CONFIG = {
-  idle:    { emoji: "😐", color: "#8B96B0", label: { id: "Siaga",   en: "Idle"    } },
-  happy:   { emoji: "😊", color: "#00FF88", label: { id: "Senang",  en: "Happy"   } },
-  talking: { emoji: "🗣️", color: "#00D4FF", label: { id: "Bicara",  en: "Talking" } },
-  excited: { emoji: "🔥", color: "#FFB800", label: { id: "Excited", en: "Excited" } },
-  sad:     { emoji: "😔", color: "#7C3AFF", label: { id: "Sedih",   en: "Sad"     } },
-  angry:   { emoji: "😠", color: "#FF3C3C", label: { id: "Marah",   en: "Angry"   } },
-  sleepy:  { emoji: "😴", color: "#4A5568", label: { id: "Ngantuk", en: "Sleepy"  } },
-  laughing:{ emoji: "😂", color: "#FFB800", label: { id: "Ketawa",  en: "Laughing"} },
-  afk:     { emoji: "🌙", color: "#7C3AFF", label: { id: "AFK",     en: "AFK"     } },
+  idle:    { emoji: "", color: "#8B96B0", label: { id: "Siaga",   en: "Idle"    } },
+  happy:   { emoji: "[SMILE]", color: "#00FF88", label: { id: "Senang",  en: "Happy"   } },
+  talking: { emoji: "️", color: "#00D4FF", label: { id: "Bicara",  en: "Talking" } },
+  excited: { emoji: "[HOT]", color: "#FFB800", label: { id: "Excited", en: "Excited" } },
+  sad:     { emoji: "", color: "#7C3AFF", label: { id: "Sedih",   en: "Sad"     } },
+  angry:   { emoji: "", color: "#FF3C3C", label: { id: "Marah",   en: "Angry"   } },
+  sleepy:  { emoji: "", color: "#4A5568", label: { id: "Ngantuk", en: "Sleepy"  } },
+  laughing:{ emoji: "[LOL]", color: "#FFB800", label: { id: "Ketawa",  en: "Laughing"} },
+  afk:     { emoji: "[AFK]", color: "#7C3AFF", label: { id: "AFK",     en: "AFK"     } },
 };
 
 function EmotionTag({ emotion = "idle", lang = "id", size = "sm" }) {

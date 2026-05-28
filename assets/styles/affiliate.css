@@ -68,7 +68,7 @@ body {
   box-shadow: 0 0 0 1px var(--accent-primary), 0 0 18px rgba(0,212,255,.2);
 }
 .product-list-item.active::before {
-  content: "📌";
+  content: "[PIN]";
   position: absolute;
   top: -6px; right: -6px;
   background: var(--accent-primary);

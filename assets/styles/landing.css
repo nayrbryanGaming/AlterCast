@@ -205,15 +205,10 @@ html, body { height: auto; min-height: 100vh; }
   letter-spacing: var(--ls-wider);
 }
 
-/* Brand mark for landing navbar */
-.brand-mark {
-  width: 28px; height: 28px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+/* Logo SVG wrapper */
+.brand-logo {
   display: flex; align-items: center; justify-content: center;
-  color: var(--bg-void);
-  font-weight: 900;
-  box-shadow: 0 0 18px rgba(0,212,255,.35);
+  flex-shrink: 0;
 }
 
 /* Special "Affiliate" highlight in nav (gold tint) */

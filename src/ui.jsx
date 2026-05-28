@@ -547,7 +547,7 @@ function CodeBlock({ children, lang = "" }) {
             onClick={() => { navigator.clipboard?.writeText(children); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
             style={{ background: "none", border: "none", cursor: "pointer", color: copied ? "var(--status-online)" : "var(--text-muted)", fontSize: "0.7rem", fontFamily: "var(--font-mono)" }}
           >
-            {copied ? "✓ copied" : "copy"}
+            {copied ? " copied" : "copy"}
           </button>
         </div>
       )}
