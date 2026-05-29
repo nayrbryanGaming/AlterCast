@@ -116,6 +116,17 @@ canvas{display:block;width:100%!important;height:100%!important}
 <div id="bub"></div>
 <div id="cmts"></div>
 
+<!-- Real-time AI Motion Proof Panel -->
+<div id="proof-panel" style="position:fixed;top:14px;right:155px;background:rgba(0,0,0,.72);border:1px solid rgba(0,212,255,.35);border-radius:10px;padding:10px 14px;font:10px/1.6 monospace;color:#00D4FF;letter-spacing:.06em;pointer-events:none;z-index:60;min-width:170px;backdrop-filter:blur(8px);">
+  <div style="font-weight:800;font-size:11px;margin-bottom:6px;color:#fff;letter-spacing:.12em;">⬡ AI MOTION BRAIN</div>
+  <div id="pm-head">HEAD ····</div>
+  <div id="pm-jaw">JAW  ····</div>
+  <div id="pm-eye">EYES ····</div>
+  <div id="pm-arm">ARMS ····</div>
+  <div id="pm-breath">BREATH··</div>
+  <div id="pm-state" style="margin-top:6px;color:#00FF88;font-weight:700;">● IDLE</div>
+</div>
+
 <!-- Character panel (built dynamically) -->
 <div id="char-panel">
   <input id="char-search" type="text" placeholder="Cari karakter..." spellcheck="false">
@@ -391,11 +402,12 @@ const Motion = {
   /* Weight shift — visible hip sway */
   hipSway(t){ return Math.sin(t*0.19)*0.08 + Math.sin(t*0.41)*0.03; },
 
-  /* Arm swing — natural idle sway from T-pose */
-  armSwingL(t){ return -0.52 + Math.sin(t*0.31)*0.14 + Math.sin(t*0.7)*0.06; },
-  armSwingR(t){ return  0.52 - Math.sin(t*0.31)*0.14 - Math.sin(t*0.7)*0.06; },
-  armFwdL(t){  return  0.18 + Math.sin(t*0.27)*0.08; },
-  armFwdR(t){  return  0.18 + Math.sin(t*0.27+1)*0.08; },
+  /* Arm swing — AGGRESSIVELY bring arms down from ANY raised pose */
+  /* Z rotation: -0.75 = arms hang naturally at sides */
+  armSwingL(t){ return -0.75 + Math.sin(t*0.31)*0.18 + Math.sin(t*0.7)*0.08; },
+  armSwingR(t){ return  0.75 - Math.sin(t*0.31)*0.18 - Math.sin(t*0.7)*0.08; },
+  armFwdL(t){  return  0.10 + Math.sin(t*0.27)*0.06; },
+  armFwdR(t){  return  0.10 + Math.sin(t*0.27+1)*0.06; },
 
   /* Spine twist — visible torso movement */
   spineTwist(t){ return Math.sin(t*0.19)*0.04 + Math.sin(t*0.41)*0.016; },
@@ -1093,12 +1105,18 @@ function animate(){
     r.position.y=0.015+r.userData.r*.004+Math.sin(t+r.userData.r*2.5)*.018;
   });
 
-  /* Body-level motion BEFORE mixer (ok to override) */
+  /* Body-level motion BEFORE mixer */
   if(currentChar){
     currentChar.rotation.z = Motion.bodySwayX(t);
     currentChar.rotation.x = Motion.bodySwayZ(t);
     currentChar.position.y = (currentChar.userData.baseY||0) + Motion.breatheY(t);
     currentChar.position.x = Motion.hipSway(t);
+    /* Breathing via chest scale — clearly visible chest rise */
+    const breathScale = 1 + Math.sin(t * 0.9) * 0.025 + Math.sin(t * 1.8) * 0.008;
+    if(spineBone && !spineBone.userData.isVirtual){
+      spineBone.scale.x = breathScale;
+      spineBone.scale.z = breathScale;
+    }
   }
 
   /* !! MIXER MUST RUN BEFORE BONE OVERRIDES !! */
@@ -1230,6 +1248,25 @@ function animate(){
       const driftY = Motion.camDriftY(t) * 0.010;
       ctl.target.x += (camTargetLook.x + driftX - ctl.target.x) * 0.012;
       ctl.target.y += (camTargetLook.y + driftY - ctl.target.y) * 0.010;
+    }
+
+    /* ── UPDATE AI MOTION PROOF PANEL (every 3 frames for performance) ── */
+    if(Math.round(t*60)%3===0){
+      const bar=(v,max=1)=>{const p=Math.abs(v)/max;const f=Math.min(1,p);const b='█'.repeat(Math.round(f*8)).padEnd(8,'░');return b+' '+(v>=0?'+':'')+v.toFixed(2);};
+      const hYaw=Motion.headYaw(t), hPitch=Motion.headPitch(t);
+      const jawV=Motion.jawOpen(t);
+      const blinkV=Motion.eyeBlink(t);
+      const armV=Motion.armSwingL(t);
+      const breathV=Motion.breatheY(t);
+      const stateColors={idle:'#00FF88',talking:'#00D4FF',excited:'#FFB800',listening:'#7C3AFF'};
+      const pmEl=id=>document.getElementById(id);
+      if(pmEl('pm-head')) pmEl('pm-head').textContent=`HEAD ${bar(hYaw,.32)} yaw`;
+      if(pmEl('pm-jaw'))  pmEl('pm-jaw') .textContent=`JAW  ${bar(jawV,1)}`;
+      if(pmEl('pm-eye'))  pmEl('pm-eye') .textContent=`EYES ${bar(blinkV,1)} blink`;
+      if(pmEl('pm-arm'))  pmEl('pm-arm') .textContent=`ARMS ${bar(armV,1)}`;
+      if(pmEl('pm-breath'))pmEl('pm-breath').textContent=`BRTH ${bar(breathV,.11)}`;
+      const stEl=pmEl('pm-state');
+      if(stEl){stEl.textContent=`● ${Motion.state.toUpperCase()}`;stEl.style.color=stateColors[Motion.state]||'#fff';}
     }
   }
 
