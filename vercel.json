@@ -3,20 +3,15 @@
   "framework": null,
   "buildCommand": null,
   "outputDirectory": ".",
-  "routes": [
-    { "src": "/pure",        "dest": "/pure.html"       },
-    { "src": "/avatar",      "dest": "/avatar.html"     },
-    { "src": "/avatar-live", "dest": "/avatar.html"     },
-    { "src": "/studio",      "dest": "/AlterCast.html"  },
-    { "src": "/app",         "dest": "/AlterCast.html"  },
-    { "src": "/dashboard",   "dest": "/AlterCast.html"  },
-    { "src": "/settings",    "dest": "/AlterCast.html"  },
-    { "src": "/overlay",     "dest": "/AlterCast.html"  },
-    { "src": "/affiliate",   "dest": "/affiliate.html"  },
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
     {
-      "src": "/(.*)",
-      "headers": { "Cache-Control": "public, max-age=0, must-revalidate" },
-      "dest": "/$1"
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
     }
   ]
 }
