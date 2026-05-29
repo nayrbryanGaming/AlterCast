@@ -449,46 +449,57 @@ function upgradeMat(mat, meshName=''){
   return mat;
 }
 
-/* Bone search — by name list */
-function findBone(obj, names){
-  let found=null;
+/* Collect ALL bones — scene graph + skeleton.bones arrays */
+function getAllBones(obj){
+  const seen=new Set(), all=[];
   obj.traverse(n=>{
-    if(found) return;
-    const ln=(n.name||'').toLowerCase().replace(/[:\s\.]/g,'');
-    if(names.some(k=>ln.includes(k.replace(/[:\s\.]/g,'')))) found=n;
+    if((n.isBone||n.type==='Bone') && !seen.has(n.uuid)){ seen.add(n.uuid); all.push(n); }
+    if(n.isSkinnedMesh && n.skeleton){
+      n.skeleton.bones.forEach(b=>{ if(!seen.has(b.uuid)){ seen.add(b.uuid); all.push(b); } });
+    }
   });
-  return found;
+  return all;
 }
 
-/* Position-based arm bone finder — works on ANY rig without knowing names */
+/* Bone search — by name list, searches scene AND skeleton.bones */
+function findBone(obj, names){
+  const clean=s=>(s||'').toLowerCase().replace(/[:\s\.\-_]/g,'');
+  for(const n of getAllBones(obj)){
+    const ln=clean(n.name);
+    if(names.some(k=>ln.includes(clean(k)))) return n;
+  }
+  return null;
+}
+
+/* Position-based arm bone finder — works on ANY rig, searches skeleton.bones too */
 function findArmBonesByPos(obj, charHeight){
   const h = charHeight || 1.7;
-  let bestL=null, bestLx=0;
-  let bestR=null, bestRx=0;
-  obj.traverse(n=>{
-    if(!n.isBone && n.type!=='Bone') return;
+  obj.updateMatrixWorld(true); /* ensure world positions are current */
+  let bestL=null, bestLscore=0, bestR=null, bestRscore=0;
+  getAllBones(obj).forEach(n=>{
     const wp=new THREE.Vector3();
     n.getWorldPosition(wp);
-    const ry = wp.y/h;
-    // Shoulder zone: 55-88% of height, significant X offset (arm area)
-    if(ry>0.52 && ry<0.90){
-      const ax=Math.abs(wp.x);
-      const hasChildren = n.children.some(c=>c.isBone||c.type==='Bone');
-      if(!hasChildren) return; // skip leaf bones (hands/fingers)
-      // Left arm: negative X, pick closest-to-body upper arm
-      if(wp.x < -h*0.08 && ax<h*0.42 && ax>bestLx){ bestL=n; bestLx=ax; }
-      // Right arm: positive X
-      if(wp.x >  h*0.08 && ax<h*0.42 && ax>bestRx){ bestR=n; bestRx=ax; }
-    }
+    const ry=wp.y/h;
+    if(ry<0.45 || ry>0.93) return; /* not shoulder zone */
+    const ax=Math.abs(wp.x);
+    if(ax<h*0.06) return; /* too close to centerline */
+    /* Score: prefer higher Y (shoulder vs elbow) and moderate X (upper arm vs hand) */
+    const score = ry * 3 - ax/h;
+    if(wp.x < 0 && score > bestLscore){ bestL=n; bestLscore=score; }
+    if(wp.x > 0 && score > bestRscore){ bestR=n; bestRscore=score; }
   });
   return {armL:bestL, armR:bestR};
 }
 
 /* Print all bone names to console for debugging */
 function dumpBones(obj){
-  const names=[];
-  obj.traverse(n=>{ if(n.isBone||n.type==='Bone') names.push(n.name); });
-  console.log('[AlterCast bones]', names.join(', '));
+  const bones=getAllBones(obj);
+  const names=bones.map(b=>b.name).filter(Boolean);
+  console.log('[AlterCast bones]', names.length, names.join(', '));
+  /* Show first few in HUD */
+  const armL=armLBone?'ARM_L:'+armLBone.name:'ARM_L:?';
+  const armR=armRBone?'ARM_R:'+armRBone.name:'ARM_R:?';
+  $('motion-hud').textContent=`AI MOTION · ${bones.length} BONES · ${armL} · ${armR}`;
   return names;
 }
 
@@ -892,58 +903,60 @@ function animate(){
     r.position.y=0.015+r.userData.r*.004+Math.sin(t+r.userData.r*2.5)*.018;
   });
 
-  /* AI NATURAL MOTION on character */
+  /* Body-level motion BEFORE mixer (ok to override) */
   if(currentChar){
-    /* Body sway */
     currentChar.rotation.z = Motion.bodySwayX(t);
     currentChar.rotation.x = Motion.bodySwayZ(t);
-    /* Breathing — vertical float */
     currentChar.position.y = (currentChar.userData.baseY||0) + Motion.breatheY(t);
-    /* Hip sway */
     currentChar.position.x = Motion.hipSway(t);
+  }
 
-    /* Head bone micro-motion */
+  /* !! MIXER MUST RUN BEFORE BONE OVERRIDES !! */
+  if(currentMixer){ currentMixer.update(dt); }
+
+  /* Bone overrides — applied AFTER mixer so AI wins over T-pose keyframes */
+  if(currentChar){
+    /* Head bone */
     if(headBone){
       headBone.rotation.y = Motion.headYaw(t);
       headBone.rotation.x = Motion.headPitch(t);
       headBone.rotation.z = Motion.headRoll(t);
     }
-    /* Spine twist + sway */
+    /* Spine */
     if(spineBone){
       spineBone.rotation.z = Motion.bodySwayX(t) * 0.5;
       spineBone.rotation.x = Motion.bodySwayZ(t) * 0.4;
       spineBone.rotation.y = Motion.spineTwist(t);
     }
-    /* Hip bone sway */
+    /* Hips */
     if(hipBone){
       hipBone.rotation.z = Motion.hipSway(t) * 0.6;
-      hipBone.position.x = Motion.hipSway(t) * 0.3;
     }
 
-    /* ARM BONES — swing arms down from T-pose into natural idle */
+    /* ARM BONES — bring down from T-pose, applied AFTER mixer override */
     if(armLBone){
       armLBone.rotation.z  = Motion.armSwingL(t);
       armLBone.rotation.x  = Motion.armFwdL(t);
-      armLBone.rotation.y  = Math.sin(t*0.23)*0.04;
+      armLBone.rotation.y  = Math.sin(t*0.23)*0.06;
     }
     if(armRBone){
       armRBone.rotation.z  = Motion.armSwingR(t);
       armRBone.rotation.x  = Motion.armFwdR(t);
-      armRBone.rotation.y  = Math.sin(t*0.23+1)*0.04;
+      armRBone.rotation.y  = Math.sin(t*0.23+1)*0.06;
     }
     if(foreArmLBone){
-      foreArmLBone.rotation.z = Math.sin(t*0.31)*0.05;
-      foreArmLBone.rotation.y = Math.sin(t*0.44)*0.04;
+      foreArmLBone.rotation.z = Math.sin(t*0.31)*0.07;
+      foreArmLBone.rotation.y = Math.sin(t*0.44)*0.05;
     }
     if(foreArmRBone){
-      foreArmRBone.rotation.z = Math.sin(t*0.31+2)*0.05;
-      foreArmRBone.rotation.y = Math.sin(t*0.44+1)*0.04;
+      foreArmRBone.rotation.z = Math.sin(t*0.31+2)*0.07;
+      foreArmRBone.rotation.y = Math.sin(t*0.44+1)*0.05;
     }
 
-    /* JAW BONE — mouth open/close */
+    /* JAW BONE — mouth open/close, after mixer */
     const jaw = Motion.jawOpen(t);
     if(jawBone){
-      jawBone.rotation.x = jaw * 0.28; /* max ~16 degrees */
+      jawBone.rotation.x = jaw * 0.35;
     }
 
     /* EYE BONES — look direction */
@@ -984,10 +997,9 @@ function animate(){
     }
   }
 
-  /* Auto-rotate */
+  /* Auto-rotate + render */
   ctl.autoRotateSpeed=spinSpeed;
   ctl.update();
-  if(currentMixer) currentMixer.update(dt);
   renderer.render(scene,camera);
 
   fF++;
