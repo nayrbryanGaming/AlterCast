@@ -10,6 +10,17 @@
   <meta property="og:description" content="Stay Live. Even When You're Gone." />
   <link rel="stylesheet" href="assets/styles/design-tokens.css" />
   <style>
+/* ── KEYFRAMES (inline fallback — works even if design-tokens.css fails) ── */
+@keyframes slide-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scan-line{0%{top:-4px}100%{top:100vh}}
+@keyframes pulse-live{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes ticker-scroll2{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ── Respect reduced motion — never hide content ── */
+@media(prefers-reduced-motion:reduce){
+  .phase-badge,.hero-title,.hero-sub,.cta-row,.hero-stats{animation:none!important;opacity:1!important;transform:none!important}
+  .scanline{display:none}
+}
 
 /* ══════════════════════════════════════════════
    GLOBAL

@@ -361,26 +361,35 @@ const Motion = {
            layers.reduce((s,[,a])=>s+a, 0);
   },
 
-  /* Body sway — slow organic drift */
+  /* Body sway — visible organic drift */
   bodySwayX(t){ return this.noise(t,[
-    [0.3,1],[0.7,0.4],[1.8,0.15],[0.11,0.1]]) * (this.state==='excited'?.012:.005); },
+    [0.3,1],[0.7,0.4],[1.8,0.15],[0.11,0.1]]) * (this.state==='excited'?.08:.035); },
   bodySwayZ(t){ return this.noise(t+10,[
-    [0.25,1],[0.6,0.35],[2.1,0.12]]) * (this.state==='excited'?.008:.003); },
+    [0.25,1],[0.6,0.35],[2.1,0.12]]) * (this.state==='excited'?.05:.022); },
 
-  /* Breathing — chest rise */
+  /* Breathing — visible chest rise */
   breatheY(t){ return (Math.sin(t*0.9)*0.6 + Math.sin(t*1.8)*0.2 + Math.sin(t*0.3)*0.2) *
-    (this.state==='idle'?.007:.011); },
+    (this.state==='idle'?.04:.06); },
 
-  /* Head micro-movement */
+  /* Head movement — clearly visible */
   headYaw(t){ return this.noise(t+3,[
-    [0.22,1],[0.55,0.5],[1.3,0.2],[3.5,0.05]]) * (this.state==='talking'?.06:.03); },
+    [0.22,1],[0.55,0.5],[1.3,0.2],[3.5,0.05]]) * (this.state==='talking'?.18:.10); },
   headPitch(t){ return this.noise(t+7,[
-    [0.18,1],[0.45,0.45],[1.1,0.18]]) * (this.state==='talking'?.04:.02); },
+    [0.18,1],[0.45,0.45],[1.1,0.18]]) * (this.state==='talking'?.12:.07); },
   headRoll(t){ return this.noise(t+15,[
-    [0.14,1],[0.38,0.4]]) * .015; },
+    [0.14,1],[0.38,0.4]]) * .045; },
 
-  /* Weight shift — pelvis/hip sway */
-  hipSway(t){ return Math.sin(t*0.19)*0.008 + Math.sin(t*0.41)*0.003; },
+  /* Weight shift — visible hip sway */
+  hipSway(t){ return Math.sin(t*0.19)*0.045 + Math.sin(t*0.41)*0.018; },
+
+  /* Arm swing — brings arms down from T-pose, natural idle sway */
+  armSwingL(t){ return -0.55 + Math.sin(t*0.31)*0.08 + Math.sin(t*0.7)*0.03; },
+  armSwingR(t){ return  0.55 - Math.sin(t*0.31)*0.08 - Math.sin(t*0.7)*0.03; },
+  armFwdL(t){  return  0.12 + Math.sin(t*0.27)*0.04; },
+  armFwdR(t){  return  0.12 + Math.sin(t*0.27+1)*0.04; },
+
+  /* Spine twist — torso counter-rotation to hip sway */
+  spineTwist(t){ return Math.sin(t*0.19)*0.022 + Math.sin(t*0.41)*0.009; },
 
   /* Jaw open amount 0-1 */
   jawOpen(t){ return this.state==='talking'
@@ -440,15 +449,189 @@ function upgradeMat(mat, meshName=''){
   return mat;
 }
 
-/* Bone search helper */
-function findBone(obj, names){
-  let found=null;
+/* Collect ALL bones — scene graph + skeleton.bones arrays */
+function getAllBones(obj){
+  const seen=new Set(), all=[];
   obj.traverse(n=>{
-    if(found) return;
-    const ln=(n.name||'').toLowerCase();
-    if(names.some(k=>ln.includes(k))) found=n;
+    if((n.isBone||n.type==='Bone') && !seen.has(n.uuid)){ seen.add(n.uuid); all.push(n); }
+    if(n.isSkinnedMesh && n.skeleton){
+      n.skeleton.bones.forEach(b=>{ if(!seen.has(b.uuid)){ seen.add(b.uuid); all.push(b); } });
+    }
   });
-  return found;
+  return all;
+}
+
+/* Bone search — by name list, searches scene AND skeleton.bones */
+function findBone(obj, names){
+  const clean=s=>(s||'').toLowerCase().replace(/[:\s\.\-_]/g,'');
+  for(const n of getAllBones(obj)){
+    const ln=clean(n.name);
+    if(names.some(k=>ln.includes(clean(k)))) return n;
+  }
+  return null;
+}
+
+/* Position-based arm bone finder — works on ANY rig, searches skeleton.bones too */
+function findArmBonesByPos(obj, charHeight){
+  const h = charHeight || 1.7;
+  obj.updateMatrixWorld(true); /* ensure world positions are current */
+  let bestL=null, bestLscore=0, bestR=null, bestRscore=0;
+  getAllBones(obj).forEach(n=>{
+    const wp=new THREE.Vector3();
+    n.getWorldPosition(wp);
+    const ry=wp.y/h;
+    if(ry<0.45 || ry>0.93) return; /* not shoulder zone */
+    const ax=Math.abs(wp.x);
+    if(ax<h*0.06) return; /* too close to centerline */
+    /* Score: prefer higher Y (shoulder vs elbow) and moderate X (upper arm vs hand) */
+    const score = ry * 3 - ax/h;
+    if(wp.x < 0 && score > bestLscore){ bestL=n; bestLscore=score; }
+    if(wp.x > 0 && score > bestRscore){ bestR=n; bestRscore=score; }
+  });
+  return {armL:bestL, armR:bestR};
+}
+
+/* ══════════════════════════════════════════════
+   VIRTUAL SKELETON BUILDER
+   Fills headBone/spineBone/armLBone/armRBone/jawBone/eyeLBone/eyeRBone
+   using mesh objects (Groups, Meshes) when real bone nodes not found.
+   Works on ANY GLB — rigged or completely unrigged.
+   ══════════════════════════════════════════════ */
+function buildVirtualSkeleton(obj){
+  /* Helper: match node name against keyword list */
+  const nm=n=>(n.name||'').toLowerCase().replace(/[_\-:\.\s]/g,'');
+  const has=(n,...keys)=>keys.some(k=>nm(n).includes(k));
+
+  /* Collect all traversable nodes (meshes, groups, objects) */
+  const nodes=[];
+  obj.traverse(n=>{ if(n!==obj) nodes.push(n); });
+
+  /* ── 1. Head: by name ── */
+  if(!headBone){
+    headBone = nodes.find(n=>
+      has(n,'head','skull','face','facemesh','faceroot','headmesh') &&
+      !has(n,'headband','headpiece','headgear','headphon')
+    ) || null;
+  }
+
+  /* ── 2. Spine / torso: by name ── */
+  if(!spineBone){
+    spineBone = nodes.find(n=>
+      has(n,'spine','torso','chest','upperchest','body','waist','bodymesh','torsomesh')
+    ) || null;
+  }
+
+  /* ── 3. Hips: by name ── */
+  if(!hipBone){
+    hipBone = nodes.find(n=>
+      has(n,'hip','pelvis','hips','butt','groin','crotch')
+    ) || null;
+  }
+
+  /* ── 4. Jaw / Mouth: by name ── */
+  if(!jawBone){
+    jawBone = nodes.find(n=>
+      has(n,'jaw','lowerjaw','mandible','mouthlower','chin','mouthbone','jawmesh')
+    ) || null;
+  }
+
+  /* ── 5. Eyes: by name ── */
+  if(!eyeLBone){
+    eyeLBone = nodes.find(n=>
+      has(n,'eyel','eyeleft','lefteye','leye','l_eye','eyeball_l','eye_l') &&
+      !has(n,'lid','lash','brow')
+    ) || null;
+  }
+  if(!eyeRBone){
+    eyeRBone = nodes.find(n=>
+      has(n,'eyer','eyeright','righteye','reye','r_eye','eyeball_r','eye_r') &&
+      !has(n,'lid','lash','brow')
+    ) || null;
+  }
+
+  /* ── 6. Arms: by name (L/R side detection) ── */
+  const isLeft =n=> has(n,'_l','l_','.l','left','lft','larm','leftarm','arml','shoulderl','armleft');
+  const isRight=n=> has(n,'_r','r_','.r','right','rgt','rarm','rightarm','armr','shoulderr','armright');
+  const isArm  =n=> has(n,'arm','shoulder','upperarm','clavicle','sleeve','forearm');
+  if(!armLBone) armLBone = nodes.find(n=>isArm(n)&&isLeft(n)&&!isRight(n)) || null;
+  if(!armRBone) armRBone = nodes.find(n=>isArm(n)&&isRight(n)&&!isLeft(n)) || null;
+  if(!foreArmLBone) foreArmLBone = nodes.find(n=>has(n,'forearm','lowerarm','elbow')&&isLeft(n)) || null;
+  if(!foreArmRBone) foreArmRBone = nodes.find(n=>has(n,'forearm','lowerarm','elbow')&&isRight(n)) || null;
+  if(!neckBone) neckBone = nodes.find(n=>has(n,'neck','cervical')) || null;
+  if(!legLBone)  legLBone  = nodes.find(n=>has(n,'leg','thigh','upleg')&&isLeft(n)&&!isRight(n)) || null;
+  if(!legRBone)  legRBone  = nodes.find(n=>has(n,'leg','thigh','upleg')&&isRight(n)&&!isLeft(n)) || null;
+
+  /* ── 7. Position-based virtual groups for fully unrigged models ── */
+  /* Only do this if we STILL have nothing useful */
+  const hasBones = headBone||spineBone||armLBone||armRBone;
+  if(!hasBones){
+    obj.updateMatrixWorld(true);
+    const bbox=new THREE.Box3().setFromObject(obj);
+    const bh=bbox.getSize(new THREE.Vector3()).y;
+    const bmin=bbox.min;
+
+    /* Cluster meshes by relative Y into head/torso/lower groups */
+    const meshList=[];
+    obj.traverse(n=>{ if(n.isMesh||n.isGroup) meshList.push(n); });
+
+    /* Build clusters by relY (relative height inside bounding box) */
+    const clusters={head:[],torso:[],lowerL:[],lowerR:[]};
+    meshList.forEach(n=>{
+      const nb=new THREE.Box3().setFromObject(n);
+      const nc=nb.getCenter(new THREE.Vector3());
+      const relY=(nc.y-bmin.y)/bh;
+      if(relY>0.80)       clusters.head.push(n);
+      else if(relY>0.40)  clusters.torso.push(n);
+      else if(nc.x<0)    clusters.lowerL.push(n);
+      else               clusters.lowerR.push(n);
+    });
+
+    /* Create virtual pivot groups for each cluster */
+    const makeVirtualGroup=(meshes, pivotY)=>{
+      if(meshes.length===0) return null;
+      const g=new THREE.Group();
+      g.name='__virtual_bone__';
+      /* Position pivot at cluster centroid */
+      let cx=0,cy=0,cz=0;
+      meshes.forEach(m=>{ const c=new THREE.Box3().setFromObject(m).getCenter(new THREE.Vector3()); cx+=c.x;cy+=c.y;cz+=c.z; });
+      cx/=meshes.length; cy/=meshes.length; cz/=meshes.length;
+      g.position.set(cx,pivotY??cy,cz);
+      g.userData.isVirtual=true;
+      /* Don't re-parent — just use as a reference for rotation calculations */
+      obj.add(g);
+      return g;
+    };
+
+    if(!headBone  && clusters.head.length>0)  headBone  = makeVirtualGroup(clusters.head,  bmin.y+bh*0.82);
+    if(!spineBone && clusters.torso.length>0) spineBone = makeVirtualGroup(clusters.torso, bmin.y+bh*0.55);
+    if(!armLBone  && clusters.lowerL.length>0) armLBone = makeVirtualGroup(clusters.lowerL,bmin.y+bh*0.65);
+    if(!armRBone  && clusters.lowerR.length>0) armRBone = makeVirtualGroup(clusters.lowerR,bmin.y+bh*0.65);
+
+    if(headBone||spineBone)
+      console.log('[AlterCast] virtual skeleton built for unrigged model');
+  }
+
+  /* ── 8. Log result ── */
+  const parts=[
+    headBone?'HEAD':'',spineBone?'SPINE':'',hipBone?'HIP':'',
+    jawBone?'JAW':'',eyeLBone?'EYE_L':'',eyeRBone?'EYE_R':'',
+    armLBone?'ARM_L':'',armRBone?'ARM_R':'',
+    foreArmLBone?'FOREARM_L':'',foreArmRBone?'FOREARM_R':''
+  ].filter(Boolean);
+  const motionState=`AI MOTION · ${parts.length} TARGETS · ${parts.join(' · ')}`;
+  $('motion-hud').textContent=motionState;
+}
+
+/* Print all bone names to console for debugging */
+function dumpBones(obj){
+  const bones=getAllBones(obj);
+  const names=bones.map(b=>b.name).filter(Boolean);
+  console.log('[AlterCast bones]', names.length, names.join(', '));
+  /* Show first few in HUD */
+  const armL=armLBone?'ARM_L:'+armLBone.name:'ARM_L:?';
+  const armR=armRBone?'ARM_R:'+armRBone.name:'ARM_R:?';
+  $('motion-hud').textContent=`AI MOTION · ${bones.length} BONES · ${armL} · ${armR}`;
+  return names;
 }
 
 async function loadChar(key){
@@ -467,7 +650,11 @@ async function loadChar(key){
       }
     });
     currentChar=null; currentMixer=null; charInfoBox=null;
-    headBone=null; hipBone=null; spineBone=null;
+    headBone=null; hipBone=null; spineBone=null; neckBone=null;
+    jawBone=null; eyeLBone=null; eyeRBone=null;
+    armLBone=null; armRBone=null; foreArmLBone=null; foreArmRBone=null;
+    legLBone=null; legRBone=null; footLBone=null; footRBone=null;
+    morphMeshes=[];
   }
 
   $('err').classList.remove('show');
@@ -509,13 +696,35 @@ async function loadChar(key){
       currentChar=obj;
       charInfoBox = { box:box2, center:cen2, size:sz };
 
-      /* Search bones for AI motion */
-      headBone  = findBone(obj,['head','skull','neck_01','neck1']);
-      hipBone   = findBone(obj,['hips','pelvis','hip','root','bip01']);
-      spineBone = findBone(obj,['spine','chest','torso']);
-      jawBone   = findBone(obj,['jaw','jaw_lower','lowerjaw','chin','mandible']);
-      eyeLBone  = findBone(obj,['eye_l','eyeleft','eye.l','lefteye','l_eye']);
-      eyeRBone  = findBone(obj,['eye_r','eyeright','eye.r','righteye','r_eye']);
+      /* ── PHASE 1: Real bone detection (comprehensive name list) ── */
+      headBone  = findBone(obj,['head','skull','neck_01','neck1','head_jnt','jnt_head','bone_head','b_head','bip_head','cc_base_head','head_end','Scarf_01_Head_Jnt']);
+      hipBone   = findBone(obj,['hips','pelvis','hip','root','bip01','bip_pelvis','cc_base_hip','center','cog','cog_jnt','pelvis_jnt','body_center']);
+      spineBone = findBone(obj,['spine','chest','torso','spine_01','spine1','spine_02','spine2','upper_body','torso_ctrl','spinal','backbone','bip_spine']);
+      jawBone   = findBone(obj,['jaw','jaw_lower','lowerjaw','chin','mandible','mouth','lower_jaw','jawbone','jaw_master','jbone','cc_base_jawroot']);
+      eyeLBone  = findBone(obj,['eye_l','eyeleft','eye.l','lefteye','l_eye','left_eye','eye_left','cc_base_l_eye','bip_l_eye','l_eyelid','l_eye_ctrl']);
+      eyeRBone  = findBone(obj,['eye_r','eyeright','eye.r','righteye','r_eye','right_eye','eye_right','cc_base_r_eye','bip_r_eye','r_eyelid','r_eye_ctrl']);
+      armLBone  = findBone(obj,['leftarm','left_arm','arm_l','upperarm_l','larm','shoulderl','shoulder_l','clavicle_l','arm.l','l_arm','l_shoulder','mixamorig:leftarm','j_bip_l_upperarm','upper_arm.l','leftupperarm','lshoulder','lArm','cc_base_l_upperarm','bip_l_upperarm','l_arm_a','ShoulderL']);
+      armRBone  = findBone(obj,['rightarm','right_arm','arm_r','upperarm_r','rarm','shoulderr','shoulder_r','clavicle_r','arm.r','r_arm','r_shoulder','mixamorig:rightarm','j_bip_r_upperarm','upper_arm.r','rightupperarm','rshoulder','rArm','cc_base_r_upperarm','bip_r_upperarm','r_arm_a','ShoulderR']);
+      foreArmLBone = findBone(obj,['leftforearm','forearm_l','lforearm','mixamorig:leftforearm','elbow_l','forearm.l','lower_arm.l','j_bip_l_lowerarm','cc_base_l_forearm','bip_l_forearm','l_forearm_a']);
+      foreArmRBone = findBone(obj,['rightforearm','forearm_r','rforearm','mixamorig:rightforearm','elbow_r','forearm.r','lower_arm.r','j_bip_r_lowerarm','cc_base_r_forearm','r_forearm_a']);
+      neckBone     = findBone(obj,['neck','neck1','neck_01','cervical','neck_jnt','bip_neck','cc_base_necktwist01']);
+      legLBone     = findBone(obj,['leftupleg','thigh_l','leftleg','upleg_l','leg_l','l_thigh','mixamorig:leftupleg','cc_base_l_thigh','bip_l_thigh','j_bip_l_upperleg','UpperLeg_L']);
+      legRBone     = findBone(obj,['rightupleg','thigh_r','rightleg','upleg_r','leg_r','r_thigh','mixamorig:rightupleg','cc_base_r_thigh','bip_r_thigh','j_bip_r_upperleg','UpperLeg_R']);
+      footLBone    = findBone(obj,['leftfoot','foot_l','lfoot','mixamorig:leftfoot','cc_base_l_foot','bip_l_foot','j_bip_l_foot']);
+      footRBone    = findBone(obj,['rightfoot','foot_r','rfoot','mixamorig:rightfoot','cc_base_r_foot','bip_r_foot','j_bip_r_foot']);
+
+      /* ── PHASE 2: Mesh-object virtual skeleton (for unrigged / partial rigs) ── */
+      buildVirtualSkeleton(obj);
+
+      /* ── PHASE 3: Position-based arm fallback ── */
+      if(!armLBone || !armRBone){
+        const box3=new THREE.Box3().setFromObject(obj);
+        const h3=box3.getSize(new THREE.Vector3()).y;
+        const pos=findArmBonesByPos(obj, h3);
+        if(!armLBone) armLBone=pos.armL;
+        if(!armRBone) armRBone=pos.armR;
+      }
+      dumpBones(obj);
 
       /* Collect morph target meshes (jaw, eyes, face expressions) */
       morphMeshes=[];
@@ -562,8 +771,10 @@ function loadProceduralChar(key){
     scene.remove(currentChar);
     currentChar.traverse(n=>{ if(n.geometry)n.geometry.dispose(); });
     currentChar=null; currentMixer=null;
-    headBone=null; hipBone=null; spineBone=null;
+    headBone=null; hipBone=null; spineBone=null; neckBone=null;
     jawBone=null; eyeLBone=null; eyeRBone=null;
+    armLBone=null; armRBone=null; foreArmLBone=null; foreArmRBone=null;
+    legLBone=null; legRBone=null; footLBone=null; footRBone=null;
     morphMeshes=[];
   }
   isProcedural=true;
@@ -692,8 +903,10 @@ function loadProceduralChar(key){
    CAMERA PRESETS + AUTO-TRACKING
    ══════════════════════════════════════════════ */
 let currentCamPreset='bust', spinSpeed=0;
-let headBone=null, hipBone=null, spineBone=null;
+let headBone=null, hipBone=null, spineBone=null, neckBone=null;
 let jawBone=null, eyeLBone=null, eyeRBone=null;
+let armLBone=null, armRBone=null, foreArmLBone=null, foreArmRBone=null;
+let legLBone=null, legRBone=null, footLBone=null, footRBone=null;
 let morphMeshes=[]; /* meshes with morph targets */
 let isProcedural=false; /* true when showing built-in fallback */
 let procJaw=null, procEyeL=null, procEyeR=null; /* procedural part refs */
@@ -832,36 +1045,77 @@ function animate(){
     r.position.y=0.015+r.userData.r*.004+Math.sin(t+r.userData.r*2.5)*.018;
   });
 
-  /* AI NATURAL MOTION on character */
+  /* Body-level motion BEFORE mixer (ok to override) */
   if(currentChar){
-    /* Body sway */
     currentChar.rotation.z = Motion.bodySwayX(t);
     currentChar.rotation.x = Motion.bodySwayZ(t);
-    /* Breathing — vertical float */
     currentChar.position.y = (currentChar.userData.baseY||0) + Motion.breatheY(t);
-    /* Hip sway */
     currentChar.position.x = Motion.hipSway(t);
+  }
 
-    /* Head bone micro-motion */
-    if(headBone){
+  /* !! MIXER MUST RUN BEFORE BONE OVERRIDES !! */
+  if(currentMixer){ currentMixer.update(dt); }
+
+  /* Bone overrides — applied AFTER mixer so AI wins over T-pose keyframes */
+  if(currentChar){
+    /* Head bone */
+    if(headBone && !headBone.userData.isVirtual){
       headBone.rotation.y = Motion.headYaw(t);
       headBone.rotation.x = Motion.headPitch(t);
       headBone.rotation.z = Motion.headRoll(t);
     }
-    /* Spine gentle sway */
-    if(spineBone){
-      spineBone.rotation.z = Motion.bodySwayX(t) * 0.4;
-      spineBone.rotation.x = Motion.bodySwayZ(t) * 0.3;
+    /* Neck — subtle secondary support for head motion */
+    if(neckBone){
+      neckBone.rotation.y = Motion.headYaw(t) * 0.35;
+      neckBone.rotation.x = Motion.headPitch(t) * 0.3;
     }
-    /* Hip bone sway */
+    /* Spine */
+    if(spineBone && !spineBone.userData.isVirtual){
+      spineBone.rotation.z = Motion.bodySwayX(t) * 0.5;
+      spineBone.rotation.x = Motion.bodySwayZ(t) * 0.4;
+      spineBone.rotation.y = Motion.spineTwist(t);
+    }
+    /* Hips */
     if(hipBone){
-      hipBone.rotation.z = Motion.hipSway(t) * 0.5;
+      hipBone.rotation.z = Motion.hipSway(t) * 0.6;
     }
 
-    /* JAW BONE — mouth open/close */
+    /* ARM BONES — bring down from T-pose, applied AFTER mixer override */
+    if(armLBone && !armLBone.userData.isVirtual){
+      armLBone.rotation.z  = Motion.armSwingL(t);
+      armLBone.rotation.x  = Motion.armFwdL(t);
+      armLBone.rotation.y  = Math.sin(t*0.23)*0.06;
+    }
+    if(armRBone && !armRBone.userData.isVirtual){
+      armRBone.rotation.z  = Motion.armSwingR(t);
+      armRBone.rotation.x  = Motion.armFwdR(t);
+      armRBone.rotation.y  = Math.sin(t*0.23+1)*0.06;
+    }
+    if(foreArmLBone){
+      foreArmLBone.rotation.z = Math.sin(t*0.31)*0.07;
+      foreArmLBone.rotation.y = Math.sin(t*0.44)*0.05;
+    }
+    if(foreArmRBone){
+      foreArmRBone.rotation.z = Math.sin(t*0.31+2)*0.07;
+      foreArmRBone.rotation.y = Math.sin(t*0.44+1)*0.05;
+    }
+    /* LEG BONES — subtle weight-shift idle sway */
+    if(legLBone){
+      legLBone.rotation.z = Motion.hipSway(t) * 0.25;
+      legLBone.rotation.x = Math.sin(t*0.19)*0.04;
+    }
+    if(legRBone){
+      legRBone.rotation.z = -Motion.hipSway(t) * 0.25;
+      legRBone.rotation.x = Math.sin(t*0.19+Math.PI)*0.04;
+    }
+    /* FOOT BONES — subtle ankle micro-movement */
+    if(footLBone){ footLBone.rotation.x = Math.sin(t*0.21)*0.03; }
+    if(footRBone){ footRBone.rotation.x = Math.sin(t*0.21+1)*0.03; }
+
+    /* JAW BONE — mouth open/close, after mixer */
     const jaw = Motion.jawOpen(t);
-    if(jawBone){
-      jawBone.rotation.x = jaw * 0.28; /* max ~16 degrees */
+    if(jawBone && !jawBone.userData.isVirtual){
+      jawBone.rotation.x = jaw * 0.35;
     }
 
     /* EYE BONES — look direction */
@@ -880,17 +1134,37 @@ function animate(){
     morphMeshes.forEach(mesh=>{
       const d=mesh.morphTargetDictionary;
       const infl=mesh.morphTargetInfluences;
-      const set=(names,v)=>{ names.forEach(n=>{ if(d[n]!==undefined) infl[d[n]]=Math.max(0,Math.min(1,v)); }); };
-      /* Jaw / mouth */
-      set(['jawOpen','mouthOpen','Mouth_Open','jaw_open','A'],jaw);
-      /* Eye blink */
-      set(['eyeBlinkLeft','blink_L','eyesClosed_L','Eye_Blink_L'],blk);
-      set(['eyeBlinkRight','blink_R','eyesClosed_R','Eye_Blink_R'],blk);
-      /* Eye look */
-      set(['eyeLookUpLeft','eyeLookUpRight'],Math.max(0,-ely));
-      set(['eyeLookDownLeft','eyeLookDownRight'],Math.max(0,ely));
+      const set=(names,v)=>{
+        names.forEach(n=>{
+          if(d[n]!==undefined) infl[d[n]]=Math.max(0,Math.min(1,v));
+          /* fuzzy match: key contains name (case-insensitive) */
+          else {
+            const nl=n.toLowerCase();
+            Object.keys(d).forEach(k=>{ if(k.toLowerCase().includes(nl)) infl[d[k]]=Math.max(0,Math.min(1,v)); });
+          }
+        });
+      };
+      /* Jaw / mouth open */
+      set(['jawOpen','jaw_open','mouthOpen','Mouth_Open','mouth_open','A','aa','open',
+           'viseme_aa','viseme_open','jaw','jaw_d','mouth','mbOpen','v_open','bs_jawOpen',
+           'FCL_MOUTH_A','mth_open','mouthOpenness'],jaw);
+      /* Eye blink left */
+      set(['eyeBlinkLeft','blink_L','eyesClosed_L','Eye_Blink_L','blink.l','wink_l',
+           'blinkLeft','eye_close_l','left_eye_close','FCL_EYE_CLOSE_L','eye_blink_l',
+           'browInnerUp','eyeBlinkLeft','eye_closed_l','close_l'],blk);
+      /* Eye blink right */
+      set(['eyeBlinkRight','blink_R','eyesClosed_R','Eye_Blink_R','blink.r','wink_r',
+           'blinkRight','eye_close_r','right_eye_close','FCL_EYE_CLOSE_R','eye_blink_r',
+           'eye_closed_r','close_r'],blk);
+      /* Eye look direction */
+      set(['eyeLookUpLeft','eyeLookUpRight','eye_look_up_l','eye_look_up_r'],Math.max(0,-ely));
+      set(['eyeLookDownLeft','eyeLookDownRight','eye_look_down_l','eye_look_down_r'],Math.max(0,ely));
       set(['eyeLookInLeft','eyeLookOutRight'],Math.max(0,elx));
       set(['eyeLookOutLeft','eyeLookInRight'],Math.max(0,-elx));
+      /* Smile / surprise for expressiveness */
+      const talkSmile=Motion.state==='talking'?jaw*0.3:0;
+      set(['mouthSmile','smile','mouthSmileLeft','mouthSmileRight','mouth_smile',
+           'FCL_MTH_SMILE','happiness'],talkSmile);
     });
 
     /* Camera soft-tracking — follow head/body drift gently */
@@ -902,10 +1176,9 @@ function animate(){
     }
   }
 
-  /* Auto-rotate */
+  /* Auto-rotate + render */
   ctl.autoRotateSpeed=spinSpeed;
   ctl.update();
-  if(currentMixer) currentMixer.update(dt);
   renderer.render(scene,camera);
 
   fF++;
@@ -1039,14 +1312,33 @@ window.addEventListener('message',e=>{
 });
 
 /* ══════════════════════════════════════════════
-   INIT — load first character
+   INIT — INSTANT PROCEDURAL + ASYNC GLB
+   Show 3D animated character within milliseconds,
+   then upgrade to real GLB silently in background.
    ══════════════════════════════════════════════ */
-loadChar(CHAR_KEYS[0]).then(()=>{
-  autoIdx=0;
-  window.parent?.postMessage({type:'AVATAR_READY',data:{total:CHAR_KEYS.length}},'*');
-}).catch(()=>{ autoIdx=1; scheduleNext(false); });
 
-console.log('%cAlterCast Holographic Engine v6 — 164 chars — AI Motion Brain','color:#00D4FF;font-weight:bold;font-size:13px');
+/* STEP 1: Show procedural humanoid IMMEDIATELY — no network needed */
+loadProceduralChar(CHAR_KEYS[0]);
+Motion.setState('idle');
+$('ctrl').classList.add('show');
+$('char-panel').classList.add('show');
+window.parent?.postMessage({type:'AVATAR_READY',data:{total:CHAR_KEYS.length}},'*');
+
+/* STEP 2: Try loading real GLB in background after short delay */
+setTimeout(()=>{
+  loadChar(CHAR_KEYS[0]).then(()=>{
+    autoIdx=0;
+    /* Notify parent: real GLB loaded, motion brain active */
+    window.parent?.postMessage({type:'AVATAR_GLB_LOADED',data:{key:CHAR_KEYS[0]}},'*');
+    log('Avatar GLB siap — AI Motion Brain aktif');
+  }).catch(err=>{
+    /* GLB failed — procedural already showing, no action needed */
+    console.warn('[AlterCast] GLB load failed, procedural stays:', err.message);
+    $('status').textContent='HOLO · AI PROCEDURAL · MOTION ACTIVE';
+  });
+}, 400); /* 400ms delay — let procedural render first */
+
+console.log('%cAlterCast Holographic Engine v6 — 164 chars — AI Motion Brain — INSTANT START','color:#00D4FF;font-weight:bold;font-size:13px');
 </script>
 </body>
 </html>
