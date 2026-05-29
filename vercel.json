@@ -32,9 +32,9 @@
     { "source": "/settings",   "destination": "/AlterCast.html" },
     { "source": "/overlay",    "destination": "/AlterCast.html" },
     { "source": "/affiliate",  "destination": "/affiliate.html" },
-    { "source": "/avatar",     "destination": "/public/avatar-live.html" },
-    { "source": "/pure",       "destination": "/public/avatar-live.html" },
-    { "source": "/avatar-live","destination": "/public/avatar-live.html" }
+    { "source": "/avatar",     "destination": "/avatar.html" },
+    { "source": "/pure",       "destination": "/avatar.html" },
+    { "source": "/avatar-live","destination": "/avatar.html" }
   ],
   "cleanUrls": true
 }
