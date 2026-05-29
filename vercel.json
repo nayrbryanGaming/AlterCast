@@ -23,18 +23,24 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
+    },
+    {
+      "source": "/public/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
     }
   ],
   "rewrites": [
-    { "source": "/app",        "destination": "/AlterCast.html" },
-    { "source": "/studio",     "destination": "/AlterCast.html" },
-    { "source": "/dashboard",  "destination": "/AlterCast.html" },
-    { "source": "/settings",   "destination": "/AlterCast.html" },
-    { "source": "/overlay",    "destination": "/AlterCast.html" },
-    { "source": "/affiliate",  "destination": "/affiliate.html" },
-    { "source": "/avatar",     "destination": "/avatar.html" },
-    { "source": "/pure",       "destination": "/avatar.html" },
+    { "source": "/",          "destination": "/index.html" },
+    { "source": "/app",       "destination": "/AlterCast.html" },
+    { "source": "/studio",    "destination": "/AlterCast.html" },
+    { "source": "/dashboard", "destination": "/AlterCast.html" },
+    { "source": "/settings",  "destination": "/AlterCast.html" },
+    { "source": "/overlay",   "destination": "/AlterCast.html" },
+    { "source": "/affiliate", "destination": "/affiliate.html" },
+    { "source": "/pure",      "destination": "/avatar.html" },
+    { "source": "/avatar",    "destination": "/avatar.html" },
     { "source": "/avatar-live","destination": "/avatar.html" }
-  ],
-  "cleanUrls": true
+  ]
 }
