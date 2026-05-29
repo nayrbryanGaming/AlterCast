@@ -3,10 +3,10 @@
    localStorage auto-persist, zero server needed
    ───────────────────────────────────────────── */
 const _LS = "altercast_v1";
-function lsLoad() { try { return JSON.parse(localStorage.getItem(_LS) || "{}"); } catch { return {}; } }
+function lsLoad() { try { return JSON.parse(localStorage.getItem(_LS) || "{}"); } catch(e) { return {}; } }
 function lsGet(k, def) { const v = lsLoad()[k]; return v !== undefined ? v : def; }
 function lsSave(patch) {
-  try { localStorage.setItem(_LS, JSON.stringify({ ...lsLoad(), ...patch })); } catch {}
+  try { localStorage.setItem(_LS, JSON.stringify(Object.assign({}, lsLoad(), patch))); } catch(e) {}
 }
 
 /* ─────────────────────────────────────────────
