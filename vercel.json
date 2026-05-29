@@ -3,20 +3,20 @@
   "framework": null,
   "buildCommand": null,
   "outputDirectory": ".",
-  "cleanUrls": true,
-  "headers": [
+  "routes": [
+    { "src": "/pure",        "dest": "/pure.html"       },
+    { "src": "/avatar",      "dest": "/avatar.html"     },
+    { "src": "/avatar-live", "dest": "/avatar.html"     },
+    { "src": "/studio",      "dest": "/AlterCast.html"  },
+    { "src": "/app",         "dest": "/AlterCast.html"  },
+    { "src": "/dashboard",   "dest": "/AlterCast.html"  },
+    { "src": "/settings",    "dest": "/AlterCast.html"  },
+    { "src": "/overlay",     "dest": "/AlterCast.html"  },
+    { "src": "/affiliate",   "dest": "/affiliate.html"  },
     {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
-        { "key": "Access-Control-Allow-Origin", "value": "*" }
-      ]
-    },
-    {
-      "source": "/public/(.*\\.glb)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=86400" }
-      ]
+      "src": "/(.*)",
+      "headers": { "Cache-Control": "public, max-age=0, must-revalidate" },
+      "dest": "/$1"
     }
   ]
 }
