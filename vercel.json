@@ -10,17 +10,8 @@
       "source": "/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" }
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
       ]
     }
-  ],
-  "rewrites": [
-    { "source": "/studio",    "destination": "/pure.html" },
-    { "source": "/app",       "destination": "/pure.html" },
-    { "source": "/court",     "destination": "/pure.html" },
-    { "source": "/avatar",    "destination": "/avatar.html" },
-    { "source": "/pure",      "destination": "/pure.html" },
-    { "source": "/affiliate", "destination": "/affiliate.html" }
   ]
 }

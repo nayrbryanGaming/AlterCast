@@ -158,13 +158,14 @@ canvas{display:block;width:100%!important;height:100%!important}
   <button class="btn" id="err-next">Coba Karakter Berikutnya</button>
 </div>
 
-<script type="importmap">
-{"imports":{"three":"https://unpkg.com/three@0.168.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.168.0/examples/jsm/"}}
-</script>
-<script type="module">
-import * as THREE from 'three';
-import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+<!-- THREE.js via CDN script tag (no importmap needed — works on all browsers) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" crossorigin="anonymous"></script>
+<script>
+/* Adapter — map THREE global to module-style references used below */
+const GLTFLoader    = THREE.GLTFLoader    || (window.THREE && THREE.GLTFLoader);
+const OrbitControls = THREE.OrbitControls || (window.THREE && THREE.OrbitControls);
 
 /* ══════════════════════════════════════════════
    CHARACTER MANIFEST — 164 GLB dari E:\0download blender
@@ -278,7 +279,9 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
-renderer.outputColorSpace = THREE.SRGBColorSpace;
+/* r128 compat: use outputEncoding if outputColorSpace not available */
+if('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace || THREE.LinearSRGBColorSpace;
+else renderer.outputEncoding = THREE.sRGBEncoding || 3001;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#0A1633');
