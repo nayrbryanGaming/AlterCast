@@ -778,31 +778,25 @@ async function loadChar(key){
       });
       isProcedural=false;
 
-      /* ── SMART ANIMATION SELECTION ──
-         Only play true "idle/breath/stand" clips. Skip dance/walk/action.
-         For all other cases: freeze at rest pose & let AI Motion Brain animate.
+      /* ── ANIMATION: only play true idle clips at low weight ──
+         For dance/walk/action/no-anim: leave bones in initial GLB state (correct rest pose)
+         and let AI Motion Brain control all movement.
+         NEVER call forceRestPose — bind poses vary and cause wrong postures.
       ── */
       if(gltf.animations?.length){
-        currentMixer=new THREE.AnimationMixer(obj);
-        /* Prefer clips named: idle, breath, stand, rest, wait, blink, loop */
         const idleClip = gltf.animations.find(a=>
           /idle|breath|stand|rest|wait|blink|loop|neutral|t.?pose/i.test(a.name)
         );
         if(idleClip){
-          /* Play gentle idle animation at reduced weight so AI motion can override */
+          currentMixer=new THREE.AnimationMixer(obj);
           const action=currentMixer.clipAction(idleClip);
           action.timeScale=0.5;
-          action.setEffectiveWeight(0.25); /* subtle background motion */
+          action.setEffectiveWeight(0.3);
           action.play();
-        } else {
-          /* Dance/walk/action detected — DON'T play, freeze at rest frame */
-          /* Just create the mixer so bone references stay valid */
-          /* AI Motion Brain will handle all movement from T-pose */
-          forceRestPose(obj);
         }
-      } else {
-        forceRestPose(obj); /* no animations at all — reset to T-pose */
+        /* Non-idle: no mixer, no animation played — initial GLB bone state preserved */
       }
+      /* No animations: initial GLB bone state is correct rest/T-pose already */
 
       /* Apply cam */
       applyCam(currentCamPreset);
