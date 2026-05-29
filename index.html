@@ -10,11 +10,42 @@
   <meta property="og:description" content="Stay Live. Even When You're Gone." />
   <link rel="stylesheet" href="assets/styles/design-tokens.css" />
   <style>
-/* ── KEYFRAMES (inline fallback — works even if design-tokens.css fails) ── */
-@keyframes slide-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+/* ── KEYFRAMES (inline fallback) ── */
+@keyframes slide-up{from{opacity:0.01;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes scan-line{0%{top:-4px}100%{top:100vh}}
 @keyframes pulse-live{0%,100%{opacity:1}50%{opacity:.35}}
 @keyframes ticker-scroll2{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ── CRITICAL: Remove animation delays — content always visible immediately ── */
+.phase-badge,.hero-title,.hero-sub,.cta-row,.hero-stats,section,h2,.section-title,.section-sub{
+  opacity:1!important;
+  animation-delay:0ms!important;
+  animation-fill-mode:none!important;
+}
+/* Design-tokens fallback — critical vars if external CSS fails to load */
+:root{
+  --bg-void:#080A0F;--bg-base:#0D0F17;--bg-surface:#131720;--bg-elevated:#1A2030;
+  --bg-overlay:#212840;--bg-hover:rgba(255,255,255,0.04);
+  --accent-primary:#00D4FF;--accent-primary-dim:#0099BB;
+  --accent-primary-glow:rgba(0,212,255,0.15);--accent-secondary:#7C3AFF;
+  --accent-secondary-glow:rgba(124,58,255,0.15);--border-violet:rgba(124,58,255,0.3);
+  --status-live:#FF3C3C;--status-online:#00FF88;--status-warning:#FFB800;
+  --text-primary:#F0F4FF;--text-secondary:#8B96B0;--text-muted:#4A5568;
+  --text-disabled:#2D3748;--text-inverse:#080A0F;
+  --border-subtle:rgba(255,255,255,0.06);--border-normal:rgba(255,255,255,0.12);
+  --border-strong:rgba(255,255,255,0.20);--border-accent:rgba(0,212,255,0.3);
+  --border-focus:rgba(0,212,255,0.6);--border-live:rgba(255,60,60,0.4);
+  --shadow-glow-cyan:0 0 20px rgba(0,212,255,0.2),0 0 60px rgba(0,212,255,0.08);
+  --shadow-glow-cyan-lg:0 0 40px rgba(0,212,255,0.3),0 0 80px rgba(0,212,255,0.15);
+  --font-display:'Outfit',system-ui,sans-serif;--font-mono:'JetBrains Mono','Fira Code',monospace;
+  --text-xs:.75rem;--text-sm:.875rem;--text-base:1rem;--text-lg:1.125rem;
+  --text-xl:1.25rem;--text-2xl:1.5rem;--text-hero:clamp(2.5rem,5vw,4.5rem);
+  --r-sm:6px;--r-md:10px;--r-lg:16px;--r-xl:24px;--r-full:9999px;
+  --t-fast:150ms ease;--t-base:250ms ease;
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important;opacity:1!important;transform:none!important}
+}
 
 /* ── Respect reduced motion — never hide content ── */
 @media(prefers-reduced-motion:reduce){
@@ -411,6 +442,18 @@ section.full{max-width:100%;padding:80px 32px;}
   </style>
 </head>
 <body>
+
+<!-- ══ STUDIO QUICK ACCESS BANNER ══ -->
+<div id="studio-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,rgba(0,212,255,0.18),rgba(124,58,255,0.12));backdrop-filter:blur(16px);border-top:1px solid rgba(0,212,255,0.35);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span style="width:8px;height:8px;border-radius:50%;background:#FF3C3C;animation:pulse-live 1.5s infinite;display:inline-block;"></span>
+    <span style="font-family:monospace;font-size:12px;color:#00D4FF;letter-spacing:.08em;font-weight:700;">ALTERCAST STUDIO · AI 3D MOTION BRAIN AKTIF</span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <a href="/pure" style="display:inline-flex;align-items:center;gap:6px;padding:8px 20px;background:#00D4FF;color:#000;font-weight:800;font-size:13px;border-radius:999px;text-decoration:none;letter-spacing:-.01em;">▶ Buka Studio 3D</a>
+    <button onclick="document.getElementById('studio-banner').style.display='none'" style="background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.5);font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;">✕</button>
+  </div>
+</div>
 
 <div class="scanline"></div>
 

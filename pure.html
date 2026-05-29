@@ -10,10 +10,16 @@
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Inter',-apple-system,system-ui,sans-serif}
 canvas{display:block;width:100%!important;height:100%!important}
 
-/* LOADING */
-#loading{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 70%,#0A1228 0%,#000 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#00D4FF;z-index:9999;transition:opacity .6s}
+/* LOADING — Brighter so it's never confused with a blank page */
+#loading{position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 50%,#0D1E3A 0%,#060810 80%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#00D4FF;z-index:9999;transition:opacity .6s}
 #loading.hide{opacity:0;pointer-events:none}
-.spin{width:44px;height:44px;border:3px solid rgba(0,212,255,.12);border-top-color:#00D4FF;border-radius:50%;animation:sp .9s linear infinite}
+#load-title{font-size:28px;font-weight:900;letter-spacing:.22em;color:#00D4FF;text-shadow:0 0 40px rgba(0,212,255,.6),0 0 80px rgba(0,212,255,.3)}
+#load-bar{width:220px;height:3px;background:rgba(0,212,255,.15);overflow:hidden;border-radius:999px}
+#load-fill{height:100%;width:0;background:#00D4FF;box-shadow:0 0 16px #00D4FF;transition:width .25s}
+#load-txt{font:12px/1.5 monospace;opacity:.7;text-align:center;letter-spacing:.08em}
+.spin{width:52px;height:52px;border:3px solid rgba(0,212,255,.18);border-top-color:#00D4FF;border-radius:50%;animation:sp .9s linear infinite;box-shadow:0 0 30px rgba(0,212,255,.25)}
+/* Glow ring around spinner */
+.spin::after{content:'';position:absolute;width:70px;height:70px;border-radius:50%;border:1px solid rgba(0,212,255,.08);top:-12px;left:-12px}
 @keyframes sp{to{transform:rotate(360deg)}}
 #load-title{font-size:22px;font-weight:700;letter-spacing:.18em}
 #load-bar{width:280px;height:2px;background:rgba(0,212,255,.15);overflow:hidden;border-radius:999px}
