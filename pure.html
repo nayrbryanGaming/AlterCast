@@ -498,12 +498,17 @@ function getAllBones(obj){
   return all;
 }
 
-/* Bone search — by name list, searches scene AND skeleton.bones */
+/* Bone search — KEYWORD-PRIORITY order.
+   Iterates keywords first so earlier keywords win over later ones.
+   This ensures 'upperarm' is found before 'shoulder/clavicle'. */
 function findBone(obj, names){
   const clean=s=>(s||'').toLowerCase().replace(/[:\s\.\-_]/g,'');
-  for(const n of getAllBones(obj)){
-    const ln=clean(n.name);
-    if(names.some(k=>ln.includes(clean(k)))) return n;
+  const bones=getAllBones(obj);
+  const cleaned=names.map(n=>clean(n));
+  /* For each keyword in priority order, scan all bones */
+  for(const kw of cleaned){
+    const found=bones.find(b=>clean(b.name).includes(kw));
+    if(found) return found;
   }
   return null;
 }
@@ -756,8 +761,28 @@ async function loadChar(key){
       jawBone   = findBone(obj,['jaw','jaw_lower','lowerjaw','chin','mandible','mouth','lower_jaw','jawbone','jaw_master','jbone','cc_base_jawroot']);
       eyeLBone  = findBone(obj,['eye_l','eyeleft','eye.l','lefteye','l_eye','left_eye','eye_left','cc_base_l_eye','bip_l_eye','l_eyelid','l_eye_ctrl']);
       eyeRBone  = findBone(obj,['eye_r','eyeright','eye.r','righteye','r_eye','right_eye','eye_right','cc_base_r_eye','bip_r_eye','r_eyelid','r_eye_ctrl']);
-      armLBone  = findBone(obj,['leftarm','left_arm','arm_l','upperarm_l','larm','shoulderl','shoulder_l','clavicle_l','arm.l','l_arm','l_shoulder','mixamorig:leftarm','j_bip_l_upperarm','upper_arm.l','leftupperarm','lshoulder','lArm','cc_base_l_upperarm','bip_l_upperarm','l_arm_a','ShoulderL']);
-      armRBone  = findBone(obj,['rightarm','right_arm','arm_r','upperarm_r','rarm','shoulderr','shoulder_r','clavicle_r','arm.r','r_arm','r_shoulder','mixamorig:rightarm','j_bip_r_upperarm','upper_arm.r','rightupperarm','rshoulder','rArm','cc_base_r_upperarm','bip_r_upperarm','r_arm_a','ShoulderR']);
+      /* ARM: upperarm terms FIRST (most specific) → shoulder/clavicle LAST (fallback)
+         With keyword-priority findBone, first match wins → avoids clavicle */
+      armLBone  = findBone(obj,[
+        /* specific upper arm */
+        'leftupperarm','upperarml','upperarm_l','l_upperarm','l_upperarma',
+        'mixamorig:leftupperarm','j_bip_l_upperarm','upper_arm.l',
+        'cc_base_l_upperarm','bip_l_upperarm',
+        /* generic arm (after upper arm search) */
+        'leftarm','left_arm','arm_l','larm','arm.l','l_arm','larma',
+        /* shoulder/clavicle last resort */
+        'shoulderl','shoulder_l','lshoulder','clavicle_l','l_shoulder','ShoulderL',
+      ]);
+      armRBone  = findBone(obj,[
+        /* specific upper arm */
+        'rightupperarm','upperarmr','upperarm_r','r_upperarm','r_upperarma',
+        'mixamorig:rightupperarm','j_bip_r_upperarm','upper_arm.r',
+        'cc_base_r_upperarm','bip_r_upperarm',
+        /* generic arm */
+        'rightarm','right_arm','arm_r','rarm','arm.r','r_arm','rarma',
+        /* shoulder/clavicle last resort */
+        'shoulderr','shoulder_r','rshoulder','clavicle_r','r_shoulder','ShoulderR',
+      ]);
       foreArmLBone = findBone(obj,['leftforearm','forearm_l','lforearm','mixamorig:leftforearm','elbow_l','forearm.l','lower_arm.l','j_bip_l_lowerarm','cc_base_l_forearm','bip_l_forearm','l_forearm_a']);
       foreArmRBone = findBone(obj,['rightforearm','forearm_r','rforearm','mixamorig:rightforearm','elbow_r','forearm.r','lower_arm.r','j_bip_r_lowerarm','cc_base_r_forearm','r_forearm_a']);
       neckBone     = findBone(obj,['neck','neck1','neck_01','cervical','neck_jnt','bip_neck','cc_base_necktwist01']);
@@ -1151,20 +1176,22 @@ function animate(){
     }
 
     /* ARM BONES — rotation.set() overrides ALL axes from any bind/animation pose */
+    const aLz=Motion.armSwingL(t), aRz=Motion.armSwingR(t);
+    const aLx=Motion.armFwdL(t),   aRx=Motion.armFwdR(t);
     if(armLBone && !armLBone.userData.isVirtual){
-      /* set(x,y,z) = completely replaces bone rotation, no residual from pose */
-      armLBone.rotation.set(
-        Motion.armFwdL(t),         /* x: forward/back */
-        Math.sin(t*0.23)*0.06,     /* y: twist */
-        Motion.armSwingL(t)        /* z: up/down — wave or hang */
-      );
+      armLBone.rotation.set(aLx, Math.sin(t*0.23)*0.06, aLz);
+      /* Also override first bone child (in case armLBone is clavicle, not upper arm) */
+      const childL=armLBone.children.find(c=>c.isBone||c.type==='Bone');
+      if(childL && childL!==headBone && childL!==spineBone && childL!==neckBone){
+        childL.rotation.set(aLx*0.5, 0, aLz);
+      }
     }
     if(armRBone && !armRBone.userData.isVirtual){
-      armRBone.rotation.set(
-        Motion.armFwdR(t),
-        Math.sin(t*0.23+1)*0.06,
-        Motion.armSwingR(t)
-      );
+      armRBone.rotation.set(aRx, Math.sin(t*0.23+1)*0.06, aRz);
+      const childR=armRBone.children.find(c=>c.isBone||c.type==='Bone');
+      if(childR && childR!==headBone && childR!==spineBone && childR!==neckBone){
+        childR.rotation.set(aRx*0.5, 0, aRz);
+      }
     }
     if(foreArmLBone){
       foreArmLBone.rotation.set(0, Math.sin(t*0.44)*0.06, Math.sin(t*0.31)*0.08);
