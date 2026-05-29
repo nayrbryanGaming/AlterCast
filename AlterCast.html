@@ -4,10 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AlterCast — Stay Live. Even When You're Gone.</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32' fill='none'%3E%3Crect width='32' height='32' rx='8' fill='%230D1520'/%3E%3Crect width='32' height='32' rx='8' fill='rgba(0,212,255,0.12)' stroke='rgba(0,212,255,0.3)' stroke-width='1'/%3E%3Ccircle cx='16' cy='12' r='5' fill='none' stroke='%2300D4FF' stroke-width='1.5'/%3E%3Ccircle cx='21' cy='10' r='2' fill='none' stroke='%237C3AFF' stroke-width='1.2'/%3E%3Cpath d='M9 24c0-3.87 3.13-7 7-7s7 3.13 7 7' stroke='%2300D4FF' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M23 20c0-1.66 1.34-3 3-3' stroke='%237C3AFF' stroke-width='1.2' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='12' r='2' fill='%2300D4FF' opacity='.8'/%3E%3C/svg%3E" />
-  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
   <style>
 /* ═══════════════════════════════════════════════════════════
    AlterCast Design System — Tokens v1.0
@@ -357,7 +356,18 @@ button,label{user-select:none;-webkit-user-select:none;}
   </template>
 </head>
 <body>
-<div id="root"></div>
+<div id="root">
+  <!-- Pre-render loading — hidden once React mounts -->
+  <div id="pre-load" style="position:fixed;inset:0;background:#0D0F17;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;z-index:9999;">
+    <div style="width:44px;height:44px;border:3px solid rgba(0,212,255,.15);border-top-color:#00D4FF;border-radius:50%;animation:spin .9s linear infinite;"></div>
+    <div style="font-family:monospace;font-size:11px;color:rgba(0,212,255,.6);letter-spacing:.18em;text-transform:uppercase;">AlterCast — Loading...</div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+  </div>
+</div>
+<script>
+  /* Hide pre-load overlay once React mounts */
+  window.__hidePreLoad = function(){ var el=document.getElementById('pre-load'); if(el) el.style.display='none'; };
+</script>
 
 <script type="text/babel" data-presets="react">
 // ① CONTEXT + STRINGS
@@ -667,7 +677,7 @@ const STRINGS = {
 
 /* ── MOCK DATA ── */
 const MOCK_CHAT = [
-  { id:1,  user:"nayrbryan",    color:"#00D4FF", text:"halo semua! lagi test AlterCast nih [HOT]",       type:"message",  ts:"12:01" },
+  { id:1,  user:"nayrbryan",    color:"#00D4FF", text:"halo semua! lagi test AlterCast nih 🔥",       type:"message",  ts:"12:01" },
   { id:2,  user:"StreamerX",    color:"#7C3AFF", text:"wah avatar lo keren banget bro!",               type:"message",  ts:"12:01" },
   { id:3,  user:"anime_fan99",  color:"#00FF88", text:"suaranya mirip banget sama lo hahaha",          type:"message",  ts:"12:02" },
   { id:4,  user:"xXDarkXx",     color:"#FFB800", text:"ini pakai AI apa? GPT?",                        type:"message",  ts:"12:02" },
@@ -675,7 +685,7 @@ const MOCK_CHAT = [
   { id:6,  user:"tech_wizard",  color:"#00D4FF", text:"bisa konek ke OBS juga? mantap",               type:"message",  ts:"12:03" },
   { id:7,  user:"luna_chan",    color:"#7C3AFF", text:"udah berapa lama live nih?",                    type:"message",  ts:"12:04" },
   { id:8,  user:"pro_gamer_99", color:"#00FF88", text:"!song",                                         type:"command",  ts:"12:04" },
-  { id:9,  user:"viewer_123",   color:"#FFB800", text:"mantap jiwa ",                               type:"message",  ts:"12:05" },
+  { id:9,  user:"viewer_123",   color:"#FFB800", text:"mantap jiwa 🙌🙌",                               type:"message",  ts:"12:05" },
   { id:10, user:"big_donator",  color:"#FF3C3C", text:"teruskan karyanya bro!",                        type:"donation", amount:"Rp 50.000", ts:"12:05" },
 ];
 
@@ -693,11 +703,11 @@ const MOCK_NEW_MSGS = [
 ];
 
 const MOCK_AI_RESPONSES = [
-  "Haha makasih ya udah tanya! Jadi ceritanya aku ini AI yang ngejaga stream kalau streamer-nya lagi gak bisa online ",
+  "Haha makasih ya udah tanya! Jadi ceritanya aku ini AI yang ngejaga stream kalau streamer-nya lagi gak bisa online 😄",
   "Wah pertanyaan bagus! Aku pakai model AI yang canggih buat jawab semua pertanyaan kalian. Jangan sungkan nanya ya!",
-  "Salam balik bro! Seneng banget ada yang nemenin stream hari ini, kalian the best! [HOT]",
+  "Salam balik bro! Seneng banget ada yang nemenin stream hari ini, kalian the best! 🔥",
   "Hm menarik pertanyaannya~ Aku lagi ditraining buat jadi lebih pintar tiap harinya hihi",
-  "Bener banget! AlterCast emang didesain buat bikin streaming lebih mudah dan profesional [STD]",
+  "Bener banget! AlterCast emang didesain buat bikin streaming lebih mudah dan profesional 🎬",
 ];
 
 Object.assign(window, { AppContext, useApp, STRINGS, MOCK_CHAT, MOCK_NEW_MSGS, MOCK_AI_RESPONSES });
@@ -1334,15 +1344,15 @@ function TypingIndicator({ label = "AI is typing" }) {
 
 /* ══ EMOTION TAG ══ */
 const EMOTION_CONFIG = {
-  idle:    { emoji: "", color: "#8B96B0", label: { id: "Siaga",   en: "Idle"    } },
-  happy:   { emoji: "[SMILE]", color: "#00FF88", label: { id: "Senang",  en: "Happy"   } },
-  talking: { emoji: "", color: "#00D4FF", label: { id: "Bicara",  en: "Talking" } },
-  excited: { emoji: "[HOT]", color: "#FFB800", label: { id: "Excited", en: "Excited" } },
-  sad:     { emoji: "", color: "#7C3AFF", label: { id: "Sedih",   en: "Sad"     } },
-  angry:   { emoji: "", color: "#FF3C3C", label: { id: "Marah",   en: "Angry"   } },
-  sleepy:  { emoji: "", color: "#4A5568", label: { id: "Ngantuk", en: "Sleepy"  } },
-  laughing:{ emoji: "[LOL]", color: "#FFB800", label: { id: "Ketawa",  en: "Laughing"} },
-  afk:     { emoji: "[AFK]", color: "#7C3AFF", label: { id: "AFK",     en: "AFK"     } },
+  idle:    { emoji: "😐", color: "#8B96B0", label: { id: "Siaga",   en: "Idle"    } },
+  happy:   { emoji: "😊", color: "#00FF88", label: { id: "Senang",  en: "Happy"   } },
+  talking: { emoji: "🗣️", color: "#00D4FF", label: { id: "Bicara",  en: "Talking" } },
+  excited: { emoji: "🔥", color: "#FFB800", label: { id: "Excited", en: "Excited" } },
+  sad:     { emoji: "😔", color: "#7C3AFF", label: { id: "Sedih",   en: "Sad"     } },
+  angry:   { emoji: "😠", color: "#FF3C3C", label: { id: "Marah",   en: "Angry"   } },
+  sleepy:  { emoji: "😴", color: "#4A5568", label: { id: "Ngantuk", en: "Sleepy"  } },
+  laughing:{ emoji: "😂", color: "#FFB800", label: { id: "Ketawa",  en: "Laughing"} },
+  afk:     { emoji: "🌙", color: "#7C3AFF", label: { id: "AFK",     en: "AFK"     } },
 };
 
 function EmotionTag({ emotion = "idle", lang = "id", size = "sm" }) {
@@ -2020,7 +2030,7 @@ function CodeBlock({ children, lang = "" }) {
             onClick={() => { navigator.clipboard?.writeText(children); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
             style={{ background: "none", border: "none", cursor: "pointer", color: copied ? "var(--status-online)" : "var(--text-muted)", fontSize: "0.7rem", fontFamily: "var(--font-mono)" }}
           >
-            {copied ? " copied" : "copy"}
+            {copied ? "✓ copied" : "copy"}
           </button>
         </div>
       )}
@@ -2213,7 +2223,7 @@ function Navbar() {
           onMouseOver={e => Object.assign(e.currentTarget.style, { borderColor: "var(--border-accent)", color: "var(--accent-primary)" })}
           onMouseOut={e => Object.assign(e.currentTarget.style, { borderColor: "var(--border-subtle)", color: "var(--text-secondary)" })}
         >
-          {lang === "id" ? " ID" : " EN"}
+          {lang === "id" ? "🇮🇩 ID" : "🇺🇸 EN"}
         </button>
 
         {/* Theme toggle */}
@@ -2242,12 +2252,12 @@ function Sidebar() {
   const S = STRINGS[lang];
 
   const emotions = [
-    { id: "idle",    emoji: "", label: lang === "id" ? "Siaga" : "Idle" },
-    { id: "happy",   emoji: "[SMILE]", label: lang === "id" ? "Senang" : "Happy" },
-    { id: "excited", emoji: "[HOT]", label: lang === "id" ? "Excited" : "Excited" },
-    { id: "sleepy",  emoji: "", label: lang === "id" ? "Ngantuk" : "Sleepy" },
-    { id: "laughing",emoji: "[LOL]", label: lang === "id" ? "Ketawa" : "Laugh" },
-    { id: "sad",     emoji: "", label: lang === "id" ? "Sedih" : "Sad" },
+    { id: "idle",    emoji: "😐", label: lang === "id" ? "Siaga" : "Idle" },
+    { id: "happy",   emoji: "😊", label: lang === "id" ? "Senang" : "Happy" },
+    { id: "excited", emoji: "🔥", label: lang === "id" ? "Excited" : "Excited" },
+    { id: "sleepy",  emoji: "😴", label: lang === "id" ? "Ngantuk" : "Sleepy" },
+    { id: "laughing",emoji: "😂", label: lang === "id" ? "Ketawa" : "Laugh" },
+    { id: "sad",     emoji: "😔", label: lang === "id" ? "Sedih" : "Sad" },
   ];
 
   return (
@@ -3141,7 +3151,7 @@ function AvatarCanvas() {
             animation:"slide-up 0.3s ease",
             backdropFilter:"blur(10px)", zIndex:10,
           }}>
-            <span style={{color:"var(--accent-primary)", marginRight:"6px"}}></span>
+            <span style={{color:"var(--accent-primary)", marginRight:"6px"}}>🗣</span>
             {currentText}
           </div>
         )}
@@ -3321,7 +3331,7 @@ function AvatarPage() {
                 cursor: "pointer",
                 transition: "all var(--t-fast)",
               }}>
-                <div style={{ fontSize: "2rem", marginBottom: "8px" }}></div>
+                <div style={{ fontSize: "2rem", marginBottom: "8px" }}>📸</div>
                 <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>
                   {lang === "id" ? "Klik atau drag foto selfie" : "Click or drag selfie photo"}
                 </div>
@@ -3403,7 +3413,7 @@ function AvatarPage() {
           {step === 3 && (
             <div style={{ display: "flex", flexDirection: "column", gap: "16px", animation: "bounce-in 0.5s ease" }}>
               <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <div style={{ fontSize: "3rem", marginBottom: "8px" }}>[YAY]</div>
+                <div style={{ fontSize: "3rem", marginBottom: "8px" }}>🎉</div>
                 <h3 style={{ fontSize: "var(--text-xl)", fontWeight: 800, marginBottom: "4px" }}>
                   {lang === "id" ? "Avatar Berhasil Dibuat!" : "Avatar Created!"}
                 </h3>
@@ -3462,7 +3472,7 @@ function AvatarPage() {
                   {created && (
                     <g>
                       <rect x="68" y="250" width="64" height="18" rx="9" fill="rgba(0,255,136,0.2)" stroke="rgba(0,255,136,0.5)" strokeWidth="1" />
-                      <text x="100" y="263" fill="#00FF88" fontSize="9" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">READY </text>
+                      <text x="100" y="263" fill="#00FF88" fontSize="9" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">READY ✓</text>
                     </g>
                   )}
                 </svg>
@@ -3624,7 +3634,7 @@ function DashboardPage() {
               { user: "big_donator", amount: "Rp 50.000", msg: "teruskan karyanya bro!",    time: "12:05" },
               { user: "gifter_pro",  amount: "Rp 10.000", msg: "Semangat terus!",            time: "12:03" },
               { user: "super_fan",   amount: "Rp 100.000",msg: "konten lo selalu keren!",    time: "11:58" },
-              { user: "night_owl",   amount: "Rp 25.000", msg: "salam dari Yogyakarta ",   time: "11:52" },
+              { user: "night_owl",   amount: "Rp 25.000", msg: "salam dari Yogyakarta 🙏",   time: "11:52" },
             ].map((d, i) => (
               <div key={i} style={{
                 display: "flex", alignItems: "center", gap: "12px",
@@ -3842,7 +3852,7 @@ function SettingsSection({ activeSection, onSave }) {
               <StatusDot status="online" size={8} pulse />
             </div>
             <div style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
-              {aiModel === "ollama" ? `http://localhost:11434 — Qwen2.5:7b ` : `api.openai.com — gpt-4o-mini`}
+              {aiModel === "ollama" ? `http://localhost:11434 — Qwen2.5:7b ✓` : `api.openai.com — gpt-4o-mini`}
             </div>
           </div>
         </div>
@@ -3939,7 +3949,7 @@ function SettingsSection({ activeSection, onSave }) {
           </FormField>
           <FormField label={lang === "id" ? "Bahasa / Language" : "Language / Bahasa"}>
             <div style={{ display: "flex", gap: "8px" }}>
-              {[{v:"id",l:" Indonesia"},{v:"en",l:" English"}].map(({v,l}) => (
+              {[{v:"id",l:"🇮🇩 Indonesia"},{v:"en",l:"🇺🇸 English"}].map(({v,l}) => (
                 <button key={v}
                   onClick={() => setLang(v)}
                   style={{
@@ -4011,7 +4021,7 @@ function SettingsSection({ activeSection, onSave }) {
             <div style={{ border:"2px dashed var(--border-accent)", borderRadius:"var(--r-lg)", padding:"24px", textAlign:"center", background:"var(--accent-primary-glow)", cursor:"pointer" }}
               onMouseOver={e=>e.currentTarget.style.background="rgba(0,212,255,0.12)"}
               onMouseOut={e=>e.currentTarget.style.background="var(--accent-primary-glow)"}>
-              <div style={{ fontSize:"2rem", marginBottom:"8px" }}>[AVT]</div>
+              <div style={{ fontSize:"2rem", marginBottom:"8px" }}>🎭</div>
               <div style={{ fontSize:"var(--text-sm)", fontWeight:700, color:"var(--accent-primary)", marginBottom:"4px" }}>
                 {lang==="id" ? "Klik atau drag file .vrm / .glb" : "Click or drag .vrm / .glb file"}
               </div>
@@ -4372,7 +4382,7 @@ function LandingPage() {
 
           <Badge variant="primary" size="md" style={{ marginBottom: "20px" }}>
             <IcZap size={11} style={{ marginRight: 5 }} />
-            {lang === "id" ? "AI Streaming Twin · Platform Siaran Indonesia" : "AI Streaming Twin · Platform Siaran Indonesia"}
+            {lang === "id" ? "AI Streaming Twin — Phase 1 MVP" : "AI Streaming Twin — Phase 1 MVP"}
           </Badge>
 
           <h1 style={{
@@ -4537,7 +4547,7 @@ function AutonomousPage() {
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:"12px" }}>
           <div>
             <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>
-              {lang==="id"?"[AI] Mode Otonom":"[AI] Autonomous Mode"}
+              {lang==="id"?"🤖 Mode Otonom":"🤖 Autonomous Mode"}
             </h1>
             <p style={{ color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px" }}>
               {lang==="id"?"AI mengelola stream secara penuh saat kamu tidak ada":"AI fully manages your stream when you're away"}
@@ -4567,7 +4577,7 @@ function AutonomousPage() {
               </Badge>
             </div>
           )}
-          <div style={{ fontSize:"3.5rem", animation: isAFKMode?"breathe 2s ease-in-out infinite":"none" }}>{isAFKMode?"[AI]":""}</div>
+          <div style={{ fontSize:"3.5rem", animation: isAFKMode?"breathe 2s ease-in-out infinite":"none" }}>{isAFKMode?"🤖":"😴"}</div>
           <div>
             <h2 style={{ fontSize:"var(--text-2xl)", fontWeight:800, marginBottom:"8px" }}>
               {isAFKMode?(lang==="id"?"AI Sedang Mengambil Alih":"AI is Taking Over"):(lang==="id"?"Mode Otonom Nonaktif":"Autonomous Mode Off")}
@@ -4597,7 +4607,7 @@ function AutonomousPage() {
             onMouseOver={e => e.currentTarget.style.transform="scale(1.02)"}
             onMouseOut={e => e.currentTarget.style.transform="scale(1)"}
           >
-            {isAFKMode?(lang==="id"?"⏹ Hentikan AI Takeover":"⏹ Stop AI Takeover"):(lang==="id"?"[AI] Aktifkan AI Takeover":"[AI] Enable AI Takeover")}
+            {isAFKMode?(lang==="id"?"⏹ Hentikan AI Takeover":"⏹ Stop AI Takeover"):(lang==="id"?"🤖 Aktifkan AI Takeover":"🤖 Enable AI Takeover")}
           </button>
 
           {/* Quick stat row */}
@@ -4653,7 +4663,7 @@ function AutonomousPage() {
                 </div>
                 <div style={{ padding:"8px 10px", background:"var(--bg-elevated)", borderRadius:"var(--r-sm)", border:"1px solid var(--border-subtle)" }}>
                   <div style={{ fontSize:"var(--text-xs)", color:"var(--status-online)", fontFamily:"var(--font-mono)" }}>
-                     {lang==="id"?"14 pesan diproses sesi ini":"14 messages processed this session"}
+                    ✓ {lang==="id"?"14 pesan diproses sesi ini":"14 messages processed this session"}
                   </div>
                 </div>
               </div>
@@ -4724,9 +4734,9 @@ function AutonomousPage() {
               <div style={{ display:"flex", flexDirection:"column", gap:"10px", borderTop:"1px solid var(--border-subtle)", paddingTop:"12px", animation:"slide-down 0.25s ease" }}>
                 <FormField label={lang==="id"?"Mode Scan":"Scan Mode"}>
                   <Select value={scanMode} onChange={setScanMode} options={[
-                    { value:"camera",     label: lang==="id"?" Kamera (Arahkan ke HP)":" Camera (Point at Phone)" },
-                    { value:"screenshot", label: lang==="id"?" Upload Screenshot":" Upload Screenshot" },
-                    { value:"mirror",     label: lang==="id"?"[LNK] Screen Mirror App":"[LNK] Screen Mirror App" },
+                    { value:"camera",     label: lang==="id"?"📷 Kamera (Arahkan ke HP)":"📷 Camera (Point at Phone)" },
+                    { value:"screenshot", label: lang==="id"?"📸 Upload Screenshot":"📸 Upload Screenshot" },
+                    { value:"mirror",     label: lang==="id"?"🔗 Screen Mirror App":"🔗 Screen Mirror App" },
                   ]} />
                 </FormField>
                 <FormField label={lang==="id"?`Interval: ${scanInterval}s`:`Interval: ${scanInterval}s`}>
@@ -4748,13 +4758,13 @@ function AutonomousPage() {
                   </div>
                   {scanPreview && (
                     <div style={{ display:"flex", flexDirection:"column", gap:"4px", animation:"fade-in 0.3s ease" }}>
-                      {["anime_fan99: keren banget!", "StreamerX: lanjut terus!", "viewer_99: [HOT][HOT][HOT]"].map((c,i)=>(
+                      {["anime_fan99: keren banget!", "StreamerX: lanjut terus!", "viewer_99: 🔥🔥🔥"].map((c,i)=>(
                         <div key={i} style={{
                           fontSize:"0.65rem", padding:"4px 8px", borderRadius:"var(--r-sm)",
                           background:`rgba(0,255,136,${0.05+i*0.03})`,
                           border:"1px solid rgba(0,255,136,0.15)", color:"var(--text-secondary)",
                           animation:`slide-up 0.2s ease ${i*0.1}s both`,
-                        }}> {c}</div>
+                        }}>✓ {c}</div>
                       ))}
                     </div>
                   )}
@@ -4850,7 +4860,7 @@ function AlertsPage() {
       <div style={{maxWidth:"1100px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px"}}>
         <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:"12px"}}>
           <div>
-            <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>[NTF] {lang==="id"?"Pusat Alert":"Alert Center"}</h1>
+            <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>🔔 {lang==="id"?"Pusat Alert":"Alert Center"}</h1>
             <p style={{color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px"}}>{lang==="id"?"Kelola donasi, follow, sub, dan notifikasi stream":"Manage donations, follows, subs, and stream notifications"}</p>
           </div>
           <div style={{display:"flex", gap:"8px"}}>
@@ -5010,7 +5020,7 @@ function VoiceLabPage() {
     <div style={{flex:1, overflow:"auto", padding:"24px", background:"var(--bg-base)"}}>
       <div style={{maxWidth:"1100px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px"}}>
         <div>
-          <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>[MIC] Voice Lab</h1>
+          <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>🎙️ Voice Lab</h1>
           <p style={{color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px"}}>{lang==="id"?"Clone suara, tes TTS, dan atur parameter suara avatar":"Clone voice, test TTS, and configure avatar voice parameters"}</p>
         </div>
 
@@ -5090,7 +5100,7 @@ function VoiceLabPage() {
                 {uploadStep===0 && (
                   <div style={{border:"2px dashed var(--border-accent)", borderRadius:"var(--r-md)", padding:"24px", textAlign:"center", background:"var(--accent-primary-glow)", cursor:"pointer"}}
                     onClick={()=>setUploadStep(1)}>
-                    <div style={{fontSize:"2rem", marginBottom:"6px"}}>[MIC2]</div>
+                    <div style={{fontSize:"2rem", marginBottom:"6px"}}>🎤</div>
                     <div style={{fontSize:"var(--text-sm)", fontWeight:600}}>{lang==="id"?"Upload sampel suara (30 detik)":"Upload voice sample (30 seconds)"}</div>
                     <div style={{fontSize:"var(--text-xs)", color:"var(--text-muted)", marginTop:"4px"}}>MP3, WAV, M4A</div>
                   </div>
@@ -5161,7 +5171,7 @@ function ScenePage() {
       <div style={{maxWidth:"1100px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px"}}>
         <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:"12px"}}>
           <div>
-            <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>[STD] {lang==="id"?"Scene Manager":"Scene Manager"}</h1>
+            <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>🎬 {lang==="id"?"Scene Manager":"Scene Manager"}</h1>
             <p style={{color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px"}}>{lang==="id"?"Kelola scene OBS dan sumber secara langsung":"Manage OBS scenes and sources directly"}</p>
           </div>
           <div style={{display:"flex", gap:"8px", alignItems:"center"}}>
@@ -5207,7 +5217,7 @@ function ScenePage() {
               <div style={{position:"absolute", inset:0, background:`radial-gradient(ellipse 60% 50% at 50% 50%, ${currentScene?.color}08 0%, transparent 70%)`}}/>
               <div style={{position:"absolute", inset:0, backgroundImage:"linear-gradient(var(--border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px)", backgroundSize:"30px 30px", opacity:0.3}}/>
               <div style={{textAlign:"center", position:"relative"}}>
-                <div style={{fontSize:"var(--text-3xl)", marginBottom:"8px"}}>{activeScene==="main"?"[AVT]":activeScene==="game"?"[GAME]":activeScene==="brb"?"":activeScene==="starting"?"⏳":""}</div>
+                <div style={{fontSize:"var(--text-3xl)", marginBottom:"8px"}}>{activeScene==="main"?"🎭":activeScene==="game"?"🎮":activeScene==="brb"?"☕":activeScene==="starting"?"⏳":"👋"}</div>
                 <div style={{fontWeight:800, fontSize:"var(--text-lg)", color:currentScene?.color}}>{currentScene?.label}</div>
                 <div style={{fontSize:"var(--text-xs)", color:"var(--text-muted)", marginTop:"4px"}}>{lang==="id"?"Pratinjau Scene":"Scene Preview"}</div>
               </div>
@@ -5277,7 +5287,7 @@ function ProfilesPage() {
       <div style={{maxWidth:"1100px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px"}}>
         <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:"12px"}}>
           <div>
-            <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>[USR] {lang==="id"?"Manajemen Profil":"Profile Management"}</h1>
+            <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>👤 {lang==="id"?"Manajemen Profil":"Profile Management"}</h1>
             <p style={{color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px"}}>{lang==="id"?"Kelola beberapa profil avatar dan persona streaming":"Manage multiple avatar profiles and streaming personas"}</p>
           </div>
           <Button variant="primary" size="md" icon={<IcPlus/>} onClick={()=>setShowCreate(true)}>
@@ -5394,7 +5404,7 @@ function AnalyticsProPage() {
       <div style={{maxWidth:"1100px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px"}}>
         <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:"12px"}}>
           <div>
-            <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>[STAT] {lang==="id"?"Analitik Pro":"Analytics Pro"}</h1>
+            <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>📊 {lang==="id"?"Analitik Pro":"Analytics Pro"}</h1>
             <p style={{color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px"}}>{lang==="id"?"Riwayat performa stream dan tren":"Stream performance history and trends"}</p>
           </div>
           <div style={{display:"flex", gap:"6px"}}>
@@ -5498,7 +5508,7 @@ function ChatToolsPage() {
     <div style={{flex:1, overflow:"auto", padding:"24px", background:"var(--bg-base)"}}>
       <div style={{maxWidth:"1100px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px"}}>
         <div>
-          <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>[CHAT] Chat Tools</h1>
+          <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>💬 Chat Tools</h1>
           <p style={{color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px"}}>{lang==="id"?"Moderasi, command, dan filter chat otomatis":"Moderation, commands, and auto-filters for chat"}</p>
         </div>
 
@@ -5604,7 +5614,7 @@ function SchedulePage() {
       <div style={{maxWidth:"900px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px"}}>
         <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:"12px"}}>
           <div>
-            <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}> {lang==="id"?"Jadwal Stream":"Stream Schedule"}</h1>
+            <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>📅 {lang==="id"?"Jadwal Stream":"Stream Schedule"}</h1>
             <p style={{color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px"}}>{lang==="id"?"Atur jadwal dan auto-start stream mingguan":"Set weekly stream schedule and auto-start"}</p>
           </div>
           <div style={{display:"flex", gap:"6px", alignItems:"center"}}>
@@ -5710,7 +5720,7 @@ function IntegrationsPage() {
       <div style={{maxWidth:"1100px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px"}}>
         <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:"12px"}}>
           <div>
-            <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}> {lang==="id"?"Integrasi":"Integrations"}</h1>
+            <h1 style={{fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em"}}>🔌 {lang==="id"?"Integrasi":"Integrations"}</h1>
             <p style={{color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px"}}>{lang==="id"?"Hubungkan semua layanan dan platform":"Connect all services and platforms"}</p>
           </div>
           <Badge variant="primary" size="md">{connectedCount}/8 {lang==="id"?"terhubung":"connected"}</Badge>
@@ -5766,11 +5776,11 @@ function IntegrationsPage() {
 function ClipsPage() {
   const { lang, isLive, addToast } = useApp();
   const [clips, setClips] = React.useState([
-    { id:1, title:"Momen Donasi Gede!", dur:"0:32", ts:"16 Mei 12:05", views:248, thumb:"[HOT]", tags:["donasi","highlight"] },
-    { id:2, title:"AI Jawab Pertanyaan Lucu",dur:"1:14", ts:"16 Mei 11:42", views:182, thumb:"[LOL]", tags:["ai","funny"] },
-    { id:3, title:"Game Over Dramatis",      dur:"0:48", ts:"15 Mei 20:31", views:97,  thumb:"[GAME]", tags:["game","fail"] },
-    { id:4, title:"Chat Ramai Banget!",      dur:"0:22", ts:"15 Mei 20:10", views:134, thumb:"[CHAT]", tags:["chat"] },
-    { id:5, title:"Salam Pembuka Stream",    dur:"2:05", ts:"14 Mei 19:00", views:310, thumb:"", tags:["intro"] },
+    { id:1, title:"Momen Donasi Gede!", dur:"0:32", ts:"16 Mei 12:05", views:248, thumb:"🔥", tags:["donasi","highlight"] },
+    { id:2, title:"AI Jawab Pertanyaan Lucu",dur:"1:14", ts:"16 Mei 11:42", views:182, thumb:"😂", tags:["ai","funny"] },
+    { id:3, title:"Game Over Dramatis",      dur:"0:48", ts:"15 Mei 20:31", views:97,  thumb:"🎮", tags:["game","fail"] },
+    { id:4, title:"Chat Ramai Banget!",      dur:"0:22", ts:"15 Mei 20:10", views:134, thumb:"💬", tags:["chat"] },
+    { id:5, title:"Salam Pembuka Stream",    dur:"2:05", ts:"14 Mei 19:00", views:310, thumb:"👋", tags:["intro"] },
   ]);
   const [recording, setRecording] = React.useState(false);
   const [recordTimer, setRecordTimer] = React.useState(0);
@@ -5790,7 +5800,7 @@ function ClipsPage() {
     setRecording(true);
     setTimeout(() => {
       setRecording(false);
-      const newClip = { id: Date.now(), title: lang==="id"?"Clip Baru":"New Clip", dur: fmt(30), ts: new Date().toLocaleString("id-ID"), views: 0, thumb: "", tags: ["manual"] };
+      const newClip = { id: Date.now(), title: lang==="id"?"Clip Baru":"New Clip", dur: fmt(30), ts: new Date().toLocaleString("id-ID"), views: 0, thumb: "✂️", tags: ["manual"] };
       setClips(p => [newClip, ...p]);
       addToast(lang==="id"?"Clip tersimpan!":"Clip saved!", "success");
     }, 5000);
@@ -5801,7 +5811,7 @@ function ClipsPage() {
       <div style={{ maxWidth:"1100px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:"12px" }}>
           <div>
-            <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}> {lang==="id"?"Clip Studio":"Clip Studio"}</h1>
+            <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>✂️ {lang==="id"?"Clip Studio":"Clip Studio"}</h1>
             <p style={{ color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px" }}>{lang==="id"?"Rekam, edit, dan bagikan highlight terbaik stream kamu":"Record, edit, and share your best stream highlights"}</p>
           </div>
           <div style={{ display:"flex", gap:"8px" }}>
@@ -5866,7 +5876,7 @@ function ClipsPage() {
                   <div style={{ display:"flex", gap:"4px", flexWrap:"wrap" }}>
                     {clip.tags.map(t=><Tag key={t} color="cyan">{t}</Tag>)}
                   </div>
-                  <span style={{ fontSize:"var(--text-xs)", color:"var(--text-muted)" }}>[CAM] {clip.views}</span>
+                  <span style={{ fontSize:"var(--text-xs)", color:"var(--text-muted)" }}>👁 {clip.views}</span>
                 </div>
                 {selected===clip.id && (
                   <div style={{ display:"flex", gap:"6px", marginTop:"10px", animation:"slide-down 0.2s ease" }}>
@@ -5921,14 +5931,14 @@ function SongQueuePage() {
     <div style={{ flex:1, overflow:"auto", padding:"24px", background:"var(--bg-base)" }}>
       <div style={{ maxWidth:"900px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px" }}>
         <div>
-          <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>[MUS] Song Queue</h1>
+          <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>🎵 Song Queue</h1>
           <p style={{ color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px" }}>{lang==="id"?"Kelola request lagu dari penonton":"Manage song requests from viewers"}</p>
         </div>
 
         {/* Now playing */}
         <div style={{ background:"linear-gradient(135deg, rgba(0,212,255,0.1), rgba(124,58,255,0.06))", border:"1px solid var(--border-accent)", borderRadius:"var(--r-xl)", padding:"20px" }}>
           <div style={{ fontSize:"var(--text-xs)", color:"var(--text-muted)", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:"10px" }}>
-            {lang==="id"?"[MUS] Sedang Diputar":"[MUS] Now Playing"}
+            {lang==="id"?"🎵 Sedang Diputar":"🎵 Now Playing"}
           </div>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px", flexWrap:"wrap", gap:"10px" }}>
             <div>
@@ -6009,19 +6019,19 @@ function SongQueuePage() {
 function GoalsPage() {
   const { lang, isLive, addToast } = useApp();
   const [goals, setGoals] = React.useState([
-    { id:1, title:lang==="id"?"Target Follower":"Follower Goal",  current:1247, target:1500, unit:"followers", color:"#00D4FF", icon:"", active:true  },
-    { id:2, title:lang==="id"?"Donasi Stream":"Stream Donation",  current:235000, target:500000, unit:"Rp",  color:"#FFB800", icon:"", active:true  },
-    { id:3, title:lang==="id"?"Subscriber":"Subscriber Goal",     current:48, target:100, unit:"subs",       color:"#7C3AFF", icon:"", active:false },
+    { id:1, title:lang==="id"?"Target Follower":"Follower Goal",  current:1247, target:1500, unit:"followers", color:"#00D4FF", icon:"👥", active:true  },
+    { id:2, title:lang==="id"?"Donasi Stream":"Stream Donation",  current:235000, target:500000, unit:"Rp",  color:"#FFB800", icon:"💰", active:true  },
+    { id:3, title:lang==="id"?"Subscriber":"Subscriber Goal",     current:48, target:100, unit:"subs",       color:"#7C3AFF", icon:"⭐", active:false },
     { id:4, title:lang==="id"?"Jam Live Bulan Ini":"Hours Live",  current:19.9, target:40, unit:"jam",       color:"#00FF88", icon:"⏰", active:true  },
   ]);
   const [showCreate, setShowCreate] = React.useState(false);
-  const [newGoal, setNewGoal] = React.useState({ title:"", current:0, target:100, unit:"", color:"#00D4FF", icon:"[TGT]" });
+  const [newGoal, setNewGoal] = React.useState({ title:"", current:0, target:100, unit:"", color:"#00D4FF", icon:"🎯" });
 
   const createGoal = () => {
     if (!newGoal.title || !newGoal.target) return;
     setGoals(p => [...p, { ...newGoal, id:Date.now(), active:true }]);
     setShowCreate(false);
-    setNewGoal({ title:"", current:0, target:100, unit:"", color:"#00D4FF", icon:"[TGT]" });
+    setNewGoal({ title:"", current:0, target:100, unit:"", color:"#00D4FF", icon:"🎯" });
     addToast(lang==="id"?"Goal dibuat!":"Goal created!", "success");
   };
 
@@ -6030,7 +6040,7 @@ function GoalsPage() {
       <div style={{ maxWidth:"900px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:"12px" }}>
           <div>
-            <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>[TGT] {lang==="id"?"Goals & Target":"Goals & Targets"}</h1>
+            <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>🎯 {lang==="id"?"Goals & Target":"Goals & Targets"}</h1>
             <p style={{ color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px" }}>{lang==="id"?"Atur target stream dan pantau progress real-time":"Set stream targets and track progress in real-time"}</p>
           </div>
           <Button variant="primary" size="md" icon={<IcPlus/>} onClick={()=>setShowCreate(true)}>
@@ -6060,7 +6070,7 @@ function GoalsPage() {
                   </div>
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-                  {pct >= 100 && <Badge variant="online" size="sm">[YAY] {lang==="id"?"Tercapai!":"Achieved!"}</Badge>}
+                  {pct >= 100 && <Badge variant="online" size="sm">🎉 {lang==="id"?"Tercapai!":"Achieved!"}</Badge>}
                   <div style={{ fontSize:"var(--text-2xl)", fontWeight:800, color:goal.color, fontFamily:"var(--font-mono)" }}>{pct.toFixed(0)}%</div>
                   <Toggle checked={goal.active} onChange={v=>setGoals(p=>p.map(g=>g.id===goal.id?{...g,active:v}:g))} size="sm"/>
                 </div>
@@ -6090,7 +6100,7 @@ function GoalsPage() {
             </div>
             <FormField label={lang==="id"?"Ikon":"Icon"}>
               <div style={{ display:"flex", gap:"8px", flexWrap:"wrap" }}>
-                {["[TGT]","","","","⏰","[HOT]","[GAME]","[CHAT]"].map(e=>(
+                {["🎯","👥","💰","⭐","⏰","🔥","🎮","💬"].map(e=>(
                   <button key={e} onClick={()=>setNewGoal(p=>({...p,icon:e}))} style={{ fontSize:"1.5rem", background:newGoal.icon===e?"var(--accent-primary-glow)":"var(--bg-elevated)", border:`1px solid ${newGoal.icon===e?"var(--border-accent)":"var(--border-subtle)"}`, borderRadius:"var(--r-sm)", padding:"6px 10px", cursor:"pointer" }}>{e}</button>
                 ))}
               </div>
@@ -6126,15 +6136,15 @@ function MiniGamesPage() {
       const idx = Math.floor(wheelItems.length - ((finalAngle % 360) / 360) * wheelItems.length) % wheelItems.length;
       const w = wheelItems[Math.max(0, idx)];
       setWinner(w); setSpinning(false);
-      addToast(lang==="id"?`[YAY] Pemenang: ${w}!`:`[YAY] Winner: ${w}!`, "success");
+      addToast(lang==="id"?`🎉 Pemenang: ${w}!`:`🎉 Winner: ${w}!`, "success");
     }, 3500);
   };
 
   const games = [
-    { id:"wheel",   icon:"", label:lang==="id"?"Spin Wheel":"Spin Wheel",   desc:lang==="id"?"Putar roda untuk pilih pemenang":"Spin wheel to pick a winner" },
-    { id:"poll",    icon:"[STAT]", label:lang==="id"?"Poll Chat":"Chat Poll",      desc:lang==="id"?"Buat voting real-time dari chat":"Create real-time chat voting" },
-    { id:"trivia",  icon:"", label:"Trivia",                                  desc:lang==="id"?"Kuis trivia untuk penonton":"Trivia quiz for viewers" },
-    { id:"lottery", icon:"", label:lang==="id"?"Lotere":"Lottery",           desc:lang==="id"?"Lotere dari semua penonton chat":"Lottery from all active chatters" },
+    { id:"wheel",   icon:"🎡", label:lang==="id"?"Spin Wheel":"Spin Wheel",   desc:lang==="id"?"Putar roda untuk pilih pemenang":"Spin wheel to pick a winner" },
+    { id:"poll",    icon:"📊", label:lang==="id"?"Poll Chat":"Chat Poll",      desc:lang==="id"?"Buat voting real-time dari chat":"Create real-time chat voting" },
+    { id:"trivia",  icon:"🧠", label:"Trivia",                                  desc:lang==="id"?"Kuis trivia untuk penonton":"Trivia quiz for viewers" },
+    { id:"lottery", icon:"🎰", label:lang==="id"?"Lotere":"Lottery",           desc:lang==="id"?"Lotere dari semua penonton chat":"Lottery from all active chatters" },
   ];
 
   const colors = ["#00D4FF","#7C3AFF","#FFB800","#00FF88","#FF6B9D","#FF3C3C"];
@@ -6144,7 +6154,7 @@ function MiniGamesPage() {
     <div style={{ flex:1, overflow:"auto", padding:"24px", background:"var(--bg-base)" }}>
       <div style={{ maxWidth:"1000px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px" }}>
         <div>
-          <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>[GAME] Mini Games</h1>
+          <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>🎮 Mini Games</h1>
           <p style={{ color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px" }}>{lang==="id"?"Game interaktif untuk menghibur penonton":"Interactive games to entertain your viewers"}</p>
         </div>
 
@@ -6199,7 +6209,7 @@ function MiniGamesPage() {
               </Button>
               {winner && (
                 <div style={{ textAlign:"center", animation:"bounce-in 0.5s ease" }}>
-                  <div style={{ fontSize:"2rem", marginBottom:"4px" }}>[YAY]</div>
+                  <div style={{ fontSize:"2rem", marginBottom:"4px" }}>🎉</div>
                   <div style={{ fontWeight:800, fontSize:"var(--text-xl)", color:"var(--accent-primary)" }}>{winner}</div>
                   <div style={{ fontSize:"var(--text-sm)", color:"var(--text-muted)" }}>{lang==="id"?"Pemenang!":"Winner!"}</div>
                 </div>
@@ -6277,21 +6287,21 @@ function StreamDeckPage() {
           isMicOn, setIsMicOn, isVoiceOn, setIsVoiceOn, addToast, setAvatarState } = useApp();
 
   const defaultButtons = [
-    { id:1, label:lang==="id"?"Mulai Live":"Go Live",      icon:"[LIVE]", color:"#FF3C3C", action:"live",    col:1, row:1 },
-    { id:2, label:"AFK Mode",                               icon:"[AFK]", color:"#7C3AFF", action:"afk",     col:2, row:1 },
-    { id:3, label:"AI On/Off",                              icon:"[AI]", color:"#00D4FF", action:"ai",      col:3, row:1 },
-    { id:4, label:"Mic",                                    icon:"[MIC2]", color:"#00FF88", action:"mic",     col:4, row:1 },
-    { id:5, label:"TTS",                                    icon:"[VOL]", color:"#FFB800", action:"voice",   col:5, row:1 },
-    { id:6, label:lang==="id"?"Sapa Chat":"Greet Chat",     icon:"", color:"#00D4FF", action:"greet",   col:1, row:2 },
-    { id:7, label:"Excited",                                icon:"[HOT]", color:"#FFB800", action:"excited", col:2, row:2 },
-    { id:8, label:"Sleepy",                                 icon:"", color:"#7C3AFF", action:"sleepy",  col:3, row:2 },
-    { id:9, label:"Happy",                                  icon:"[SMILE]", color:"#00FF88", action:"happy",   col:4, row:2 },
-    { id:10,label:"Scene: BRB",                             icon:"", color:"#FF6B9D", action:"brb",     col:5, row:2 },
-    { id:11,label:"Clip!",                                  icon:"", color:"#FF3C3C", action:"clip",    col:1, row:3 },
-    { id:12,label:lang==="id"?"Refresh":"Refresh",          icon:"", color:"#8B96B0", action:"refresh", col:2, row:3 },
-    { id:13,label:lang==="id"?"Screenshot":"Screenshot",    icon:"", color:"#8B96B0", action:"ss",      col:3, row:3 },
-    { id:14,label:"Spin Wheel",                             icon:"", color:"#00D4FF", action:"wheel",   col:4, row:3 },
-    { id:15,label:lang==="id"?"Kosong":"Empty",             icon:"", color:"#2A3040", action:"empty",   col:5, row:3 },
+    { id:1, label:lang==="id"?"Mulai Live":"Go Live",      icon:"🔴", color:"#FF3C3C", action:"live",    col:1, row:1 },
+    { id:2, label:"AFK Mode",                               icon:"🌙", color:"#7C3AFF", action:"afk",     col:2, row:1 },
+    { id:3, label:"AI On/Off",                              icon:"🤖", color:"#00D4FF", action:"ai",      col:3, row:1 },
+    { id:4, label:"Mic",                                    icon:"🎤", color:"#00FF88", action:"mic",     col:4, row:1 },
+    { id:5, label:"TTS",                                    icon:"🔊", color:"#FFB800", action:"voice",   col:5, row:1 },
+    { id:6, label:lang==="id"?"Sapa Chat":"Greet Chat",     icon:"👋", color:"#00D4FF", action:"greet",   col:1, row:2 },
+    { id:7, label:"Excited",                                icon:"🔥", color:"#FFB800", action:"excited", col:2, row:2 },
+    { id:8, label:"Sleepy",                                 icon:"😴", color:"#7C3AFF", action:"sleepy",  col:3, row:2 },
+    { id:9, label:"Happy",                                  icon:"😊", color:"#00FF88", action:"happy",   col:4, row:2 },
+    { id:10,label:"Scene: BRB",                             icon:"☕", color:"#FF6B9D", action:"brb",     col:5, row:2 },
+    { id:11,label:"Clip!",                                  icon:"✂️", color:"#FF3C3C", action:"clip",    col:1, row:3 },
+    { id:12,label:lang==="id"?"Refresh":"Refresh",          icon:"🔄", color:"#8B96B0", action:"refresh", col:2, row:3 },
+    { id:13,label:lang==="id"?"Screenshot":"Screenshot",    icon:"📸", color:"#8B96B0", action:"ss",      col:3, row:3 },
+    { id:14,label:"Spin Wheel",                             icon:"🎡", color:"#00D4FF", action:"wheel",   col:4, row:3 },
+    { id:15,label:lang==="id"?"Kosong":"Empty",             icon:"➕", color:"#2A3040", action:"empty",   col:5, row:3 },
   ];
 
   const [buttons, setButtons] = React.useState(defaultButtons);
@@ -6310,9 +6320,9 @@ function StreamDeckPage() {
       case "mic":     setIsMicOn(p=>!p); break;
       case "voice":   setIsVoiceOn(p=>!p); break;
       case "greet":   if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(greetings[Math.floor(Math.random()*greetings.length)]);u.lang="id-ID";window.speechSynthesis.speak(u);} break;
-      case "excited": setAvatarState("excited"); addToast(" Excited!","success"); break;
-      case "sleepy":  setAvatarState("sleepy");  addToast(" Sleepy!","default"); break;
-      case "happy":   setAvatarState("happy");   addToast("[SMILE] Happy!","success"); break;
+      case "excited": setAvatarState("excited"); addToast("😄 Excited!","success"); break;
+      case "sleepy":  setAvatarState("sleepy");  addToast("😴 Sleepy!","default"); break;
+      case "happy":   setAvatarState("happy");   addToast("😊 Happy!","success"); break;
       case "clip":    addToast(lang==="id"?"Clip tersimpan!":"Clip saved!","success"); break;
       case "refresh": window.location.reload(); break;
       default: addToast(`${btn.label}!`,"default");
@@ -6333,7 +6343,7 @@ function StreamDeckPage() {
       <div style={{ maxWidth:"720px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:"12px" }}>
           <div>
-            <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>⌨ Stream Deck</h1>
+            <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>⌨️ Stream Deck</h1>
             <p style={{ color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px" }}>{lang==="id"?"Panel kontrol shortcut untuk aksi cepat":"Shortcut control panel for quick actions"}</p>
           </div>
           <Button variant={editMode?"primary":"surface"} size="sm" icon={<IcSettings/>} onClick={()=>setEditMode(p=>!p)}>
@@ -6417,22 +6427,22 @@ function EmotesPage() {
   const { lang, addToast } = useApp();
   const [activeTab, setActiveTab] = React.useState("emotes");
   const emotes = [
-    { id:1, name:"alterGG",    img:"[GAME]", platform:"twitch", uses:342 },
-    { id:2, name:"alterLUL",   img:"[LOL]", platform:"twitch", uses:891 },
-    { id:3, name:"alterHype",  img:"[HOT]", platform:"twitch", uses:567 },
-    { id:4, name:"alterLove",  img:"[HEART]", platform:"twitch", uses:234 },
-    { id:5, name:"alterPog",   img:"", platform:"twitch", uses:445 },
-    { id:6, name:"alterSad",   img:"", platform:"twitch", uses:78  },
-    { id:7, name:"alterBRB",   img:"", platform:"youtube", uses:123 },
-    { id:8, name:"alterWave",  img:"", platform:"youtube", uses:289 },
+    { id:1, name:"alterGG",    img:"🎮", platform:"twitch", uses:342 },
+    { id:2, name:"alterLUL",   img:"😂", platform:"twitch", uses:891 },
+    { id:3, name:"alterHype",  img:"🔥", platform:"twitch", uses:567 },
+    { id:4, name:"alterLove",  img:"💙", platform:"twitch", uses:234 },
+    { id:5, name:"alterPog",   img:"😮", platform:"twitch", uses:445 },
+    { id:6, name:"alterSad",   img:"😢", platform:"twitch", uses:78  },
+    { id:7, name:"alterBRB",   img:"☕", platform:"youtube", uses:123 },
+    { id:8, name:"alterWave",  img:"👋", platform:"youtube", uses:289 },
   ];
   const badges = [
-    { id:1, name:lang==="id"?"Subscriber":"Subscriber",    img:"", tier:"Sub 1",   color:"#7C3AFF" },
-    { id:2, name:lang==="id"?"Mod":"Mod",                  img:"[SWD]", tier:"Mod",     color:"#00FF88" },
-    { id:3, name:lang==="id"?"VIP":"VIP",                  img:"[GEM]", tier:"VIP",     color:"#FFB800" },
-    { id:4, name:lang==="id"?"Veteran":"Veteran",          img:"", tier:"24+ mo",  color:"#FF6B9D" },
-    { id:5, name:lang==="id"?"Donator":"Donator",          img:"", tier:"Rp 100k+",color:"#FFB800" },
-    { id:6, name:lang==="id"?"Creator":"Creator",          img:"[STD]", tier:"Creator", color:"#00D4FF" },
+    { id:1, name:lang==="id"?"Subscriber":"Subscriber",    img:"⭐", tier:"Sub 1",   color:"#7C3AFF" },
+    { id:2, name:lang==="id"?"Mod":"Mod",                  img:"⚔️", tier:"Mod",     color:"#00FF88" },
+    { id:3, name:lang==="id"?"VIP":"VIP",                  img:"💎", tier:"VIP",     color:"#FFB800" },
+    { id:4, name:lang==="id"?"Veteran":"Veteran",          img:"🎖️", tier:"24+ mo",  color:"#FF6B9D" },
+    { id:5, name:lang==="id"?"Donator":"Donator",          img:"💰", tier:"Rp 100k+",color:"#FFB800" },
+    { id:6, name:lang==="id"?"Creator":"Creator",          img:"🎬", tier:"Creator", color:"#00D4FF" },
   ];
 
   return (
@@ -6440,7 +6450,7 @@ function EmotesPage() {
       <div style={{ maxWidth:"1000px", margin:"0 auto", display:"flex", flexDirection:"column", gap:"20px" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:"12px" }}>
           <div>
-            <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>[SMILE] {lang==="id"?"Emote & Badge":"Emotes & Badges"}</h1>
+            <h1 style={{ fontSize:"var(--text-2xl)", fontWeight:800, letterSpacing:"-0.02em" }}>😊 {lang==="id"?"Emote & Badge":"Emotes & Badges"}</h1>
             <p style={{ color:"var(--text-secondary)", fontSize:"var(--text-sm)", marginTop:"4px" }}>{lang==="id"?"Kelola emote dan badge channel":"Manage channel emotes and badges"}</p>
           </div>
           <Button variant="primary" size="md" icon={<IcPlus/>}>{lang==="id"?"Upload Emote":"Upload Emote"}</Button>
@@ -7041,7 +7051,7 @@ function PerformerPage() {
                 {/* Picture frame */}
                 <div style={{ width:50,height:44,background:"#FFF8E1",border:"3px solid #C8A882",borderRadius:2,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden" }}>
                   <div style={{ width:"100%",height:"100%",background:"linear-gradient(135deg,#FFE0B2,#FFCCBC)",display:"flex",alignItems:"center",justifyContent:"center" }}>
-                    <span style={{ fontSize:"1.2rem" }}>[FLW]</span>
+                    <span style={{ fontSize:"1.2rem" }}>🌸</span>
                   </div>
                 </div>
                 {/* Phone */}
@@ -7065,7 +7075,7 @@ function PerformerPage() {
               <div style={{ width:140, height:80 }}>
                 <div style={{ width:140,height:70,background:"linear-gradient(180deg,#263238,#1C252C)",borderRadius:"6px 6px 0 0",border:"1px solid #455A64",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden" }}>
                   <div style={{ width:130,height:62,background:"linear-gradient(135deg,#1565C0 0%,#0D47A1 50%,#1565C0 100%)",borderRadius:2,display:"flex",alignItems:"center",justifyContent:"center" }}>
-                    <div style={{ fontSize:"1.2rem" }}>[PC]</div>
+                    <div style={{ fontSize:"1.2rem" }}>💻</div>
                   </div>
                 </div>
                 <div style={{ width:150,height:6,background:"#37474F",borderRadius:"0 0 4px 4px",marginLeft:-5 }}/>
@@ -7089,7 +7099,7 @@ function PerformerPage() {
               </div>
               {/* Mug */}
               <div style={{ width:36, height:44, background:"linear-gradient(180deg,#FFF9F0,#FFF3E0)", borderRadius:"4px 4px 8px 8px", border:"2px solid #FFCC80", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                <span style={{ fontSize:"1rem" }}></span>
+                <span style={{ fontSize:"1rem" }}>☕</span>
               </div>
             </div>
           </div>
@@ -7120,13 +7130,13 @@ function PerformerPage() {
           ))}
           {/* Screen glow left */}
           <div style={{ position:"absolute", left:20, top:100, width:140, height:100, background:"linear-gradient(180deg,#263238,#1A237E)", border:"2px solid #37474F", borderRadius:4, display:"flex",alignItems:"center",justifyContent:"center" }}>
-            <div style={{ fontSize:"2rem" }}>[TV]</div>
+            <div style={{ fontSize:"2rem" }}>📺</div>
           </div>
           <div style={{ position:"absolute", left:15, top:195, width:150, height:6, background:"#212121", borderRadius:"0 0 4px 4px" }}/>
           {/* Bottom desk */}
           <div style={{ position:"absolute", bottom:0, left:0, right:0, height:100, background:"linear-gradient(180deg,#161B22,#0D1117)", borderTop:"2px solid #30363D" }}>
             <div style={{ padding:"10px 20px", display:"flex", gap:12, alignItems:"center" }}>
-              <div style={{ width:120,height:60,background:"#21262D",borderRadius:4,border:"1px solid #30363D",display:"flex",alignItems:"center",justifyContent:"center" }}><span style={{fontSize:"1.2rem"}}>[PC]</span></div>
+              <div style={{ width:120,height:60,background:"#21262D",borderRadius:4,border:"1px solid #30363D",display:"flex",alignItems:"center",justifyContent:"center" }}><span style={{fontSize:"1.2rem"}}>💻</span></div>
               <div style={{ display:"flex",gap:6 }}>
                 {["#00D4FF","#7C3AFF","#FF3C3C"].map(c=>(
                   <div key={c} style={{ width:16,height:36,background:c+"33",border:`1px solid ${c}66`,borderRadius:3 }}/>
@@ -7147,7 +7157,7 @@ function PerformerPage() {
             <div style={{ height:6,background:"#D4C4B0",borderRadius:2 }}/>
             <div style={{ display:"flex",gap:12,padding:"4px 8px",alignItems:"flex-end" }}>
               <div style={{ width:30,height:50,background:"linear-gradient(180deg,#E8C4A8,#C8A882)",borderRadius:2 }}/>
-              <div style={{ width:40,height:40,background:"#F5F0E8",border:"2px solid #D4C4B0",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center" }}><span></span></div>
+              <div style={{ width:40,height:40,background:"#F5F0E8",border:"2px solid #D4C4B0",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center" }}><span>🌿</span></div>
               <div style={{ width:24,height:44,background:"linear-gradient(180deg,#C8D8E8,#A8B8C8)",borderRadius:2 }}/>
               <div style={{ width:32,height:36,background:"linear-gradient(180deg,#E8D0C0,#D0B8A8)",borderRadius:2 }}/>
             </div>
@@ -7155,9 +7165,9 @@ function PerformerPage() {
           {/* Desk bottom */}
           <div style={{ position:"absolute", bottom:0, left:0, right:0, height:120, background:"linear-gradient(180deg,#E8E0D0,#D4C8B0)", borderTop:"3px solid #C8B8A0" }}>
             <div style={{ padding:"12px 24px",display:"flex",gap:16,alignItems:"center" }}>
-              <div style={{ width:130,height:72,background:"linear-gradient(180deg,#2C2C2C,#1A1A1A)",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center" }}><span style={{fontSize:"1.4rem"}}>[PC]</span></div>
-              <div style={{ width:28,height:48,background:"#F5F5F5",borderRadius:4,border:"1px solid #DDD",display:"flex",alignItems:"center",justifyContent:"center" }}><span style={{fontSize:"0.8rem"}}>[APP]</span></div>
-              <div style={{ width:36,height:44,background:"white",borderRadius:"4px 4px 8px 8px",border:"1px solid #EEE",display:"flex",alignItems:"center",justifyContent:"center" }}><span></span></div>
+              <div style={{ width:130,height:72,background:"linear-gradient(180deg,#2C2C2C,#1A1A1A)",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center" }}><span style={{fontSize:"1.4rem"}}>💻</span></div>
+              <div style={{ width:28,height:48,background:"#F5F5F5",borderRadius:4,border:"1px solid #DDD",display:"flex",alignItems:"center",justifyContent:"center" }}><span style={{fontSize:"0.8rem"}}>📱</span></div>
+              <div style={{ width:36,height:44,background:"white",borderRadius:"4px 4px 8px 8px",border:"1px solid #EEE",display:"flex",alignItems:"center",justifyContent:"center" }}><span>☕</span></div>
             </div>
           </div>
         </div>
@@ -7280,7 +7290,7 @@ function PerformerPage() {
           boxShadow:"0 0 40px rgba(0,212,255,0.18)",
           zIndex:20, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
         }}>
-          <span style={{color:"#00D4FF",marginRight:10}}>[*]</span>
+          <span style={{color:"#00D4FF",marginRight:10}}>◉</span>
           {scriptText.length > 60 ? scriptText.slice(0,60)+"…" : scriptText}
         </div>
       )}
@@ -7338,7 +7348,7 @@ function PerformerPage() {
               value={scriptText}
               onChange={e => setScriptText(e.target.value)}
               onKeyDown={e => { if(e.key==="Enter"){ e.preventDefault(); readScript(scriptText); } e.stopPropagation(); }}
-              placeholder={lang==="id" ? "  Tulis skrip yang akan dibacakan avatar... (Enter untuk baca)" : "  Type script for avatar to speak... (Enter to read)"}
+              placeholder={lang==="id" ? "✍️  Tulis skrip yang akan dibacakan avatar... (Enter untuk baca)" : "✍️  Type script for avatar to speak... (Enter to read)"}
               style={{
                 flex:1, background:"rgba(255,255,255,0.05)",
                 border:"1px solid rgba(0,212,255,0.22)", borderRadius:999,
@@ -7357,7 +7367,7 @@ function PerformerPage() {
                 fontSize:"var(--text-sm)", fontWeight:700,
                 fontFamily:"var(--font-display)", transition:"all 0.15s", whiteSpace:"nowrap",
               }}>
-              {speaking ? "[STP] Stop" : (lang==="id" ? "▶ Baca" : "▶ Read")}
+              {speaking ? "⬛ Stop" : (lang==="id" ? "▶ Baca" : "▶ Read")}
             </button>
             <button
               onClick={aiRespond}
@@ -7368,7 +7378,7 @@ function PerformerPage() {
                 fontSize:"var(--text-sm)", fontWeight:700,
                 fontFamily:"var(--font-display)", transition:"all 0.15s", whiteSpace:"nowrap",
               }}>
-              {isThinking ? "⋯" : "[AI]"} AI
+              {isThinking ? "⋯" : "🤖"} AI
             </button>
           </div>
 
@@ -7378,7 +7388,7 @@ function PerformerPage() {
             {/* Avatar mode */}
             <div style={{ display:"flex", gap:3, alignItems:"center" }}>
               <span style={{fontSize:"0.62rem",color:"rgba(255,255,255,0.3)",letterSpacing:"0.08em",marginRight:2}}>STYLE</span>
-              {[{v:"realistic",l:"* Realistik"},{v:"cartoon",l:"[AVT] Kartun"},{v:"3d",l:"[LANG] 3D Live"}].map(s=>(
+              {[{v:"realistic",l:"✨ Realistik"},{v:"cartoon",l:"🎭 Kartun"},{v:"3d",l:"🌐 3D Live"}].map(s=>(
                 <button key={s.v} onClick={()=>setAvatarStyle(s.v)} style={{
                   padding:"4px 9px", borderRadius:999, cursor:"pointer",
                   background: avatarStyle===s.v ? "rgba(124,58,255,0.25)" : "transparent",
@@ -7394,7 +7404,7 @@ function PerformerPage() {
             {/* Avatar mode */}
             <div style={{ display:"flex", gap:3, alignItems:"center" }}>
               <span style={{fontSize:"0.62rem",color:"rgba(255,255,255,0.3)",letterSpacing:"0.08em",marginRight:2}}>MODE</span>
-              {[{v:"svg",l:"[AVT] Avatar"},{v:"webcam",l:" Wajahku"},{v:"hybrid",l:"* Gabung"}].map(m=>(
+              {[{v:"svg",l:"🎭 Avatar"},{v:"webcam",l:"📸 Wajahku"},{v:"hybrid",l:"✨ Gabung"}].map(m=>(
                 <button key={m.v} onClick={()=>setAvatarMode(m.v)} style={{
                   padding:"4px 9px", borderRadius:999, cursor:"pointer",
                   background: avatarMode===m.v ? "rgba(0,212,255,0.2)" : "transparent",
@@ -7430,9 +7440,9 @@ function PerformerPage() {
                 {v:"dark",          l:"Dark",       c:"#555"},
                 {v:"transparent",   l:"Clear",      c:"rgba(255,255,255,0.5)"},
                 {v:"green",         l:"Chroma",     c:"#00B140"},
-                {v:"room_affiliate",l:"[HOME] Kamar",   c:"#C8A882"},
-                {v:"room_studio",   l:"[STD] Studio",  c:"#7C3AFF"},
-                {v:"room_minimal",  l:" Minimal", c:"#A0A0A0"},
+                {v:"room_affiliate",l:"🏠 Kamar",   c:"#C8A882"},
+                {v:"room_studio",   l:"🎬 Studio",  c:"#7C3AFF"},
+                {v:"room_minimal",  l:"☁️ Minimal", c:"#A0A0A0"},
               ].map(b=>(
                 <button key={b.v} onClick={()=>setBg(b.v)} style={{
                   padding:"4px 9px", borderRadius:999, cursor:"pointer",
@@ -7448,7 +7458,7 @@ function PerformerPage() {
             <div style={{width:1,height:22,background:"rgba(255,255,255,0.08)"}}/>
 
             {/* Emotion picks */}
-            {[{id:"idle",e:""},{id:"happy",e:"[SMILE]"},{id:"excited",e:"[HOT]"},{id:"laughing",e:"[LOL]"},{id:"sad",e:""},{id:"sleepy",e:""}].map(em => (
+            {[{id:"idle",e:"😐"},{id:"happy",e:"😊"},{id:"excited",e:"🔥"},{id:"laughing",e:"😂"},{id:"sad",e:"😔"},{id:"sleepy",e:"😴"}].map(em => (
               <button key={em.id} onClick={() => setAvatarState(em.id)} style={{
                 width:30, height:30, borderRadius:"50%", cursor:"pointer",
                 background: avatarState===em.id ? "rgba(0,212,255,0.18)" : "transparent",
@@ -7462,7 +7472,7 @@ function PerformerPage() {
 
             {/* Comment test input */}
             <input
-              placeholder={lang==="id"?"[CHAT] Test komentar (Enter kirim)...":"[CHAT] Test comment (Enter send)..."}
+              placeholder={lang==="id"?"💬 Test komentar (Enter kirim)...":"💬 Test comment (Enter send)..."}
               style={{
                 width:200, background:"rgba(255,255,255,0.04)",
                 border:"1px solid rgba(255,255,255,0.1)", borderRadius:999,
@@ -7485,7 +7495,7 @@ function PerformerPage() {
               border:`1px solid ${showComments ? "rgba(0,212,255,0.35)" : "rgba(255,255,255,0.1)"}`,
               color: showComments ? "#00D4FF" : "rgba(255,255,255,0.35)",
               fontSize:"0.68rem", fontWeight:700, fontFamily:"var(--font-display)",
-            }}>[CHAT] {showComments?"ON":"OFF"}</button>
+            }}>💬 {showComments?"ON":"OFF"}</button>
 
             <div style={{flex:1}}/>
 
@@ -7527,7 +7537,7 @@ function PerformerPage() {
         pointerEvents:"none",
         opacity: showPanel ? 0 : 0.6, transition:"opacity 0.4s",
       }}>
-        ALTERCAST [*] PERFORMER
+        ALTERCAST ◉ PERFORMER
       </div>
     </div>
   );
@@ -7571,28 +7581,14 @@ Object.assign(window, {
 });
 
 /* ─────────────────────────────────────────────
-   AlterCast — Local Database (no registration)
-   localStorage auto-persist, zero server needed
-   ───────────────────────────────────────────── */
-const _LS = "altercast_v1";
-function lsLoad() { try { return JSON.parse(localStorage.getItem(_LS) || "{}"); } catch(e) { return {}; } }
-function lsGet(k, def) { const v = lsLoad()[k]; return v !== undefined ? v : def; }
-function lsSave(patch) {
-  try {
-    const prev = lsLoad();
-    localStorage.setItem(_LS, JSON.stringify(Object.assign({}, prev, patch)));
-  } catch(e) {}
-}
-
-/* ─────────────────────────────────────────────
    AlterCast — Main App v1.0
    Root component, state management, routing
    ───────────────────────────────────────────── */
 
 function App() {
-  /* ── GLOBAL STATE — initial values loaded from localStorage ── */
-  const [lang,          setLang]          = React.useState(() => lsGet("lang",  "id"));
-  const [theme,         setTheme]         = React.useState(() => lsGet("theme", "dark"));
+  /* ── GLOBAL STATE ── */
+  const [lang,          setLang]          = React.useState("id");
+  const [theme,         setTheme]         = React.useState("dark");
   const [currentPage,   setCurrentPage]   = React.useState("landing");
 
   /* Stream state */
@@ -7602,9 +7598,9 @@ function App() {
 
   /* Controls */
   const [isMicOn,       setIsMicOn]       = React.useState(false);
-  const [isVoiceOn,     setIsVoiceOn]     = React.useState(() => lsGet("isVoiceOn", true));
+  const [isVoiceOn,     setIsVoiceOn]     = React.useState(true);
   const [isCameraOn,    setIsCameraOn]    = React.useState(false);
-  const [isAIActive,    setIsAIActive]    = React.useState(() => lsGet("isAIActive", true));
+  const [isAIActive,    setIsAIActive]    = React.useState(true);
 
   /* Avatar */
   const [avatarState,   setAvatarState]   = React.useState("idle");
@@ -7613,14 +7609,7 @@ function App() {
   const [chatMessages,  setChatMessages]  = React.useState(MOCK_CHAT);
 
   /* Volume */
-  const [volume,        setVolume]        = React.useState(() => lsGet("volume", 80));
-
-  /* ── AUTO-SAVE preferences to localStorage on every change ── */
-  React.useEffect(() => { lsSave({ lang }); }, [lang]);
-  React.useEffect(() => { lsSave({ theme }); }, [theme]);
-  React.useEffect(() => { lsSave({ volume }); }, [volume]);
-  React.useEffect(() => { lsSave({ isVoiceOn }); }, [isVoiceOn]);
-  React.useEffect(() => { lsSave({ isAIActive }); }, [isAIActive]);
+  const [volume,        setVolume]        = React.useState(80);
 
   /* Toasts */
   const [toasts,        setToasts]        = React.useState([]);
@@ -7859,7 +7848,7 @@ function AlterCastTweaks({ onClose }) {
         <div>
           <div style={{ fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-muted)", marginBottom: "6px" }}>Language</div>
           <div style={{ display: "flex", gap: "6px" }}>
-            {[{v:"id",l:" ID"},{v:"en",l:" EN"}].map(({v,l}) => (
+            {[{v:"id",l:"🇮🇩 ID"},{v:"en",l:"🇺🇸 EN"}].map(({v,l}) => (
               <button key={v}
                 onClick={() => { setTweak("language", v); setLang(v); }}
                 style={{
@@ -7925,12 +7914,12 @@ function AlterCastTweaks({ onClose }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>
-                {isLive ? "[LIVE] " + S.status_live : "[OFF] " + S.status_offline}
+                {isLive ? "🔴 " + S.status_live : "⚫ " + S.status_offline}
               </span>
               <Toggle checked={isLive} onChange={(v) => { setIsLive(v); addToast(v ? S.toast_live : S.toast_stopped, v ? "success" : "default"); }} size="sm" />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>[AFK] AFK Mode</span>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-secondary)" }}>🌙 AFK Mode</span>
               <Toggle checked={isAFKMode} onChange={(v) => { setIsAFKMode(v); addToast(v ? S.toast_afk_on : S.toast_afk_off, "info"); }} size="sm" />
             </div>
           </div>
@@ -7958,6 +7947,10 @@ function AlterCastTweaks({ onClose }) {
 const rootEl = document.getElementById("root");
 const root = ReactDOM.createRoot(rootEl);
 root.render(<App />);
+/* Hide pre-render loading overlay once React is done painting */
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  if (window.__hidePreLoad) window.__hidePreLoad();
+}));
 
 </script>
 
