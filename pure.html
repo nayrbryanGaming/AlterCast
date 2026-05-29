@@ -116,15 +116,15 @@ canvas{display:block;width:100%!important;height:100%!important}
 <div id="bub"></div>
 <div id="cmts"></div>
 
-<!-- Real-time AI Motion Proof Panel -->
-<div id="proof-panel" style="position:fixed;top:14px;right:155px;background:rgba(0,0,0,.72);border:1px solid rgba(0,212,255,.35);border-radius:10px;padding:10px 14px;font:10px/1.6 monospace;color:#00D4FF;letter-spacing:.06em;pointer-events:none;z-index:60;min-width:170px;backdrop-filter:blur(8px);">
-  <div style="font-weight:800;font-size:11px;margin-bottom:6px;color:#fff;letter-spacing:.12em;">⬡ AI MOTION BRAIN</div>
-  <div id="pm-head">HEAD ····</div>
-  <div id="pm-jaw">JAW  ····</div>
-  <div id="pm-eye">EYES ····</div>
-  <div id="pm-arm">ARMS ····</div>
-  <div id="pm-breath">BREATH··</div>
-  <div id="pm-state" style="margin-top:6px;color:#00FF88;font-weight:700;">● IDLE</div>
+<!-- Real-time AI Motion Proof Panel — bottom-left, always visible -->
+<div id="proof-panel" style="position:fixed;bottom:120px;left:14px;background:rgba(0,6,18,.88);border:1px solid rgba(0,212,255,.4);border-radius:10px;padding:12px 16px;font:11px/1.8 monospace;color:#00D4FF;letter-spacing:.07em;pointer-events:none;z-index:90;min-width:210px;backdrop-filter:blur(12px);box-shadow:0 0 30px rgba(0,212,255,.15);">
+  <div style="font-weight:900;font-size:12px;margin-bottom:8px;color:#fff;letter-spacing:.14em;border-bottom:1px solid rgba(0,212,255,.2);padding-bottom:6px;">⬡ AI MOTION BRAIN LIVE</div>
+  <div id="pm-head">HEAD ················</div>
+  <div id="pm-jaw">JAW  ················</div>
+  <div id="pm-eye">EYES ················</div>
+  <div id="pm-arm">ARMS ················</div>
+  <div id="pm-breath">BRTH ················</div>
+  <div id="pm-state" style="margin-top:8px;font-size:13px;font-weight:900;color:#00FF88;letter-spacing:.1em;">● AI IDLE</div>
 </div>
 
 <!-- Character panel (built dynamically) -->
@@ -372,6 +372,7 @@ const topL  = new THREE.DirectionalLight(0xFFEEAA,1.4); topL.position.set(0,5,1)
    ══════════════════════════════════════════════ */
 const Motion = {
   state: 'idle',  /* idle | talking | excited | listening */
+  waveTime: 0,    /* for arm wave cycle */
 
   /* Layered sine noise: more natural than single frequency */
   noise(t, layers=[
@@ -381,64 +382,73 @@ const Motion = {
            layers.reduce((s,[,a])=>s+a, 0);
   },
 
-  /* Body sway — MORE VISIBLE organic drift (2x amplitude) */
+  /* Body sway — VERY VISIBLE 3x amplitude */
   bodySwayX(t){ return this.noise(t,[
-    [0.3,1],[0.7,0.4],[1.8,0.15],[0.11,0.1]]) * (this.state==='excited'?.16:.065); },
+    [0.3,1],[0.7,0.4],[1.8,0.15],[0.11,0.1]]) * (this.state==='excited'?.22:.09); },
   bodySwayZ(t){ return this.noise(t+10,[
-    [0.25,1],[0.6,0.35],[2.1,0.12]]) * (this.state==='excited'?.10:.042); },
+    [0.25,1],[0.6,0.35],[2.1,0.12]]) * (this.state==='excited'?.14:.055); },
 
-  /* Breathing — visible chest rise (2x) */
-  breatheY(t){ return (Math.sin(t*0.9)*0.6 + Math.sin(t*1.8)*0.2 + Math.sin(t*0.3)*0.2) *
-    (this.state==='idle'?.075:.11); },
+  /* Breathing — very visible chest rise */
+  breatheY(t){ return (Math.sin(t*0.9)*0.7 + Math.sin(t*1.8)*0.2 + Math.sin(t*0.3)*0.1) *
+    (this.state==='idle'?.10:.16); },
 
-  /* Head movement — strongly visible natural motion */
-  headYaw(t){ return this.noise(t+3,[
-    [0.22,1],[0.55,0.5],[1.3,0.2],[3.5,0.05]]) * (this.state==='talking'?.32:.18); },
-  headPitch(t){ return this.noise(t+7,[
-    [0.18,1],[0.45,0.45],[1.1,0.18]]) * (this.state==='talking'?.22:.12); },
-  headRoll(t){ return this.noise(t+15,[
-    [0.14,1],[0.38,0.4]]) * .08; },
+  /* Head — DRAMATIC nodding and looking around */
+  headYaw(t){   /* left-right: scan the room */
+    return this.noise(t+3,[[0.22,1],[0.55,0.5],[1.3,0.2],[3.5,0.05]]) *
+      (this.state==='talking'?.45:.28); },
+  headPitch(t){ /* up-down: nod */
+    return this.noise(t+7,[[0.18,1],[0.45,0.45],[1.1,0.18]]) *
+      (this.state==='talking'?.30:.18); },
+  headRoll(t){  /* tilt */
+    return this.noise(t+15,[[0.14,1],[0.38,0.4]]) * .12; },
 
-  /* Weight shift — visible hip sway */
-  hipSway(t){ return Math.sin(t*0.19)*0.08 + Math.sin(t*0.41)*0.03; },
+  /* Hip sway */
+  hipSway(t){ return Math.sin(t*0.19)*0.10 + Math.sin(t*0.41)*0.04; },
 
-  /* Arm swing — AGGRESSIVELY bring arms down from ANY raised pose */
-  /* Z rotation: -0.75 = arms hang naturally at sides */
-  armSwingL(t){ return -0.75 + Math.sin(t*0.31)*0.18 + Math.sin(t*0.7)*0.08; },
-  armSwingR(t){ return  0.75 - Math.sin(t*0.31)*0.18 - Math.sin(t*0.7)*0.08; },
-  armFwdL(t){  return  0.10 + Math.sin(t*0.27)*0.06; },
-  armFwdR(t){  return  0.10 + Math.sin(t*0.27+1)*0.06; },
+  /* ARM WAVE — left arm waves hello in idle, right arm pendant */
+  armWave(t){   /* 0→1→0 wave cycle, repeating */
+    return -Math.PI*0.6 + Math.sin(t*1.8)*Math.PI*0.55 + Math.sin(t*0.6)*0.15;
+  },
+  armSwingL(t){ return this.state==='talking'
+    ? -0.75 + Math.sin(t*0.4)*0.25 + Math.sin(t*0.9)*0.12 /* talking: both sway */
+    : this.armWave(t); }, /* idle: left arm WAVES */
+  armSwingR(t){ return  0.75 - Math.sin(t*0.31)*0.22 - Math.sin(t*0.7)*0.10; },
+  armFwdL(t){  return  0.10 + Math.sin(t*0.27)*0.10; },
+  armFwdR(t){  return  0.10 + Math.sin(t*0.27+1)*0.10; },
 
-  /* Spine twist — visible torso movement */
-  spineTwist(t){ return Math.sin(t*0.19)*0.04 + Math.sin(t*0.41)*0.016; },
+  /* Spine twist */
+  spineTwist(t){ return Math.sin(t*0.19)*0.06 + Math.sin(t*0.41)*0.022; },
 
-  /* Jaw open amount — bigger and clearer mouth movement */
+  /* JAW — very clear mouth movement */
   jawOpen(t){ return this.state==='talking'
-    ? Math.max(0, Math.sin(t*8)*0.6 + Math.sin(t*12)*0.3 + Math.sin(t*5)*0.25)
-    : Math.max(0, Math.sin(t*0.6)*0.12 + Math.sin(t*1.4)*0.05); },
+    ? Math.max(0, Math.sin(t*7)*0.7 + Math.sin(t*11)*0.35 + Math.sin(t*4)*0.2)
+    : Math.max(0, Math.sin(t*0.55)*0.18 + Math.sin(t*1.3)*0.08); },
 
-  /* Eye blink — VERY visible — blinks every 3.5s with clear close */
+  /* EYE BLINK — very visible double blink every 3s */
   eyeBlink(t){
-    const cycle = t % 3.5;
-    if(cycle < 0.10) return cycle/0.10;         /* close: 0→1 over 100ms */
-    if(cycle < 0.22) return 1-(cycle-0.10)/0.12; /* open: 1→0 over 120ms */
-    if(cycle < 0.28) return 0;                   /* stay closed briefly */
-    if(cycle < 0.32) return (cycle-0.28)/0.04;   /* reopen */
+    const c = t % 3.0;
+    if(c < 0.08)  return c/0.08;
+    if(c < 0.18)  return 1-(c-0.08)/0.10;
+    if(c < 0.55)  return 0;
+    if(c < 0.62)  return (c-0.55)/0.07;  /* second blink */
+    if(c < 0.70)  return 1-(c-0.62)/0.08;
     return 0;
   },
 
-  /* Eye look direction — clearly visible scanning motion */
-  eyeLookX(t){ return Math.sin(t*0.21)*0.25 + Math.sin(t*0.58)*0.10; },
-  eyeLookY(t){ return Math.sin(t*0.17)*0.14 + Math.sin(t*0.42)*0.06; },
+  /* Eye scanning — clear side-to-side look */
+  eyeLookX(t){ return Math.sin(t*0.19)*0.32 + Math.sin(t*0.54)*0.14; },
+  eyeLookY(t){ return Math.sin(t*0.15)*0.18 + Math.sin(t*0.39)*0.08; },
 
-  /* Camera target drift */
-  camDriftX(t){ return Math.sin(t*0.21)*0.08 + Math.sin(t*0.57)*0.03; },
-  camDriftY(t){ return Math.sin(t*0.17)*0.05 + Math.sin(t*0.44)*0.02; },
+  camDriftX(t){ return Math.sin(t*0.21)*0.10 + Math.sin(t*0.57)*0.04; },
+  camDriftY(t){ return Math.sin(t*0.17)*0.06 + Math.sin(t*0.44)*0.025; },
 
   setState(s){
     this.state=s;
-    const icons={idle:'●',talking:'◉',excited:'★',listening:'◈'};
-    $('motion-hud').textContent = `AI MOTION · ${icons[s]||'●'} ${s.toUpperCase()} · REAL-TIME`;
+    const icons={idle:'● IDLE',talking:'◉ BICARA',excited:'★ EXCITED',listening:'◈ DENGAR'};
+    const colors={idle:'#00FF88',talking:'#00D4FF',excited:'#FFB800',listening:'#7C3AFF'};
+    const hud=$('motion-hud');
+    hud.textContent=`AI MOTION · ${icons[s]||s.toUpperCase()} · REAL-TIME`;
+    hud.style.color=colors[s]||'rgba(0,212,255,.35)';
   },
 };
 
@@ -1472,16 +1482,16 @@ function runDemoTalk(){
   }
 }
 
-/* Start demo loop after GLB loads */
+/* Start demo loop — immediately starts talking to prove AI is live */
 let _demoTimer=null;
 function startDemoLoop(){
   if(_demoTimer) return;
-  /* First demo after 2 seconds */
+  /* First demo in 1 second */
   _demoTimer=setTimeout(function loop(){
     runDemoTalk();
-    /* Next phrase after current finishes (roughly 4-6s) */
-    _demoTimer=setTimeout(loop, 6000 + Math.random()*4000);
-  }, 2000);
+    /* Next phrase: 4-5 seconds (fast cycling to prove continuous AI control) */
+    _demoTimer=setTimeout(loop, 4000 + Math.random()*1500);
+  }, 1000);
 }
 
 /* Update bone status HUD after GLB loads */
