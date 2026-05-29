@@ -681,6 +681,45 @@ function forceRestPose(obj){
   console.log('[AlterCast] forceRestPose — bones reset to bind pose, AI Motion Brain takeover');
 }
 
+/* ══ AUTO-RESET DANCE/ACTION POSE ══
+   Scans arm/shoulder bones and resets any with rotation > 0.45 rad.
+   Called after GLB load — gives AI Motion Brain a clean slate.
+   Works regardless of which axis the artist used for arm raise.
+*/
+function autoResetDanceBones(obj){
+  obj.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(obj);
+  const sz=box.getSize(new THREE.Vector3()); const h=sz.y;
+  const mn=box.min;
+  let resetCount=0;
+
+  getAllBones(obj).forEach(bone=>{
+    const nm=(bone.name||'').toLowerCase();
+    /* Only target arm/shoulder/clavicle bones in upper body */
+    if(!nm.match(/arm|shoulder|clavicle|upperarm|hand|wrist|elbow|forearm/)) return;
+
+    /* World position — skip bones below waist */
+    const wp=new THREE.Vector3(); bone.getWorldPosition(wp);
+    const relY=(wp.y-mn.y)/h;
+    if(relY<0.40) return; /* below waist — skip */
+
+    /* Rotation magnitude — detect dance pose */
+    const r=bone.rotation;
+    const mag=Math.sqrt(r.x*r.x + r.y*r.y + r.z*r.z);
+    if(mag>0.45){ /* > ~26 degrees = probably dance/action pose */
+      bone.rotation.set(0,0,0);
+      bone.quaternion.set(0,0,0,1); /* also clear quaternion directly */
+      resetCount++;
+      console.log(`[AlterCast] dance-pose reset: ${bone.name} mag=${mag.toFixed(2)}`);
+    }
+  });
+
+  if(resetCount>0){
+    obj.updateMatrixWorld(true);
+    console.log(`[AlterCast] autoResetDanceBones: cleared ${resetCount} bones — AI motion now controls all`);
+  }
+}
+
 function dumpBones(obj){
   const bones=getAllBones(obj);
   const names=bones.map(b=>b.name).filter(Boolean);
@@ -803,6 +842,9 @@ async function loadChar(key){
         if(!armRBone) armRBone=pos.armR;
       }
       dumpBones(obj);
+
+      /* ── PHASE 4: Auto-reset dance/action pose — arms down, AI motion takeover ── */
+      autoResetDanceBones(obj);
 
       /* Collect morph target meshes (jaw, eyes, face expressions) */
       morphMeshes=[];
