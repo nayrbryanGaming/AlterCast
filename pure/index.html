@@ -361,26 +361,35 @@ const Motion = {
            layers.reduce((s,[,a])=>s+a, 0);
   },
 
-  /* Body sway — slow organic drift */
+  /* Body sway — visible organic drift */
   bodySwayX(t){ return this.noise(t,[
-    [0.3,1],[0.7,0.4],[1.8,0.15],[0.11,0.1]]) * (this.state==='excited'?.012:.005); },
+    [0.3,1],[0.7,0.4],[1.8,0.15],[0.11,0.1]]) * (this.state==='excited'?.08:.035); },
   bodySwayZ(t){ return this.noise(t+10,[
-    [0.25,1],[0.6,0.35],[2.1,0.12]]) * (this.state==='excited'?.008:.003); },
+    [0.25,1],[0.6,0.35],[2.1,0.12]]) * (this.state==='excited'?.05:.022); },
 
-  /* Breathing — chest rise */
+  /* Breathing — visible chest rise */
   breatheY(t){ return (Math.sin(t*0.9)*0.6 + Math.sin(t*1.8)*0.2 + Math.sin(t*0.3)*0.2) *
-    (this.state==='idle'?.007:.011); },
+    (this.state==='idle'?.04:.06); },
 
-  /* Head micro-movement */
+  /* Head movement — clearly visible */
   headYaw(t){ return this.noise(t+3,[
-    [0.22,1],[0.55,0.5],[1.3,0.2],[3.5,0.05]]) * (this.state==='talking'?.06:.03); },
+    [0.22,1],[0.55,0.5],[1.3,0.2],[3.5,0.05]]) * (this.state==='talking'?.18:.10); },
   headPitch(t){ return this.noise(t+7,[
-    [0.18,1],[0.45,0.45],[1.1,0.18]]) * (this.state==='talking'?.04:.02); },
+    [0.18,1],[0.45,0.45],[1.1,0.18]]) * (this.state==='talking'?.12:.07); },
   headRoll(t){ return this.noise(t+15,[
-    [0.14,1],[0.38,0.4]]) * .015; },
+    [0.14,1],[0.38,0.4]]) * .045; },
 
-  /* Weight shift — pelvis/hip sway */
-  hipSway(t){ return Math.sin(t*0.19)*0.008 + Math.sin(t*0.41)*0.003; },
+  /* Weight shift — visible hip sway */
+  hipSway(t){ return Math.sin(t*0.19)*0.045 + Math.sin(t*0.41)*0.018; },
+
+  /* Arm swing — brings arms down from T-pose, natural idle sway */
+  armSwingL(t){ return -0.55 + Math.sin(t*0.31)*0.08 + Math.sin(t*0.7)*0.03; },
+  armSwingR(t){ return  0.55 - Math.sin(t*0.31)*0.08 - Math.sin(t*0.7)*0.03; },
+  armFwdL(t){  return  0.12 + Math.sin(t*0.27)*0.04; },
+  armFwdR(t){  return  0.12 + Math.sin(t*0.27+1)*0.04; },
+
+  /* Spine twist — torso counter-rotation to hip sway */
+  spineTwist(t){ return Math.sin(t*0.19)*0.022 + Math.sin(t*0.41)*0.009; },
 
   /* Jaw open amount 0-1 */
   jawOpen(t){ return this.state==='talking'
@@ -468,6 +477,9 @@ async function loadChar(key){
     });
     currentChar=null; currentMixer=null; charInfoBox=null;
     headBone=null; hipBone=null; spineBone=null;
+    jawBone=null; eyeLBone=null; eyeRBone=null;
+    armLBone=null; armRBone=null; foreArmLBone=null; foreArmRBone=null;
+    morphMeshes=[];
   }
 
   $('err').classList.remove('show');
@@ -513,9 +525,13 @@ async function loadChar(key){
       headBone  = findBone(obj,['head','skull','neck_01','neck1']);
       hipBone   = findBone(obj,['hips','pelvis','hip','root','bip01']);
       spineBone = findBone(obj,['spine','chest','torso']);
-      jawBone   = findBone(obj,['jaw','jaw_lower','lowerjaw','chin','mandible']);
-      eyeLBone  = findBone(obj,['eye_l','eyeleft','eye.l','lefteye','l_eye']);
-      eyeRBone  = findBone(obj,['eye_r','eyeright','eye.r','righteye','r_eye']);
+      jawBone      = findBone(obj,['jaw','jaw_lower','lowerjaw','chin','mandible']);
+      eyeLBone     = findBone(obj,['eye_l','eyeleft','eye.l','lefteye','l_eye']);
+      eyeRBone     = findBone(obj,['eye_r','eyeright','eye.r','righteye','r_eye']);
+      armLBone     = findBone(obj,['leftarm','left_arm','arm_l','upperarm_l','larm','mixamorig:leftarm','shoulder_l','clavicle_l','arm.l']);
+      armRBone     = findBone(obj,['rightarm','right_arm','arm_r','upperarm_r','rarm','mixamorig:rightarm','shoulder_r','clavicle_r','arm.r']);
+      foreArmLBone = findBone(obj,['leftforearm','forearm_l','lforearm','mixamorig:leftforearm','elbow_l','forearm.l']);
+      foreArmRBone = findBone(obj,['rightforearm','forearm_r','rforearm','mixamorig:rightforearm','elbow_r','forearm.r']);
 
       /* Collect morph target meshes (jaw, eyes, face expressions) */
       morphMeshes=[];
@@ -694,6 +710,7 @@ function loadProceduralChar(key){
 let currentCamPreset='bust', spinSpeed=0;
 let headBone=null, hipBone=null, spineBone=null;
 let jawBone=null, eyeLBone=null, eyeRBone=null;
+let armLBone=null, armRBone=null, foreArmLBone=null, foreArmRBone=null;
 let morphMeshes=[]; /* meshes with morph targets */
 let isProcedural=false; /* true when showing built-in fallback */
 let procJaw=null, procEyeL=null, procEyeR=null; /* procedural part refs */
@@ -848,14 +865,36 @@ function animate(){
       headBone.rotation.x = Motion.headPitch(t);
       headBone.rotation.z = Motion.headRoll(t);
     }
-    /* Spine gentle sway */
+    /* Spine twist + sway */
     if(spineBone){
-      spineBone.rotation.z = Motion.bodySwayX(t) * 0.4;
-      spineBone.rotation.x = Motion.bodySwayZ(t) * 0.3;
+      spineBone.rotation.z = Motion.bodySwayX(t) * 0.5;
+      spineBone.rotation.x = Motion.bodySwayZ(t) * 0.4;
+      spineBone.rotation.y = Motion.spineTwist(t);
     }
     /* Hip bone sway */
     if(hipBone){
-      hipBone.rotation.z = Motion.hipSway(t) * 0.5;
+      hipBone.rotation.z = Motion.hipSway(t) * 0.6;
+      hipBone.position.x = Motion.hipSway(t) * 0.3;
+    }
+
+    /* ARM BONES — swing arms down from T-pose into natural idle */
+    if(armLBone){
+      armLBone.rotation.z  = Motion.armSwingL(t);
+      armLBone.rotation.x  = Motion.armFwdL(t);
+      armLBone.rotation.y  = Math.sin(t*0.23)*0.04;
+    }
+    if(armRBone){
+      armRBone.rotation.z  = Motion.armSwingR(t);
+      armRBone.rotation.x  = Motion.armFwdR(t);
+      armRBone.rotation.y  = Math.sin(t*0.23+1)*0.04;
+    }
+    if(foreArmLBone){
+      foreArmLBone.rotation.z = Math.sin(t*0.31)*0.05;
+      foreArmLBone.rotation.y = Math.sin(t*0.44)*0.04;
+    }
+    if(foreArmRBone){
+      foreArmRBone.rotation.z = Math.sin(t*0.31+2)*0.05;
+      foreArmRBone.rotation.y = Math.sin(t*0.44+1)*0.04;
     }
 
     /* JAW BONE — mouth open/close */
