@@ -449,15 +449,47 @@ function upgradeMat(mat, meshName=''){
   return mat;
 }
 
-/* Bone search helper */
+/* Bone search — by name list */
 function findBone(obj, names){
   let found=null;
   obj.traverse(n=>{
     if(found) return;
-    const ln=(n.name||'').toLowerCase();
-    if(names.some(k=>ln.includes(k))) found=n;
+    const ln=(n.name||'').toLowerCase().replace(/[:\s\.]/g,'');
+    if(names.some(k=>ln.includes(k.replace(/[:\s\.]/g,'')))) found=n;
   });
   return found;
+}
+
+/* Position-based arm bone finder — works on ANY rig without knowing names */
+function findArmBonesByPos(obj, charHeight){
+  const h = charHeight || 1.7;
+  let bestL=null, bestLx=0;
+  let bestR=null, bestRx=0;
+  obj.traverse(n=>{
+    if(!n.isBone && n.type!=='Bone') return;
+    const wp=new THREE.Vector3();
+    n.getWorldPosition(wp);
+    const ry = wp.y/h;
+    // Shoulder zone: 55-88% of height, significant X offset (arm area)
+    if(ry>0.52 && ry<0.90){
+      const ax=Math.abs(wp.x);
+      const hasChildren = n.children.some(c=>c.isBone||c.type==='Bone');
+      if(!hasChildren) return; // skip leaf bones (hands/fingers)
+      // Left arm: negative X, pick closest-to-body upper arm
+      if(wp.x < -h*0.08 && ax<h*0.42 && ax>bestLx){ bestL=n; bestLx=ax; }
+      // Right arm: positive X
+      if(wp.x >  h*0.08 && ax<h*0.42 && ax>bestRx){ bestR=n; bestRx=ax; }
+    }
+  });
+  return {armL:bestL, armR:bestR};
+}
+
+/* Print all bone names to console for debugging */
+function dumpBones(obj){
+  const names=[];
+  obj.traverse(n=>{ if(n.isBone||n.type==='Bone') names.push(n.name); });
+  console.log('[AlterCast bones]', names.join(', '));
+  return names;
 }
 
 async function loadChar(key){
@@ -528,10 +560,21 @@ async function loadChar(key){
       jawBone      = findBone(obj,['jaw','jaw_lower','lowerjaw','chin','mandible']);
       eyeLBone     = findBone(obj,['eye_l','eyeleft','eye.l','lefteye','l_eye']);
       eyeRBone     = findBone(obj,['eye_r','eyeright','eye.r','righteye','r_eye']);
-      armLBone     = findBone(obj,['leftarm','left_arm','arm_l','upperarm_l','larm','mixamorig:leftarm','shoulder_l','clavicle_l','arm.l']);
-      armRBone     = findBone(obj,['rightarm','right_arm','arm_r','upperarm_r','rarm','mixamorig:rightarm','shoulder_r','clavicle_r','arm.r']);
-      foreArmLBone = findBone(obj,['leftforearm','forearm_l','lforearm','mixamorig:leftforearm','elbow_l','forearm.l']);
-      foreArmRBone = findBone(obj,['rightforearm','forearm_r','rforearm','mixamorig:rightforearm','elbow_r','forearm.r']);
+      /* Arm bones — comprehensive name list + position-based fallback */
+      armLBone  = findBone(obj,['leftarm','left_arm','arm_l','upperarm_l','larm','shoulderl','shoulder_l','clavicle_l','arm.l','l_arm','l_shoulder','mixamorig:leftarm','j_bip_l_upperarm','upper_arm.l','leftupperarm','lshoulder','lArm']);
+      armRBone  = findBone(obj,['rightarm','right_arm','arm_r','upperarm_r','rarm','shoulderr','shoulder_r','clavicle_r','arm.r','r_arm','r_shoulder','mixamorig:rightarm','j_bip_r_upperarm','upper_arm.r','rightupperarm','rshoulder','rArm']);
+      foreArmLBone = findBone(obj,['leftforearm','forearm_l','lforearm','mixamorig:leftforearm','elbow_l','forearm.l','forearm_l','lforearm','lower_arm.l','j_bip_l_lowerarm']);
+      foreArmRBone = findBone(obj,['rightforearm','forearm_r','rforearm','mixamorig:rightforearm','elbow_r','forearm.r','forearm_r','rforearm','lower_arm.r','j_bip_r_lowerarm']);
+
+      /* Position-based fallback if names didn't match */
+      if(!armLBone || !armRBone){
+        const box3=new THREE.Box3().setFromObject(obj);
+        const h3=box3.getSize(new THREE.Vector3()).y;
+        const pos=findArmBonesByPos(obj, h3);
+        if(!armLBone) armLBone=pos.armL;
+        if(!armRBone) armRBone=pos.armR;
+      }
+      dumpBones(obj); /* log bone names to console */
 
       /* Collect morph target meshes (jaw, eyes, face expressions) */
       morphMeshes=[];
