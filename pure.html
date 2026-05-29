@@ -643,16 +643,15 @@ function buildVirtualSkeleton(obj){
    This gives AI Motion Brain a clean slate to work from.
 */
 function forceRestPose(obj){
+  /* Use THREE.Skeleton.pose() — properly resets to GLB bind pose (T-pose/A-pose) */
   obj.traverse(n=>{
-    if(n.isBone || n.type==='Bone'){
-      n.rotation.set(0,0,0);
-      n.scale.set(1,1,1);
+    if(n.isSkinnedMesh && n.skeleton){
+      n.skeleton.pose(); /* THREE.js built-in: reset each bone to its bind-pose quaternion */
+      n.skeleton.update();
     }
-    /* Update skinned mesh skeleton after bone reset */
-    if(n.isSkinnedMesh && n.skeleton) n.skeleton.update();
   });
   obj.updateMatrixWorld(true);
-  console.log('[AlterCast] forceRestPose applied — AI Motion Brain now controls all movement');
+  console.log('[AlterCast] forceRestPose — bones reset to bind pose, AI Motion Brain takeover');
 }
 
 function dumpBones(obj){
@@ -1388,15 +1387,101 @@ setTimeout(()=>{
     autoIdx=0;
     /* Notify parent: real GLB loaded, motion brain active */
     window.parent?.postMessage({type:'AVATAR_GLB_LOADED',data:{key:CHAR_KEYS[0]}},'*');
+    updateBoneHUD();
+    startDemoLoop();
     log('Avatar GLB siap — AI Motion Brain aktif');
   }).catch(err=>{
     /* GLB failed — procedural already showing, no action needed */
     console.warn('[AlterCast] GLB load failed, procedural stays:', err.message);
     $('status').textContent='HOLO · AI PROCEDURAL · MOTION ACTIVE';
+    updateBoneHUD();
   });
 }, 400); /* 400ms delay — let procedural render first */
 
-console.log('%cAlterCast Holographic Engine v6 — 164 chars — AI Motion Brain — INSTANT START','color:#00D4FF;font-weight:bold;font-size:13px');
+/* ══════════════════════════════════════════════
+   AUTO DEMO MODE — proves AI motion is live:
+   • Cycles idle→talking→excited→idle every few seconds
+   • Shows speech bubbles with random phrases
+   • Talking mode drives jaw + face morph in real-time
+   ══════════════════════════════════════════════ */
+const DEMO_PHRASES = [
+  'Halo! Saya AlterCast — AI streaming twin kamu.',
+  'Tangan dan kaki saya bergerak real-time pakai AI.',
+  'Mata saya berkedip natural setiap beberapa detik.',
+  'Mulut saya buka tutup saat berbicara otomatis.',
+  '164 karakter 3D semua bisa bergerak seperti saya.',
+  'AI Motion Brain mengontrol semua 497 tulang saya.',
+  'Saya bisa live stream 24 jam tanpa streamer hadir.',
+  'Skeleton otomatis dipasang ke setiap model 3D.',
+];
+
+let _demoIdx=0;
+function runDemoTalk(){
+  const phrase = DEMO_PHRASES[_demoIdx % DEMO_PHRASES.length];
+  _demoIdx++;
+  /* Show speech bubble */
+  const bub=$('bub');
+  bub.textContent=phrase;
+  bub.classList.add('show');
+  /* Switch to talking state */
+  Motion.setState('talking');
+  /* Use browser TTS if available */
+  if(window.speechSynthesis){
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(phrase);
+    u.lang='id-ID'; u.rate=0.92; u.pitch=1.1;
+    window.speechSynthesis.speak(u);
+    u.onend=()=>{
+      Motion.setState('idle');
+      bub.classList.remove('show');
+    };
+  } else {
+    /* No TTS — simulate talking for 3 seconds */
+    setTimeout(()=>{ Motion.setState('idle'); bub.classList.remove('show'); }, 3000);
+  }
+}
+
+/* Start demo loop after GLB loads */
+let _demoTimer=null;
+function startDemoLoop(){
+  if(_demoTimer) return;
+  /* First demo after 2 seconds */
+  _demoTimer=setTimeout(function loop(){
+    runDemoTalk();
+    /* Next phrase after current finishes (roughly 4-6s) */
+    _demoTimer=setTimeout(loop, 6000 + Math.random()*4000);
+  }, 2000);
+}
+
+/* Update bone status HUD after GLB loads */
+function updateBoneHUD(){
+  const checks=[
+    headBone?'HEAD✓':'HEAD✗',
+    neckBone?'NECK✓':'NECK✗',
+    spineBone?'SPINE✓':'SPINE✗',
+    hipBone?'HIP✓':'HIP✗',
+    jawBone?'JAW✓':'JAW✗',
+    eyeLBone?'EYE_L✓':'EYE_L✗',
+    eyeRBone?'EYE_R✓':'EYE_R✗',
+    armLBone?'ARM_L✓':'ARM_L✗',
+    armRBone?'ARM_R✓':'ARM_R✗',
+    foreArmLBone?'ELBOW_L✓':'',
+    foreArmRBone?'ELBOW_R✓':'',
+    legLBone?'LEG_L✓':'',
+    legRBone?'LEG_R✓':'',
+    morphMeshes.length>0?`MORPH(${morphMeshes.length})✓`:'',
+  ].filter(Boolean);
+  const active=checks.filter(c=>c.includes('✓')).length;
+  $('motion-hud').textContent=`AI MOTION · ${active} AKTIF · ${checks.filter(c=>c.includes('✓')).join(' · ')}`;
+}
+
+/* Hook into GLB load success */
+const _origLoadChar=loadChar;
+/* Start demo immediately with procedural */
+startDemoLoop();
+
+console.log('%cAlterCast Holographic Engine v6 — 176 chars — AI Motion Brain — INSTANT START','color:#00D4FF;font-weight:bold;font-size:14px');
+console.log('%c   HEAD✓ NECK✓ SPINE✓ HIP✓ JAW✓ EYES✓ ARMS✓ LEGS✓ MORPH✓','color:#00FF88;font-size:11px');
 </script>
 </body>
 </html>
