@@ -6963,17 +6963,22 @@ function PerformerPage() {
     hologram: "hue-rotate(160deg) saturate(2.5) brightness(1.2) contrast(1.3)",
   };
 
-  /* ── AI respond ── */
+  /* ── AI respond via Claude API ── */
   const aiRespond = async () => {
     if (!scriptText.trim() || isThinking) return;
     setIsThinking(true);
     try {
-      const resp = await window.claude.complete(
-        `Kamu AI streamer santai. Balas chat berikut dalam 1-2 kalimat singkat dan ekspresif: "${scriptText}"`
-      );
-      setScriptText(resp);
-      setTimeout(() => readScript(resp), 80);
-    } catch(e) { /* ignore */ }
+      const r = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `Kamu AI streamer santai bernama AlterCast. Balas chat berikut dalam 1-2 kalimat singkat dan ekspresif Bahasa Indonesia: "${scriptText}"`
+        })
+      });
+      const data = await r.json();
+      const resp = data.text || '';
+      if (resp) { setScriptText(resp); setTimeout(() => readScript(resp), 80); }
+    } catch(e) { console.warn('AI error:', e.message); }
     setIsThinking(false);
   };
 
