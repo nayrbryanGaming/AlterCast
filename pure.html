@@ -895,18 +895,9 @@ async function loadChar(key){
       }
       /* No animations: initial GLB bone state is correct rest/T-pose already */
 
-      /* ── PHASE 5: Aggressive arm reset for known dance-pose models ──
-         autoResetDanceBones handles most cases.
-         For stubborn models (dance deeply baked): nuclear upper-body reset. */
-      {
-        const hasAnimations = (gltf.animations||[]).length > 0;
-        const hasDanceAnim = hasAnimations && !(gltf.animations.find(a=>
-          /idle|breath|stand|rest|wait|blink|loop|neutral/i.test(a.name)));
-        /* If model has animations that aren't idle (dance/walk), reset upper body fully */
-        if(hasDanceAnim) nuclearUpperBodyReset(obj);
-        /* Always run the standard arm-named bone reset too */
-        else autoResetDanceBones(obj);
-      }
+      /* No bone resets — GLB initial state IS the correct rest pose.
+         AI Motion Brain overrides specific bones (head/arm/jaw/eye) from render loop.
+         Nuclear/autoReset caused flip/inversion on many models — removed. */
 
       /* Apply cam */
       applyCam(currentCamPreset);
@@ -1250,49 +1241,16 @@ function animate(){
       hipBone.rotation.z = Motion.hipSway(t) * 0.6;
     }
 
-    /* ARM BONES — WORLD-SPACE QUATERNION TARGETING
-       Works for ANY rig regardless of local axis orientation.
-       Detects "arm axis" from child bone position, then slerps bone quaternion
-       so that axis points toward world-space target (down + sway).
-    */
-    const sway=Math.sin(t*0.31)*0.08, fwd=Math.sin(t*0.27)*0.06-0.05;
-    /* Target world directions: arms hang down and slightly outward */
-    const targetL=new THREE.Vector3(-0.18+sway, -0.97, fwd).normalize();
-    const targetR=new THREE.Vector3( 0.18-sway, -0.97, fwd).normalize();
-    /* Add wave to left arm in idle, subtle sway in talking */
-    const waveAmt=Motion.state==='talking'?0.0:Math.sin(t*1.8)*0.55;
-    targetL.y += waveAmt; targetL.normalize();
-
-    function applyWorldArmTarget(bone, targetWorldDir){
-      if(!bone || bone.userData.isVirtual) return;
-      /* Find arm axis = direction toward first child bone */
-      let armAxis=new THREE.Vector3(1,0,0); /* default */
-      const ch=bone.children.find(c=>c.isBone||c.type==='Bone');
-      if(ch && ch.position.length()>0.001) armAxis=ch.position.clone().normalize();
-
-      /* Convert target world dir to bone's parent local space */
-      const parentQ=new THREE.Quaternion();
-      if(bone.parent) bone.parent.getWorldQuaternion(parentQ);
-      const localTarget=targetWorldDir.clone().applyQuaternion(parentQ.invert());
-
-      /* Quaternion that rotates armAxis → localTarget */
-      const q=new THREE.Quaternion().setFromUnitVectors(armAxis, localTarget.normalize());
-      /* Slerp: 20% per frame = fast convergence but smooth */
-      bone.quaternion.slerp(q, 0.20);
+    /* ARM BONES — AI motion on all three Euler axes simultaneously.
+       rotation.set() clears all axes from bind pose so AI drives completely.
+       Wave pattern on left arm (idle) or sway (talking). */
+    const aLz=Motion.armSwingL(t), aRz=Motion.armSwingR(t);
+    const aLx=Motion.armFwdL(t),   aRx=Motion.armFwdR(t);
+    if(armLBone && !armLBone.userData.isVirtual){
+      armLBone.rotation.set(aLx, Math.sin(t*0.23)*0.06, aLz);
     }
-
-    if(armLBone && !armLBone.userData.isVirtual) applyWorldArmTarget(armLBone, targetL);
-    if(armRBone && !armRBone.userData.isVirtual) applyWorldArmTarget(armRBone, targetR);
-    /* Fallback — if armLBone is clavicle, also fix its first child */
-    if(armLBone){
-      const childL=armLBone.children.find(c=>c.isBone||c.type==='Bone');
-      if(childL && childL!==headBone && childL!==spineBone && childL!==neckBone)
-        applyWorldArmTarget(childL, targetL);
-    }
-    if(armRBone){
-      const childR=armRBone.children.find(c=>c.isBone||c.type==='Bone');
-      if(childR && childR!==headBone && childR!==spineBone && childR!==neckBone)
-        applyWorldArmTarget(childR, targetR);
+    if(armRBone && !armRBone.userData.isVirtual){
+      armRBone.rotation.set(aRx, Math.sin(t*0.23+1)*0.06, aRz);
     }
     if(foreArmLBone){
       foreArmLBone.rotation.set(0, Math.sin(t*0.44)*0.06, Math.sin(t*0.31)*0.08);
