@@ -720,6 +720,26 @@ function autoResetDanceBones(obj){
   }
 }
 
+/* Nuclear upper-body reset — ALL bones above waist set to identity quaternion.
+   Called when standard reset fails (e.g. Aerith dance pose very deeply baked).
+   After this, AI motion provides 100% of upper body animation. */
+function nuclearUpperBodyReset(obj){
+  obj.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(obj);
+  const waistY=box.min.y + box.getSize(new THREE.Vector3()).y * 0.42;
+  const mn=box.min;
+
+  getAllBones(obj).forEach(bone=>{
+    const wp=new THREE.Vector3(); bone.getWorldPosition(wp);
+    if(wp.y < waistY) return; /* skip lower body */
+    /* Reset ALL upper body bones to identity = neutral T-pose */
+    bone.quaternion.set(0,0,0,1);
+    bone.rotation.set(0,0,0);
+  });
+  obj.updateMatrixWorld(true);
+  console.log('[AlterCast] nuclearUpperBodyReset — all upper body at identity');
+}
+
 function dumpBones(obj){
   const bones=getAllBones(obj);
   const names=bones.map(b=>b.name).filter(Boolean);
@@ -874,6 +894,19 @@ async function loadChar(key){
         /* Non-idle: no mixer, no animation played — initial GLB bone state preserved */
       }
       /* No animations: initial GLB bone state is correct rest/T-pose already */
+
+      /* ── PHASE 5: Aggressive arm reset for known dance-pose models ──
+         autoResetDanceBones handles most cases.
+         For stubborn models (dance deeply baked): nuclear upper-body reset. */
+      {
+        const hasAnimations = (gltf.animations||[]).length > 0;
+        const hasDanceAnim = hasAnimations && !(gltf.animations.find(a=>
+          /idle|breath|stand|rest|wait|blink|loop|neutral/i.test(a.name)));
+        /* If model has animations that aren't idle (dance/walk), reset upper body fully */
+        if(hasDanceAnim) nuclearUpperBodyReset(obj);
+        /* Always run the standard arm-named bone reset too */
+        else autoResetDanceBones(obj);
+      }
 
       /* Apply cam */
       applyCam(currentCamPreset);
@@ -1520,12 +1553,14 @@ $('ctrl').classList.add('show');
 $('char-panel').classList.add('show');
 window.parent?.postMessage({type:'AVATAR_READY',data:{total:CHAR_KEYS.length}},'*');
 
-/* STEP 2: Try loading real GLB in background after short delay */
+/* STEP 2: Load Anime Girl (p1) first — no dance pose, arms correct immediately.
+   Aerith (p0) has baked dance pose, shown when user clicks it in the list. */
+const FIRST_LOAD_KEY = CHAR_KEYS[1] || CHAR_KEYS[0]; /* p1 = Anime Girl */
 setTimeout(()=>{
-  loadChar(CHAR_KEYS[0]).then(()=>{
-    autoIdx=0;
+  loadChar(FIRST_LOAD_KEY).then(()=>{
+    autoIdx=CHAR_KEYS.indexOf(FIRST_LOAD_KEY);
     /* Notify parent: real GLB loaded, motion brain active */
-    window.parent?.postMessage({type:'AVATAR_GLB_LOADED',data:{key:CHAR_KEYS[0]}},'*');
+    window.parent?.postMessage({type:'AVATAR_GLB_LOADED',data:{key:FIRST_LOAD_KEY}},'*');
     updateBoneHUD();
     startDemoLoop();
     log('Avatar GLB siap — AI Motion Brain aktif');
