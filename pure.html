@@ -145,6 +145,8 @@ canvas{display:block;width:100%!important;height:100%!important}
   <div class="row">
     <span class="lbl">BG</span>
     <button class="btn sm on" data-bg="holo">Hologram</button>
+    <button class="btn sm" data-bg="studio">🏠 Studio</button>
+    <button class="btn sm" data-bg="city">🌆 Kota</button>
     <button class="btn sm" data-bg="dark">Dark</button>
     <button class="btn sm" data-bg="clear">Clear</button>
     <button class="btn sm" data-bg="chroma">Chroma</button>
@@ -357,6 +359,73 @@ for(let i=0;i<N;i++){pPos[i*3]=(Math.random()-.5)*5;pPos[i*3+1]=Math.random()*4;
 pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
 const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({color:0x00DDFF,size:.022,transparent:true,opacity:.55,sizeAttenuation:true}));
 scene.add(particles);
+
+/* ══ REAL BACKGROUND ENVIRONMENTS ══ */
+
+/* STUDIO ROOM — warm streaming studio with wood floor + back wall */
+const studioGroup = new THREE.Group(); studioGroup.visible=false;
+/* Wood floor */
+const stFloor = new THREE.Mesh(
+  new THREE.PlaneGeometry(12,8),
+  new THREE.MeshStandardMaterial({color:0x8B6914,roughness:.85,metalness:.05})
+);
+stFloor.rotation.x=-Math.PI/2; stFloor.position.y=0.001; studioGroup.add(stFloor);
+/* Back wall */
+const stBack = new THREE.Mesh(
+  new THREE.PlaneGeometry(12,6),
+  new THREE.MeshStandardMaterial({color:0xD4C5A0,roughness:.9,metalness:0})
+);
+stBack.position.set(0,3,-3.5); studioGroup.add(stBack);
+/* Left wall */
+const stLeft = new THREE.Mesh(
+  new THREE.PlaneGeometry(8,6),
+  new THREE.MeshStandardMaterial({color:0xC8BAA0,roughness:.9,metalness:0})
+);
+stLeft.rotation.y=Math.PI/2; stLeft.position.set(-5,3,0.5); studioGroup.add(stLeft);
+/* Right wall */
+const stRight = new THREE.Mesh(
+  new THREE.PlaneGeometry(8,6),
+  new THREE.MeshStandardMaterial({color:0xC8BAA0,roughness:.9,metalness:0})
+);
+stRight.rotation.y=-Math.PI/2; stRight.position.set(5,3,0.5); studioGroup.add(stRight);
+/* Ceiling */
+const stCeil = new THREE.Mesh(
+  new THREE.PlaneGeometry(12,8),
+  new THREE.MeshStandardMaterial({color:0xF0EDE0,roughness:.95,metalness:0})
+);
+stCeil.rotation.x=Math.PI/2; stCeil.position.y=5.8; studioGroup.add(stCeil);
+/* Spotlight effect cylinder */
+const stSpot = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.8,2.5,5.5,20,1,true),
+  new THREE.MeshBasicMaterial({color:0xFFEECC,transparent:true,opacity:0.04,side:THREE.DoubleSide,depthWrite:false})
+);
+stSpot.position.y=3.2; studioGroup.add(stSpot);
+scene.add(studioGroup);
+
+/* CITY BACKGROUND — urban rooftop scene */
+const cityGroup = new THREE.Group(); cityGroup.visible=false;
+/* Rooftop floor - concrete */
+const ctFloor = new THREE.Mesh(
+  new THREE.PlaneGeometry(14,10),
+  new THREE.MeshStandardMaterial({color:0x6B7280,roughness:.95,metalness:.05})
+);
+ctFloor.rotation.x=-Math.PI/2; ctFloor.position.y=0.001; cityGroup.add(ctFloor);
+/* Sky gradient background */
+const ctSky = new THREE.Mesh(
+  new THREE.PlaneGeometry(20,12),
+  new THREE.MeshBasicMaterial({color:0xFF7A2F}) /* orange sunset */
+);
+ctSky.position.set(0,4,-6); cityGroup.add(ctSky);
+/* City buildings silhouette (simple boxes) */
+const bldColors=[0x1A2535,0x15202B,0x222F3E,0x1B2631];
+[[-3,3,-4.5],[-5.5,2,-4.5],[2.5,4,-5],[5,1.5,-5],[-1,2.5,-5.5]].forEach((b,i)=>{
+  const bld=new THREE.Mesh(
+    new THREE.BoxGeometry(1.8,b[1]*2,1.5),
+    new THREE.MeshStandardMaterial({color:bldColors[i%4],roughness:.9,metalness:.2})
+  );
+  bld.position.set(b[0],b[1],b[2]); cityGroup.add(bld);
+});
+scene.add(cityGroup);
 
 /* LIGHTS */
 scene.add(new THREE.AmbientLight(0x4477AA, 1.6));
@@ -1160,22 +1229,45 @@ $('char-search').addEventListener('input',e=>{
 let currentBg='holo';
 function setBg(bg){
   currentBg=bg;
+  /* Hide all environment groups first */
+  [studioGroup, cityGroup].forEach(g=>{ if(g) g.visible=false; });
+  [ringGroup,floor,innerDisc,pillar,particles].forEach(x=>x.visible=false);
+  renderer.setClearAlpha(1);
+
   if(bg==='holo'){
     scene.background=new THREE.Color('#0A1633');
     [ringGroup,floor,innerDisc,pillar,particles].forEach(x=>x.visible=true);
-    renderer.setClearAlpha(1);
+    /* Reset studio lights */
+    keyL.color.setHex(0xFFEEDD); keyL.intensity=2.2;
+    fillL.color.setHex(0x00CCFF); fillL.intensity=1.3;
+  } else if(bg==='studio'){
+    /* Warm streaming studio room */
+    scene.background=new THREE.Color('#C8B08A');
+    studioGroup.visible=true;
+    particles.visible=false;
+    keyL.color.setHex(0xFFD07A); keyL.intensity=3.0; /* warm tungsten key */
+    fillL.color.setHex(0xFFE0A0); fillL.intensity=1.5;
+    rimL.color.setHex(0xFFCC66); rimL.intensity=2.0;
+  } else if(bg==='city'){
+    /* Outdoor rooftop sunset scene */
+    scene.background=new THREE.Color('#FF7A2F');
+    cityGroup.visible=true;
+    particles.visible=false;
+    keyL.color.setHex(0xFF9944); keyL.intensity=3.5; /* sunset warm key */
+    fillL.color.setHex(0xFF7722); fillL.intensity=1.2;
+    rimL.color.setHex(0xFFBB44); rimL.intensity=2.5;
   } else if(bg==='dark'){
     scene.background=new THREE.Color('#000');
-    [ringGroup,floor,innerDisc,pillar].forEach(x=>x.visible=false);
-    particles.visible=true; renderer.setClearAlpha(1);
+    particles.visible=true;
+    keyL.color.setHex(0xFFEEDD); keyL.intensity=2.2;
+    fillL.color.setHex(0x00CCFF); fillL.intensity=1.3;
   } else if(bg==='clear'){
     scene.background=null;
-    [ringGroup,floor,innerDisc,pillar,particles].forEach(x=>x.visible=false);
     renderer.setClearAlpha(0);
+    keyL.color.setHex(0xFFEEDD); keyL.intensity=2.2;
   } else if(bg==='chroma'){
     scene.background=new THREE.Color('#00B140');
-    [ringGroup,floor,innerDisc,pillar,particles].forEach(x=>x.visible=false);
-    renderer.setClearAlpha(1);
+    keyL.color.setHex(0xFFEEDD); keyL.intensity=2.2;
   }
 }
 
@@ -1511,9 +1603,9 @@ $('ctrl').classList.add('show');
 $('char-panel').classList.add('show');
 window.parent?.postMessage({type:'AVATAR_READY',data:{total:CHAR_KEYS.length}},'*');
 
-/* STEP 2: Load Anime Girl (p1) first — no dance pose, arms correct immediately.
-   Aerith (p0) has baked dance pose, shown when user clicks it in the list. */
-const FIRST_LOAD_KEY = CHAR_KEYS[1] || CHAR_KEYS[0]; /* p1 = Anime Girl */
+/* STEP 2: Try loading Cyborg (p3) first — sci-fi character, typically T-pose.
+   Falls back through list until one loads correctly. */
+const FIRST_LOAD_KEY = CHAR_KEYS[3] || CHAR_KEYS[1] || CHAR_KEYS[0]; /* p3=Cyborg, p1=AnimeGirl */
 setTimeout(()=>{
   loadChar(FIRST_LOAD_KEY).then(()=>{
     autoIdx=CHAR_KEYS.indexOf(FIRST_LOAD_KEY);
