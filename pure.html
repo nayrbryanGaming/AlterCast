@@ -8,7 +8,7 @@
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Inter',-apple-system,system-ui,sans-serif}
-canvas{display:block;width:100%!important;height:100%!important}
+canvas{display:block;position:fixed;inset:0;z-index:1;width:100%!important;height:100%!important}
 
 /* LOADING — Brighter so it's never confused with a blank page */
 #loading{position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 50%,#0D1E3A 0%,#060810 80%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#00D4FF;z-index:9999;transition:opacity .6s}
@@ -98,7 +98,7 @@ canvas{display:block;width:100%!important;height:100%!important}
 #char-count{font:9px/1 monospace;color:rgba(0,212,255,.4);padding:2px 0 4px;letter-spacing:.08em;text-align:center}
 
 /* REAL PHOTO BACKGROUND — behind canvas (canvas is transparent in real-bg mode) */
-#real-bg{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center;transition:opacity .5s;display:none}
+#real-bg{position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;transition:opacity .5s;display:none}
 #real-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 60%)} /* bottom vignette for text readability */
 </style>
 </head>
@@ -121,16 +121,6 @@ canvas{display:block;width:100%!important;height:100%!important}
 <div id="bub"></div>
 <div id="cmts"></div>
 
-<!-- Real-time AI Motion Proof Panel — bottom-left, always visible -->
-<div id="proof-panel" style="position:fixed;bottom:120px;left:14px;background:rgba(0,6,18,.88);border:1px solid rgba(0,212,255,.4);border-radius:10px;padding:12px 16px;font:11px/1.8 monospace;color:#00D4FF;letter-spacing:.07em;pointer-events:none;z-index:90;min-width:210px;backdrop-filter:blur(12px);box-shadow:0 0 30px rgba(0,212,255,.15);">
-  <div style="font-weight:900;font-size:12px;margin-bottom:8px;color:#fff;letter-spacing:.14em;border-bottom:1px solid rgba(0,212,255,.2);padding-bottom:6px;">⬡ AI MOTION BRAIN LIVE</div>
-  <div id="pm-head">HEAD ················</div>
-  <div id="pm-jaw">JAW  ················</div>
-  <div id="pm-eye">EYES ················</div>
-  <div id="pm-arm">ARMS ················</div>
-  <div id="pm-breath">BRTH ················</div>
-  <div id="pm-state" style="margin-top:8px;font-size:13px;font-weight:900;color:#00FF88;letter-spacing:.1em;">● AI IDLE</div>
-</div>
 
 <!-- Character panel (built dynamically) -->
 <div id="char-panel">
@@ -149,10 +139,10 @@ canvas{display:block;width:100%!important;height:100%!important}
   </div>
   <div class="row">
     <span class="lbl">BG</span>
-    <button class="btn sm on" data-bg="holo">Hologram</button>
-    <button class="btn sm" data-bg="studio">🏠 Studio</button>
-    <button class="btn sm" data-bg="city">🌆 Kota</button>
-    <button class="btn sm" data-bg="nature">🌿 Alam</button>
+    <button class="btn sm" data-bg="holo">Hologram</button>
+    <button class="btn sm on" data-bg="city">Kota</button>
+    <button class="btn sm" data-bg="studio">Studio</button>
+    <button class="btn sm" data-bg="nature">Alam</button>
     <button class="btn sm" data-bg="dark">Dark</button>
     <button class="btn sm" data-bg="clear">Clear</button>
     <button class="btn sm" data-bg="chroma">Chroma</button>
@@ -172,7 +162,7 @@ canvas{display:block;width:100%!important;height:100%!important}
     <div class="sp"></div>
     <button class="btn ghost sm" id="bk">Kembali</button>
   </div>
-  <div id="info">ALTERCAST HOLOGRAPHIC v6 · 164 KARAKTER · AI MOTION BRAIN · CAMERA TRACKING</div>
+  <div id="info">ALTERCAST v6 · 176 KARAKTER 3D · AI MOTION</div>
 </div>
 
 <div id="err">
@@ -480,16 +470,11 @@ const Motion = {
   /* Hip sway */
   hipSway(t){ return Math.sin(t*0.19)*0.10 + Math.sin(t*0.41)*0.04; },
 
-  /* ARM WAVE — left arm waves hello in idle, right arm pendant */
-  armWave(t){   /* 0→1→0 wave cycle, repeating */
-    return -Math.PI*0.6 + Math.sin(t*1.8)*Math.PI*0.55 + Math.sin(t*0.6)*0.15;
-  },
-  armSwingL(t){ return this.state==='talking'
-    ? -0.75 + Math.sin(t*0.4)*0.25 + Math.sin(t*0.9)*0.12 /* talking: both sway */
-    : this.armWave(t); }, /* idle: left arm WAVES */
-  armSwingR(t){ return  0.75 - Math.sin(t*0.31)*0.22 - Math.sin(t*0.7)*0.10; },
-  armFwdL(t){  return  0.10 + Math.sin(t*0.27)*0.10; },
-  armFwdR(t){  return  0.10 + Math.sin(t*0.27+1)*0.10; },
+  /* ARM natural sway — small additive motion, safe for ALL model types */
+  armSwingL(t){ return Math.sin(t*0.31)*0.11 + Math.sin(t*0.7)*0.04 + Math.sin(t*1.3)*0.02; },
+  armSwingR(t){ return -Math.sin(t*0.31)*0.11 - Math.sin(t*0.7)*0.04 - Math.sin(t*1.3)*0.02; },
+  armFwdL(t){  return Math.sin(t*0.27)*0.07 + Math.sin(t*0.6)*0.03; },
+  armFwdR(t){  return Math.sin(t*0.27+1)*0.07 + Math.sin(t*0.6+1)*0.03; },
 
   /* Spine twist */
   spineTwist(t){ return Math.sin(t*0.19)*0.06 + Math.sin(t*0.41)*0.022; },
@@ -1239,7 +1224,7 @@ const REAL_BG_PHOTOS = {
   nature: 'https://images.unsplash.com/photo-1426604966848-d7adac402bff?auto=format&fit=crop&w=1920&q=80',
 };
 
-let currentBg='holo';
+let currentBg='city';
 function setBg(bg){
   currentBg=bg;
   const realBgEl=$('real-bg');
@@ -1357,16 +1342,16 @@ function animate(){
       hipBone.rotation.z = Motion.hipSway(t) * 0.6;
     }
 
-    /* ARM BONES — AI motion on all three Euler axes simultaneously.
-       rotation.set() clears all axes from bind pose so AI drives completely.
-       Wave pattern on left arm (idle) or sway (talking). */
-    const aLz=Motion.armSwingL(t), aRz=Motion.armSwingR(t);
-    const aLx=Motion.armFwdL(t),   aRx=Motion.armFwdR(t);
+    /* ARM BONES — additive sway only, safe for all model orientations */
     if(armLBone && !armLBone.userData.isVirtual){
-      armLBone.rotation.set(aLx, Math.sin(t*0.23)*0.06, aLz);
+      armLBone.rotation.z = Motion.armSwingL(t);
+      armLBone.rotation.x = Motion.armFwdL(t);
+      armLBone.rotation.y = Math.sin(t*0.23)*0.05;
     }
     if(armRBone && !armRBone.userData.isVirtual){
-      armRBone.rotation.set(aRx, Math.sin(t*0.23+1)*0.06, aRz);
+      armRBone.rotation.z = Motion.armSwingR(t);
+      armRBone.rotation.x = Motion.armFwdR(t);
+      armRBone.rotation.y = Math.sin(t*0.23+1)*0.05;
     }
     if(foreArmLBone){
       foreArmLBone.rotation.set(0, Math.sin(t*0.44)*0.06, Math.sin(t*0.31)*0.08);
@@ -1459,24 +1444,6 @@ function animate(){
       ctl.target.y += (camTargetLook.y + driftY - ctl.target.y) * 0.010;
     }
 
-    /* ── UPDATE AI MOTION PROOF PANEL (every 3 frames for performance) ── */
-    if(Math.round(t*60)%3===0){
-      const bar=(v,max=1)=>{const p=Math.abs(v)/max;const f=Math.min(1,p);const b='█'.repeat(Math.round(f*8)).padEnd(8,'░');return b+' '+(v>=0?'+':'')+v.toFixed(2);};
-      const hYaw=Motion.headYaw(t), hPitch=Motion.headPitch(t);
-      const jawV=Motion.jawOpen(t);
-      const blinkV=Motion.eyeBlink(t);
-      const armV=Motion.armSwingL(t);
-      const breathV=Motion.breatheY(t);
-      const stateColors={idle:'#00FF88',talking:'#00D4FF',excited:'#FFB800',listening:'#7C3AFF'};
-      const pmEl=id=>document.getElementById(id);
-      if(pmEl('pm-head')) pmEl('pm-head').textContent=`HEAD ${bar(hYaw,.32)} yaw`;
-      if(pmEl('pm-jaw'))  pmEl('pm-jaw') .textContent=`JAW  ${bar(jawV,1)}`;
-      if(pmEl('pm-eye'))  pmEl('pm-eye') .textContent=`EYES ${bar(blinkV,1)} blink`;
-      if(pmEl('pm-arm'))  pmEl('pm-arm') .textContent=`ARMS ${bar(armV,1)}`;
-      if(pmEl('pm-breath'))pmEl('pm-breath').textContent=`BRTH ${bar(breathV,.11)}`;
-      const stEl=pmEl('pm-state');
-      if(stEl){stEl.textContent=`● ${Motion.state.toUpperCase()}`;stEl.style.color=stateColors[Motion.state]||'#fff';}
-    }
   }
 
   /* Auto-rotate + render */
@@ -1548,32 +1515,63 @@ rdBtn.addEventListener('click',()=>readScript(sc.value));
 stBtn.addEventListener('click',stopTTS);
 sc.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();readScript(sc.value);} e.stopPropagation(); });
 
+/* ── AI Claude API ── */
+async function callAI(userText){
+  try{
+    const resp=await fetch('/api/ai',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:userText})
+    });
+    if(!resp.ok) return null;
+    const d=await resp.json();
+    return d.text||null;
+  }catch(e){ return null; }
+}
+
 /* AI button */
 $('ai-btn').addEventListener('click',async()=>{
   const txt=sc.value.trim(); if(!txt) return;
-  const btn=$('ai-btn'); btn.textContent='...';
+  const btn=$('ai-btn'); btn.textContent='...'; btn.disabled=true;
   Motion.setState('listening');
-  try{
-    const r=await window.claude?.complete(`Kamu AI streamer santai. Balas chat berikut dalam 1-2 kalimat singkat dan ekspresif: "${txt}"`);
-    if(r){ sc.value=r; readScript(r); }
-  }catch(e){ Motion.setState('idle'); }
-  btn.textContent='AI';
+  const r=await callAI(`Ada yang chat: "${txt}". Balas 1-2 kalimat singkat bahasa Indonesia:`);
+  if(r){ sc.value=r; readScript(r); }
+  else { Motion.setState('idle'); }
+  btn.textContent='AI'; btn.disabled=false;
 });
 
-/* Comments */
+/* ── Microphone voice input ── */
+(function setupMic(){
+  const micBtn=document.createElement('button');
+  micBtn.className='btn ghost sm'; micBtn.id='mic-btn'; micBtn.title='Bicara — AI dengar & respond';
+  micBtn.textContent='MIC';
+  $('ai-btn').insertAdjacentElement('afterend',micBtn);
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){micBtn.style.opacity='.35';return;}
+  const recog=new SR(); recog.lang='id-ID'; recog.continuous=false; recog.interimResults=false;
+  let active=false;
+  recog.onstart=()=>{active=true;micBtn.textContent='● REC';micBtn.classList.add('on');Motion.setState('listening');};
+  recog.onend=()=>{active=false;micBtn.textContent='MIC';micBtn.classList.remove('on');};
+  recog.onerror=()=>{active=false;micBtn.textContent='MIC';micBtn.classList.remove('on');Motion.setState('idle');};
+  recog.onresult=async e=>{
+    const txt=e.results[0][0].transcript;
+    sc.value=txt;
+    const r=await callAI(`Chat masuk: "${txt}". Balas singkat 1 kalimat bahasa Indonesia:`);
+    if(r){sc.value=r;readScript(r);}else{readScript(txt);}
+  };
+  micBtn.addEventListener('click',()=>{if(active)recog.stop();else try{recog.start();}catch(ex){}});
+})();
+
+/* Live chat */
 const cmtsEl=$('cmts');
 function addCmt(user,text,color='#00D4FF'){
   const el=document.createElement('div');
   el.className='cmt'; el.style.borderLeft=`3px solid ${color}`;
   el.innerHTML=`<div class="cmt-av" style="background:${color}">${user[0].toUpperCase()}</div><div><div class="cmt-u" style="color:${color}">${user}</div><div class="cmt-t">${text}</div></div>`;
   cmtsEl.prepend(el);
-  while(cmtsEl.children.length>6) cmtsEl.lastElementChild.remove();
-  setTimeout(()=>el.remove(),9000);
+  while(cmtsEl.children.length>5) cmtsEl.lastElementChild.remove();
+  setTimeout(()=>el.remove(),8000);
 }
-setTimeout(()=>{
-  [['Nayr','#00D4FF','Avatar-nya keren banget!'],['viewer02','#7C3AFF','Bisa ganti karakter lain?'],['livefan','#00FF88','164 karakter mantap!']]
-    .forEach(([u,c,t],i)=>setTimeout(()=>addCmt(u,t,c),(i+1)*2400));
-},2000);
 
 /* Controls visibility */
 let hideT;
@@ -1625,111 +1623,22 @@ loadProceduralChar(CHAR_KEYS[0]);
 Motion.setState('idle');
 $('ctrl').classList.add('show');
 $('char-panel').classList.add('show');
+/* Set default real-life background */
+setBg('city');
 window.parent?.postMessage({type:'AVATAR_READY',data:{total:CHAR_KEYS.length}},'*');
 
-/* STEP 2: Try loading Cyborg (p3) first — sci-fi character, typically T-pose.
-   Falls back through list until one loads correctly. */
-const FIRST_LOAD_KEY = CHAR_KEYS[3] || CHAR_KEYS[1] || CHAR_KEYS[0]; /* p3=Cyborg, p1=AnimeGirl */
+/* STEP 2: Load first available GLB character */
+const FIRST_LOAD_KEY = CHAR_KEYS[0];
 setTimeout(()=>{
   loadChar(FIRST_LOAD_KEY).then(()=>{
-    autoIdx=CHAR_KEYS.indexOf(FIRST_LOAD_KEY);
-    /* Notify parent: real GLB loaded, motion brain active */
-    window.parent?.postMessage({type:'AVATAR_GLB_LOADED',data:{key:FIRST_LOAD_KEY}},'*');
-    updateBoneHUD();
-    startDemoLoop();
-    log('Avatar GLB siap — AI Motion Brain aktif');
-  }).catch(err=>{
-    /* GLB failed — procedural already showing, no action needed */
-    console.warn('[AlterCast] GLB load failed, procedural stays:', err.message);
-    $('status').textContent='HOLO · AI PROCEDURAL · MOTION ACTIVE';
-    updateBoneHUD();
+    autoIdx=0;
+    window.parent?.postMessage({type:'AVATAR_READY',data:{total:CHAR_KEYS.length}},'*');
+  }).catch(()=>{
+    $('status').textContent='HOLO · KARAKTER SIAP';
   });
-}, 400); /* 400ms delay — let procedural render first */
+}, 300);
 
-/* ══════════════════════════════════════════════
-   AUTO DEMO MODE — proves AI motion is live:
-   • Cycles idle→talking→excited→idle every few seconds
-   • Shows speech bubbles with random phrases
-   • Talking mode drives jaw + face morph in real-time
-   ══════════════════════════════════════════════ */
-const DEMO_PHRASES = [
-  'Halo! Saya AlterCast — AI streaming twin kamu.',
-  'Tangan dan kaki saya bergerak real-time pakai AI.',
-  'Mata saya berkedip natural setiap beberapa detik.',
-  'Mulut saya buka tutup saat berbicara otomatis.',
-  '164 karakter 3D semua bisa bergerak seperti saya.',
-  'AI Motion Brain mengontrol semua 497 tulang saya.',
-  'Saya bisa live stream 24 jam tanpa streamer hadir.',
-  'Skeleton otomatis dipasang ke setiap model 3D.',
-];
-
-let _demoIdx=0;
-function runDemoTalk(){
-  const phrase = DEMO_PHRASES[_demoIdx % DEMO_PHRASES.length];
-  _demoIdx++;
-  /* Show speech bubble */
-  const bub=$('bub');
-  bub.textContent=phrase;
-  bub.classList.add('show');
-  /* Switch to talking state */
-  Motion.setState('talking');
-  /* Use browser TTS if available */
-  if(window.speechSynthesis){
-    window.speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(phrase);
-    u.lang='id-ID'; u.rate=0.92; u.pitch=1.1;
-    window.speechSynthesis.speak(u);
-    u.onend=()=>{
-      Motion.setState('idle');
-      bub.classList.remove('show');
-    };
-  } else {
-    /* No TTS — simulate talking for 3 seconds */
-    setTimeout(()=>{ Motion.setState('idle'); bub.classList.remove('show'); }, 3000);
-  }
-}
-
-/* Start demo loop — immediately starts talking to prove AI is live */
-let _demoTimer=null;
-function startDemoLoop(){
-  if(_demoTimer) return;
-  /* First demo in 1 second */
-  _demoTimer=setTimeout(function loop(){
-    runDemoTalk();
-    /* Next phrase: 4-5 seconds (fast cycling to prove continuous AI control) */
-    _demoTimer=setTimeout(loop, 4000 + Math.random()*1500);
-  }, 1000);
-}
-
-/* Update bone status HUD after GLB loads */
-function updateBoneHUD(){
-  const checks=[
-    headBone?'HEAD✓':'HEAD✗',
-    neckBone?'NECK✓':'NECK✗',
-    spineBone?'SPINE✓':'SPINE✗',
-    hipBone?'HIP✓':'HIP✗',
-    jawBone?'JAW✓':'JAW✗',
-    eyeLBone?'EYE_L✓':'EYE_L✗',
-    eyeRBone?'EYE_R✓':'EYE_R✗',
-    armLBone?'ARM_L✓':'ARM_L✗',
-    armRBone?'ARM_R✓':'ARM_R✗',
-    foreArmLBone?'ELBOW_L✓':'',
-    foreArmRBone?'ELBOW_R✓':'',
-    legLBone?'LEG_L✓':'',
-    legRBone?'LEG_R✓':'',
-    morphMeshes.length>0?`MORPH(${morphMeshes.length})✓`:'',
-  ].filter(Boolean);
-  const active=checks.filter(c=>c.includes('✓')).length;
-  $('motion-hud').textContent=`AI MOTION · ${active} AKTIF · ${checks.filter(c=>c.includes('✓')).join(' · ')}`;
-}
-
-/* Hook into GLB load success */
-const _origLoadChar=loadChar;
-/* Start demo immediately with procedural */
-startDemoLoop();
-
-console.log('%cAlterCast Holographic Engine v6 — 176 chars — AI Motion Brain — INSTANT START','color:#00D4FF;font-weight:bold;font-size:14px');
-console.log('%c   HEAD✓ NECK✓ SPINE✓ HIP✓ JAW✓ EYES✓ ARMS✓ LEGS✓ MORPH✓','color:#00FF88;font-size:11px');
+console.log('%cAlterCast v6 — AI Motion — Ready','color:#00D4FF;font-weight:bold;font-size:13px');
 </script>
 </body>
 </html>
