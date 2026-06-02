@@ -8,7 +8,55 @@
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Inter',-apple-system,system-ui,sans-serif}
-canvas{display:block;width:100%!important;height:100%!important}
+canvas{display:block;position:fixed;inset:0;z-index:1;width:100%!important;height:100%!important}
+
+/* ══ BACKGROUND LAYER — real-life animated environments ══ */
+#bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;transition:opacity .8s}
+
+/* City Night */
+#bg-layer.city{background:#040410}
+#bg-layer.city::before{content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse at 25% 88%,rgba(255,120,20,.22) 0%,transparent 38%),
+    radial-gradient(ellipse at 75% 82%,rgba(20,80,255,.18) 0%,transparent 42%),
+    radial-gradient(ellipse at 50% 50%,rgba(80,0,180,.1) 0%,transparent 65%),
+    repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(0,212,255,.025) 39px,rgba(0,212,255,.025) 40px),
+    repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(255,200,50,.018) 59px,rgba(255,200,50,.018) 60px);
+  animation:city-scroll 25s linear infinite}
+@keyframes city-scroll{0%{background-position:0 0,0 0,0 0,0 0,0 0}100%{background-position:0 40px,0 40px,0 0,0 40px,60px 0}}
+#bg-layer.city::after{content:'';position:absolute;bottom:0;left:0;right:0;height:30%;
+  background:linear-gradient(180deg,transparent,rgba(4,4,16,.85) 55%,#040410 100%)}
+
+/* Sunset */
+#bg-layer.sunset{background:linear-gradient(180deg,#060018 0%,#1a0533 14%,#6B1A1A 33%,#C75000 53%,#FF8C00 68%,#FFD700 84%,#FFF0D0 100%);
+  animation:sunset-shift 14s ease-in-out infinite alternate}
+@keyframes sunset-shift{0%{filter:saturate(1) brightness(1)}50%{filter:saturate(1.12) brightness(1.05)}100%{filter:saturate(.92) brightness(.95) hue-rotate(8deg)}}
+#bg-layer.sunset::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 55% 28% at 50% 100%,rgba(255,200,0,.28) 0%,transparent 70%);
+  animation:sun-pulse 7s ease-in-out infinite alternate}
+@keyframes sun-pulse{0%{opacity:.55}100%{opacity:1}}
+
+/* Nature / Forest */
+#bg-layer.nature{background:linear-gradient(180deg,#020d02 0%,#061806 18%,#0d2e0d 42%,#1a4a1a 68%,#2a6a2a 100%);
+  animation:nature-shift 9s ease-in-out infinite alternate}
+@keyframes nature-shift{0%{filter:brightness(.88) saturate(.9)}100%{filter:brightness(1.06) saturate(1.15)}}
+#bg-layer.nature::before{content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 90% 35% at 50% 0%,rgba(0,25,0,.7) 0%,transparent 75%),
+    radial-gradient(ellipse 100% 18% at 50% 100%,rgba(0,50,0,.45) 0%,transparent 60%)}
+#bg-layer.nature::after{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 60% at 50% 40%,rgba(0,80,0,.12) 0%,transparent 80%);
+  animation:nature-glow 5s ease-in-out infinite alternate}
+@keyframes nature-glow{0%{opacity:.4}100%{opacity:1}}
+
+/* Studio */
+#bg-layer.studio{background:radial-gradient(ellipse 85% 65% at 50% 50%,#1a1a2e 0%,#0d0d18 52%,#050508 100%)}
+#bg-layer.studio::before{content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 38% 65% at 18% 50%,rgba(0,100,255,.07) 0%,transparent 60%),
+    radial-gradient(ellipse 38% 65% at 82% 50%,rgba(120,0,255,.06) 0%,transparent 60%)}
+#bg-layer.studio::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,212,255,.3),transparent)}
 
 /* LOADING */
 #loading{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 70%,#0A1228 0%,#000 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#00D4FF;z-index:9999;transition:opacity .6s}
@@ -101,11 +149,12 @@ canvas{display:block;width:100%!important;height:100%!important}
   <div id="load-txt">Inisialisasi engine 3D...</div>
 </div>
 
+<div id="bg-layer"></div>
 <canvas id="c"></canvas>
 
 <div id="auto-bar"></div>
 <div id="status">HOLOGRAM ACTIVE</div>
-<div id="motion-hud">AI MOTION · IDLE</div>
+<div id="motion-hud" class="hide">AI MOTION · IDLE</div>
 <div id="wm">ALTERCAST · LIVE</div>
 <div id="bub"></div>
 <div id="cmts"></div>
@@ -124,10 +173,15 @@ canvas{display:block;width:100%!important;height:100%!important}
     <button class="btn" id="rd">Baca</button>
     <button class="btn stop" id="st" style="display:none">Stop</button>
     <button class="btn vio" id="ai-btn">AI</button>
+    <button class="btn ghost sm" id="mic-btn" title="Bicara — AI akan dengar dan respond">MIC</button>
   </div>
   <div class="row">
     <span class="lbl">BG</span>
     <button class="btn sm on" data-bg="holo">Hologram</button>
+    <button class="btn sm" data-bg="city">City</button>
+    <button class="btn sm" data-bg="sunset">Sunset</button>
+    <button class="btn sm" data-bg="nature">Nature</button>
+    <button class="btn sm" data-bg="studio">Studio</button>
     <button class="btn sm" data-bg="dark">Dark</button>
     <button class="btn sm" data-bg="clear">Clear</button>
     <button class="btn sm" data-bg="chroma">Chroma</button>
@@ -361,56 +415,56 @@ const Motion = {
            layers.reduce((s,[,a])=>s+a, 0);
   },
 
-  /* Body sway — visible organic drift */
+  /* Body sway — visible organic drift (amplified for natural feel) */
   bodySwayX(t){ return this.noise(t,[
-    [0.3,1],[0.7,0.4],[1.8,0.15],[0.11,0.1]]) * (this.state==='excited'?.08:.035); },
+    [0.3,1],[0.7,0.4],[1.8,0.15],[0.11,0.1]]) * (this.state==='excited'?.14:.058); },
   bodySwayZ(t){ return this.noise(t+10,[
-    [0.25,1],[0.6,0.35],[2.1,0.12]]) * (this.state==='excited'?.05:.022); },
+    [0.25,1],[0.6,0.35],[2.1,0.12]]) * (this.state==='excited'?.09:.038); },
 
-  /* Breathing — visible chest rise */
+  /* Breathing — clearly visible chest rise */
   breatheY(t){ return (Math.sin(t*0.9)*0.6 + Math.sin(t*1.8)*0.2 + Math.sin(t*0.3)*0.2) *
-    (this.state==='idle'?.04:.06); },
+    (this.state==='idle'?.068:.10); },
 
-  /* Head movement — clearly visible */
+  /* Head movement — strong and visible */
   headYaw(t){ return this.noise(t+3,[
-    [0.22,1],[0.55,0.5],[1.3,0.2],[3.5,0.05]]) * (this.state==='talking'?.18:.10); },
+    [0.22,1],[0.55,0.5],[1.3,0.2],[3.5,0.05]]) * (this.state==='talking'?.32:.18); },
   headPitch(t){ return this.noise(t+7,[
-    [0.18,1],[0.45,0.45],[1.1,0.18]]) * (this.state==='talking'?.12:.07); },
+    [0.18,1],[0.45,0.45],[1.1,0.18]]) * (this.state==='talking'?.22:.13); },
   headRoll(t){ return this.noise(t+15,[
-    [0.14,1],[0.38,0.4]]) * .045; },
+    [0.14,1],[0.38,0.4]]) * .075; },
 
   /* Weight shift — visible hip sway */
-  hipSway(t){ return Math.sin(t*0.19)*0.045 + Math.sin(t*0.41)*0.018; },
+  hipSway(t){ return Math.sin(t*0.19)*0.075 + Math.sin(t*0.41)*0.032; },
 
-  /* Arm swing — brings arms down from T-pose, natural idle sway */
-  armSwingL(t){ return -0.55 + Math.sin(t*0.31)*0.08 + Math.sin(t*0.7)*0.03; },
-  armSwingR(t){ return  0.55 - Math.sin(t*0.31)*0.08 - Math.sin(t*0.7)*0.03; },
-  armFwdL(t){  return  0.12 + Math.sin(t*0.27)*0.04; },
-  armFwdR(t){  return  0.12 + Math.sin(t*0.27+1)*0.04; },
+  /* Arm swing — natural idle sway with clear movement */
+  armSwingL(t){ return -0.55 + Math.sin(t*0.31)*0.14 + Math.sin(t*0.7)*0.06; },
+  armSwingR(t){ return  0.55 - Math.sin(t*0.31)*0.14 - Math.sin(t*0.7)*0.06; },
+  armFwdL(t){  return  0.14 + Math.sin(t*0.27)*0.08; },
+  armFwdR(t){  return  0.14 + Math.sin(t*0.27+1)*0.08; },
 
-  /* Spine twist — torso counter-rotation to hip sway */
-  spineTwist(t){ return Math.sin(t*0.19)*0.022 + Math.sin(t*0.41)*0.009; },
+  /* Spine twist — torso counter-rotation */
+  spineTwist(t){ return Math.sin(t*0.19)*0.038 + Math.sin(t*0.41)*0.016; },
 
   /* Jaw open amount 0-1 */
   jawOpen(t){ return this.state==='talking'
-    ? Math.max(0, Math.sin(t*9)*0.5 + Math.sin(t*13)*0.3 + Math.sin(t*7)*0.2)
-    : Math.max(0, Math.sin(t*0.7)*0.08); },
+    ? Math.max(0, Math.sin(t*8)*0.55 + Math.sin(t*14)*0.3 + Math.sin(t*6)*0.15)
+    : Math.max(0, Math.sin(t*0.7)*0.06); },
 
-  /* Eye blink — periodic natural blink */
+  /* Eye blink — natural blink with variation */
   eyeBlink(t){
-    const cycle = t % 4.2;
-    if(cycle < 0.08) return cycle/0.08;
-    if(cycle < 0.16) return 1-(cycle-0.08)/0.08;
+    const cycle = t % 3.8;
+    if(cycle < 0.07) return cycle/0.07;
+    if(cycle < 0.15) return 1-(cycle-0.07)/0.08;
     return 0;
   },
 
-  /* Subtle eye look direction */
-  eyeLookX(t){ return Math.sin(t*0.23)*0.15 + Math.sin(t*0.61)*0.05; },
-  eyeLookY(t){ return Math.sin(t*0.19)*0.08 + Math.sin(t*0.44)*0.03; },
+  /* Eye look direction — more active */
+  eyeLookX(t){ return Math.sin(t*0.23)*0.22 + Math.sin(t*0.61)*0.08; },
+  eyeLookY(t){ return Math.sin(t*0.19)*0.14 + Math.sin(t*0.44)*0.05; },
 
-  /* Camera target drift — camera gently follows body */
-  camDriftX(t){ return Math.sin(t*0.21)*0.06 + Math.sin(t*0.57)*0.02; },
-  camDriftY(t){ return Math.sin(t*0.17)*0.04 + Math.sin(t*0.44)*0.015; },
+  /* Camera target drift — follows body movement */
+  camDriftX(t){ return Math.sin(t*0.21)*0.08 + Math.sin(t*0.57)*0.03; },
+  camDriftY(t){ return Math.sin(t*0.17)*0.055 + Math.sin(t*0.44)*0.02; },
 
   setState(s){ this.state=s; $('motion-hud').textContent = `AI MOTION · ${s.toUpperCase()}`; },
 };
@@ -1003,8 +1057,12 @@ $('char-search').addEventListener('input',e=>{
    BACKGROUND
    ══════════════════════════════════════════════ */
 let currentBg='holo';
+const bgLayer = document.getElementById('bg-layer');
+
 function setBg(bg){
   currentBg=bg;
+  bgLayer.className='';
+
   if(bg==='holo'){
     scene.background=new THREE.Color('#0A1633');
     [ringGroup,floor,innerDisc,pillar,particles].forEach(x=>x.visible=true);
@@ -1021,6 +1079,32 @@ function setBg(bg){
     scene.background=new THREE.Color('#00B140');
     [ringGroup,floor,innerDisc,pillar,particles].forEach(x=>x.visible=false);
     renderer.setClearAlpha(1);
+  } else if(bg==='city'){
+    /* Real-life: animated neon city night */
+    scene.background=null;
+    [ringGroup,floor,innerDisc,pillar].forEach(x=>x.visible=false);
+    particles.visible=true; /* floating neon dots look good over city */
+    renderer.setClearAlpha(0);
+    bgLayer.className='city';
+  } else if(bg==='sunset'){
+    /* Real-life: sunset sky gradient */
+    scene.background=null;
+    [ringGroup,floor,innerDisc,pillar,particles].forEach(x=>x.visible=false);
+    renderer.setClearAlpha(0);
+    bgLayer.className='sunset';
+  } else if(bg==='nature'){
+    /* Real-life: forest/nature */
+    scene.background=null;
+    [ringGroup,floor,innerDisc,pillar,particles].forEach(x=>x.visible=false);
+    renderer.setClearAlpha(0);
+    bgLayer.className='nature';
+  } else if(bg==='studio'){
+    /* Real-life: professional studio */
+    scene.background=null;
+    [ringGroup,floor,innerDisc,pillar].forEach(x=>x.visible=false);
+    particles.visible=false;
+    renderer.setClearAlpha(0);
+    bgLayer.className='studio';
   }
 }
 
@@ -1245,17 +1329,58 @@ rdBtn.addEventListener('click',()=>readScript(sc.value));
 stBtn.addEventListener('click',stopTTS);
 sc.addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();readScript(sc.value);} e.stopPropagation(); });
 
+/* ── AI Claude API call ── */
+async function callAI(userText){
+  const resp = await fetch('/api/ai',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:`Ada yang komen: "${userText}". Balas singkat 1-2 kalimat natural Bahasa Indonesia sebagai streamer:`})
+  });
+  if(!resp.ok) throw new Error('api error '+resp.status);
+  const data = await resp.json();
+  return data.text || '';
+}
+
 /* AI button */
 $('ai-btn').addEventListener('click',async()=>{
   const txt=sc.value.trim(); if(!txt) return;
-  const btn=$('ai-btn'); btn.textContent='...';
+  const btn=$('ai-btn'); btn.textContent='...'; btn.disabled=true;
   Motion.setState('listening');
   try{
-    const r=await window.claude?.complete(`Kamu AI streamer santai. Balas chat berikut dalam 1-2 kalimat singkat dan ekspresif: "${txt}"`);
+    const r = await callAI(txt);
     if(r){ sc.value=r; readScript(r); }
-  }catch(e){ Motion.setState('idle'); }
-  btn.textContent='AI';
+    else { Motion.setState('idle'); }
+  }catch(e){ console.warn('AI err:',e.message); Motion.setState('idle'); }
+  btn.textContent='AI'; btn.disabled=false;
 });
+
+/* ── Microphone / Speech Recognition ── */
+(function setupMic(){
+  const micBtn=$('mic-btn');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ micBtn.style.opacity='.35'; micBtn.title='Browser tidak support Speech Recognition'; return; }
+  const recog = new SR();
+  recog.lang='id-ID'; recog.continuous=false; recog.interimResults=false;
+  let active=false;
+
+  recog.onstart=()=>{ active=true; micBtn.textContent='● REC'; micBtn.classList.add('on'); Motion.setState('listening'); };
+  recog.onend=()=>{ active=false; micBtn.textContent='MIC'; micBtn.classList.remove('on'); };
+  recog.onerror=()=>{ active=false; micBtn.textContent='MIC'; micBtn.classList.remove('on'); Motion.setState('idle'); };
+  recog.onresult=async e=>{
+    const txt=e.results[0][0].transcript;
+    sc.value=txt;
+    addCmt('Kamu (mic)',txt,'#FFB800');
+    /* Auto AI respond to voice */
+    try{
+      const r=await callAI(txt);
+      if(r){ sc.value=r; readScript(r); }
+    }catch(ex){ readScript(txt); }
+  };
+
+  micBtn.addEventListener('click',()=>{
+    if(active){ recog.stop(); } else { try{ recog.start(); }catch(ex){} }
+  });
+})();
 
 /* Comments */
 const cmtsEl=$('cmts');
@@ -1267,21 +1392,17 @@ function addCmt(user,text,color='#00D4FF'){
   while(cmtsEl.children.length>6) cmtsEl.lastElementChild.remove();
   setTimeout(()=>el.remove(),9000);
 }
-setTimeout(()=>{
-  [['Nayr','#00D4FF','Avatar-nya keren banget!'],['viewer02','#7C3AFF','Bisa ganti karakter lain?'],['livefan','#00FF88','164 karakter mantap!']]
-    .forEach(([u,c,t],i)=>setTimeout(()=>addCmt(u,t,c),(i+1)*2400));
-},2000);
 
 /* Controls visibility */
 let hideT;
 const ctrlEl=$('ctrl'), cpEl=$('char-panel'), wmEl=$('wm'), mhEl=$('motion-hud');
 function showCtrl(){
   ctrlEl.classList.add('show'); cpEl.classList.add('show');
-  wmEl.classList.add('hide'); mhEl.classList.remove('hide');
+  wmEl.classList.add('hide');
   clearTimeout(hideT);
   hideT=setTimeout(()=>{
     ctrlEl.classList.remove('show'); cpEl.classList.remove('show');
-    wmEl.classList.remove('hide'); mhEl.classList.add('hide');
+    wmEl.classList.remove('hide');
   },5000);
 }
 document.addEventListener('mousemove',showCtrl);

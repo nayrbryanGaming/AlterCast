@@ -5,12 +5,31 @@
   "outputDirectory": ".",
   "cleanUrls": true,
   "trailingSlash": false,
+  "functions": {
+    "api/ai.js": {
+      "maxDuration": 15
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
         { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    },
+    {
+      "source": "/public/chars/(.*)\\.glb",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" },
+        { "key": "Content-Type", "value": "model/gltf-binary" }
+      ]
+    },
+    {
+      "source": "/public/(.*)\\.glb",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" },
+        { "key": "Content-Type", "value": "model/gltf-binary" }
       ]
     }
   ]
